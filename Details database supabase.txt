@@ -1,0 +1,14 @@
+Details:
+Shared Pooler
+Only use on a IPv4 networkSession pooler connections are IPv4 proxied for free.
+Use Direct Connection if connecting via an IPv6 network.
+host:aws-1-ap-northeast-1.pooler.supabase.com
+port:5432
+database:postgres
+user:postgres.aecwhotjuuphryoftvpf
+Code:
+File: Code
+```
+DATABASE_URL=postgresql://postgres.aecwhotjuuphryoftvpf:[YOUR-PASSWORD]@aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres
+```
+database_pass=Punyapeby15
