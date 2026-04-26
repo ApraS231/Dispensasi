@@ -114,9 +114,30 @@ mobile-app/
 
 **Uji Coba Mobile App:**
 
-\# Jalankan server Expo  
+# Jalankan server Expo  
 npx expo start  
-\# Tekan 'a' untuk buka di Emulator Android, 'i' untuk iOS, atau scan QR dengan aplikasi Expo Go di HP
+# Tekan 'a' untuk buka di Emulator Android, 'i' untuk iOS, atau scan QR dengan aplikasi Expo Go di HP
+
+## **Troubleshooting & Kendala Instalasi (Catatan Eksekusi Fase 1)**
+
+Dalam eksekusi riil, terdapat beberapa limitasi *environment* yang mungkin terjadi dan harus diselesaikan secara manual melalui terminal lokal:
+
+### 1. Kendala Composer (Backend)
+- **Error:** Proses `composer install` atau `composer create-project` berjalan sangat lambat, tertahan di proses `Syncing into cache`, atau muncul pesan _"Could not authenticate against github.com"_.
+- **Penyebab:** Terkena *rate-limit* dari API GitHub (karena unduhan terlalu banyak tanpa token). Composer terpaksa mengunduh *source code* via Git Clone satu per satu alih-alih menggunakan arsip ZIP (*dist*).
+- **Solusi:** 
+  1. Hapus folder `vendor` dan file `composer.lock` jika instalasi sempat terhenti/korup.
+  2. Buka terminal secara manual di folder `backend-api` dan jalankan `composer install`. 
+  3. Biarkan proses berjalan hingga selesai perlahan, ATAU masukkan Personal Access Token (PAT) GitHub jika terminal memintanya untuk mempercepat unduhan.
+
+### 2. Kendala Gluestack UI (Mobile)
+- **Error:** Eksekusi `npx gluestack-ui init` gagal dengan pesan _"SystemError [ERR_TTY_INIT_FAILED]: TTY initialization failed"_.
+- **Penyebab:** Script CLI Gluestack UI versi 3 ke atas mewajibkan adanya terminal yang interaktif (TTY) untuk menampilkan animasi *Welcome* dan menanyakan opsi konfigurasi kepada pengguna. Script ini akan *crash* jika dijalankan oleh *automation script* di belakang layar tanpa pseudo-TTY.
+- **Solusi:**
+  1. Buka Command Prompt / PowerShell secara langsung.
+  2. Arahkan ke `cd "mobile-app"`.
+  3. Jalankan `npx gluestack-ui init` secara manual.
+  4. Tekan `ENTER` pada setiap prompt konfigurasi untuk menggunakan opsi *default*.
 
 ## **Ceklis Penyelesaian Fase 1**
 
