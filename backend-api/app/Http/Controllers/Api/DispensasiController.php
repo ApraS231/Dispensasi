@@ -151,16 +151,30 @@ class DispensasiController extends Controller
         return response()->json($tickets);
     }
 
+    private function applyRoleFilter($query, $user, $isPending = false)
+    {
+        if ($user->role === 'wali_kelas') {
+            $query->where('wali_kelas_id', $user->id);
+            if ($isPending) {
+                $query->where('status', 'pending');
+            }
+            return true;
+        } else if ($user->role === 'guru_piket') {
+            $query->where('guru_piket_id', $user->id);
+            if ($isPending) {
+                $query->where('status', 'approved_by_wali');
+            }
+            return true;
+        }
+        return false;
+    }
+
     public function pending(Request $request)
     {
         $user = $request->user();
         $query = DispensasiTicket::with('siswa')->latest();
 
-        if ($user->role === 'wali_kelas') {
-            $query->where('wali_kelas_id', $user->id)->where('status', 'pending');
-        } else if ($user->role === 'guru_piket') {
-            $query->where('guru_piket_id', $user->id)->where('status', 'approved_by_wali');
-        } else {
+        if (!$this->applyRoleFilter($query, $user, true)) {
             return response()->json([], 200);
         }
 
@@ -172,11 +186,7 @@ class DispensasiController extends Controller
         $user = $request->user();
         $query = DispensasiTicket::with('siswa')->latest();
 
-        if ($user->role === 'wali_kelas') {
-            $query->where('wali_kelas_id', $user->id);
-        } else if ($user->role === 'guru_piket') {
-            $query->where('guru_piket_id', $user->id);
-        } else {
+        if (!$this->applyRoleFilter($query, $user)) {
             return response()->json([], 200);
         }
 
