@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\DispensasiTicket;
+use App\Models\PiketSchedule;
 use App\Models\PiketAttendanceLog;
 use App\Models\SiswaProfile;
 use App\Models\User;
 use App\Services\ExpoPushService;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class DispensasiController extends Controller
 {
@@ -37,16 +39,10 @@ class DispensasiController extends Controller
 
         $waliKelasId = $profilSiswa->kelas->wali_kelas_id ?? null;
 
-        $piketAktif = PiketAttendanceLog::where('status_aktif', true)->latest()->first();
-        $guruPiketId = $piketAktif ? $piketAktif->guru_id : null;
-        $piketAttendanceId = $piketAktif ? $piketAktif->id : null;
-
         $tiket = DispensasiTicket::create([
             'siswa_id' => $siswa->id,
             'kelas_id' => $profilSiswa->kelas_id,
             'wali_kelas_id' => $waliKelasId,
-            'guru_piket_id' => $guruPiketId,
-            'piket_attendance_id' => $piketAttendanceId,
             'jenis_izin' => $request->jenis_izin,
             'alasan' => $request->alasan,
             'waktu_mulai' => $request->waktu_mulai,
@@ -54,19 +50,21 @@ class DispensasiController extends Controller
             'status' => 'pending'
         ]);
 
-        // Dapatkan Device Token dari Wali Kelas dan Guru Piket
-        $guruTokens = User::whereIn('id', [$waliKelasId, $guruPiketId])
-                          ->whereNotNull('device_token')
-                          ->pluck('device_token')
-                          ->toArray();
+        // Dapatkan Device Token dari Wali Kelas
+        if ($waliKelasId) {
+            $guruTokens = User::where('id', $waliKelasId)
+                            ->whereNotNull('device_token')
+                            ->pluck('device_token')
+                            ->toArray();
 
-        if (!empty($guruTokens)) {
-            ExpoPushService::send(
-                $guruTokens,
-                '⏳ Pengajuan Dispensasi Baru',
-                "{$siswa->name} mengajukan izin: {$request->jenis_izin}.",
-                ['ticket_id' => $tiket->id, 'type' => 'new_ticket']
-            );
+            if (!empty($guruTokens)) {
+                ExpoPushService::send(
+                    $guruTokens,
+                    '⏳ Pengajuan Dispensasi Baru',
+                    "{$siswa->name} mengajukan izin: {$request->jenis_izin}.",
+                    ['ticket_id' => $tiket->id, 'type' => 'new_ticket']
+                );
+            }
         }
 
         return response()->json(['message' => 'Tiket berhasil diajukan', 'data' => $tiket], 201);
@@ -78,11 +76,43 @@ class DispensasiController extends Controller
         $user = $request->user();
 
         if ($user->role === 'wali_kelas' && $tiket->wali_kelas_id === $user->id) {
-            $tiket->update(['status' => 'approved_by_wali']);
+
+            // Logika Auto-Assignment Guru Piket
+            $now = now();
+            $hariIni = $now->dayOfWeekIso; // 1 (Senin) - 7 (Minggu)
+            $jamIni = $now->format('H:i:s');
+
+            $activeSchedule = PiketSchedule::where('hari_dalam_minggu', $hariIni)
+                ->where('jam_mulai', '<=', $jamIni)
+                ->where('jam_selesai', '>=', $jamIni)
+                ->where('is_active', true)
+                ->first();
+
+            if (!$activeSchedule) {
+                return response()->json(['message' => 'Tidak ada Guru Piket yang bertugas saat ini.'], 404);
+            }
+
+            $tiket->update([
+                'status' => 'waiting_piket',
+                'guru_piket_id' => $activeSchedule->guru_id
+            ]);
+
+            // Notify Guru Piket
+            $guruPiket = User::find($activeSchedule->guru_id);
+            if ($guruPiket && $guruPiket->device_token) {
+                ExpoPushService::send(
+                    $guruPiket->device_token,
+                    '⏳ Tiket Dispensasi Baru Diteruskan',
+                    "Ada tiket dispensasi baru yang perlu persetujuan Anda.",
+                    ['ticket_id' => $tiket->id, 'type' => 'ticket_forwarded']
+                );
+            }
+
+
         } else if ($user->role === 'guru_piket' && $tiket->guru_piket_id === $user->id) {
             $tiket->update([
                 'status' => 'approved_final',
-                'qr_code_token' => (string) Str::uuid()
+                'qr_token' => (string) Str::uuid()
             ]);
         } else {
             return response()->json(['message' => 'Anda tidak berhak menyetujui tiket ini'], 403);
@@ -159,7 +189,7 @@ class DispensasiController extends Controller
         if ($user->role === 'wali_kelas') {
             $query->where('wali_kelas_id', $user->id)->where('status', 'pending');
         } else if ($user->role === 'guru_piket') {
-            $query->where('guru_piket_id', $user->id)->where('status', 'approved_by_wali');
+            $query->where('guru_piket_id', $user->id)->where('status', 'waiting_piket');
         } else {
             return response()->json([], 200);
         }

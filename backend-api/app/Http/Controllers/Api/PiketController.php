@@ -4,45 +4,50 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\PiketAttendanceLog;
+use App\Models\PiketSchedule;
 
 class PiketController extends Controller
 {
-    public function setReady(Request $request)
-    {
-        $user = $request->user();
-
-        PiketAttendanceLog::where('guru_id', $user->id)
-            ->where('status_aktif', true)
-            ->update(['status_aktif' => false, 'waktu_keluar' => now()]);
-
-        $log = PiketAttendanceLog::create([
-            'guru_id' => $user->id,
-            'waktu_masuk' => now(),
-            'status_aktif' => true
-        ]);
-
-        return response()->json(['message' => 'Anda sekarang bertugas (Ready).', 'data' => $log]);
-    }
-
-    public function setCheckout(Request $request)
-    {
-        $user = $request->user();
-
-        PiketAttendanceLog::where('guru_id', $user->id)
-            ->where('status_aktif', true)
-            ->update(['status_aktif' => false, 'waktu_keluar' => now()]);
-
-        return response()->json(['message' => 'Anda telah menyelesaikan tugas (Checkout).']);
-    }
-
     public function getStatus(Request $request)
     {
         $user = $request->user();
-        $aktif = PiketAttendanceLog::where('guru_id', $user->id)
-            ->where('status_aktif', true)
+
+        $now = now();
+        $hariIni = $now->dayOfWeekIso; // 1 (Senin) - 7 (Minggu)
+        $jamIni = $now->format('H:i:s');
+
+        $aktif = PiketSchedule::where('guru_id', $user->id)
+            ->where('hari_dalam_minggu', $hariIni)
+            ->where('jam_mulai', '<=', $jamIni)
+            ->where('jam_selesai', '>=', $jamIni)
+            ->where('is_active', true)
             ->exists();
-        
+
         return response()->json(['is_ready' => $aktif]);
     }
+
+
+    public function validateQR(Request $request) {
+        $request->validate(['qr_token' => 'required|uuid']);
+
+        $ticket = \App\Models\DispensasiTicket::where('qr_token', $request->qr_token)->first();
+
+        if (!$ticket) {
+            return response()->json(['valid' => false, 'message' => 'QR Code Palsu / Tidak Dikenali'], 404);
+        }
+
+        if ($ticket->scanned_at !== null) {
+            return response()->json(['valid' => false, 'message' => 'QR Code ini sudah pernah dipakai!'], 400);
+        }
+
+        // Jika Valid, kunci tiket
+        $ticket->update([
+            'status' => 'completed_exit',
+            'scanned_at' => now(),
+            'scanner_id' => $request->user()->id
+        ]);
+
+        return response()->json(['valid' => true, 'message' => 'Izin Sah. Siswa divalidasi untuk keluar.', 'data' => $ticket]);
+    }
+
 }

@@ -23,9 +23,12 @@ return new class extends Migration
             $table->string('lampiran_bukti')->nullable();
             $table->dateTime('waktu_mulai');
             $table->dateTime('waktu_selesai');
-            $table->enum('status', ['pending', 'approved_by_wali', 'approved_by_piket', 'approved_final', 'rejected'])->default('pending');
+            $table->enum('status', ['pending', 'waiting_piket', 'approved_by_wali', 'approved_by_piket', 'approved_final', 'completed_exit', 'rejected'])->default('pending');
             $table->text('catatan_penolakan')->nullable();
             $table->string('qr_code_token')->nullable()->unique();
+            $table->uuid('qr_token')->nullable()->unique();
+            $table->dateTime('scanned_at')->nullable();
+            $table->foreignUuid('scanner_id')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
         });
     }

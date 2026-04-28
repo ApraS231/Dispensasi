@@ -1,31 +1,51 @@
-import { Stack, usePathname, useRouter } from 'expo-router';
-import { View } from 'react-native';
-import BottomTabBar, { PIKET_TABS } from '../../src/components/BottomTabBar';
+import { Tabs } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { COLORS } from '../../src/utils/theme';
 
 export default function PiketLayout() {
-  const pathname = usePathname();
-  const router = useRouter();
-
-  const activeTab = pathname.split('/').pop() || 'dashboard';
-
   return (
-    <View style={{ flex: 1 }}>
-      <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
-        <Stack.Screen name="dashboard" />
-        <Stack.Screen name="queue" />
-        <Stack.Screen name="history" />
-        <Stack.Screen name="profile" />
-      </Stack>
-      
-      <BottomTabBar 
-        tabs={PIKET_TABS} 
-        activeTab={activeTab} 
-        onTabPress={(tab) => {
-          if (activeTab !== tab) {
-            router.push(`/(piket)/${tab}` as any);
-          }
-        }} 
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarHideOnKeyboard: true,
+        tabBarActiveTintColor: COLORS.primary,
+      }}
+    >
+      <Tabs.Screen
+        name="dashboard"
+        options={{
+          title: 'Dashboard',
+          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="view-dashboard" size={size} color={color} />,
+        }}
       />
-    </View>
+      <Tabs.Screen
+        name="scan-qr"
+        options={{
+          href: null,
+          title: 'Scan QR',
+          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="qrcode-scan" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="queue"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: 'Riwayat',
+          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="history" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profil',
+          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="account" size={size} color={color} />,
+        }}
+      />
+    </Tabs>
   );
 }

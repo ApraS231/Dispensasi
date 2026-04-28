@@ -14,9 +14,10 @@ return new class extends Migration
         Schema::create('piket_schedules', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('guru_id')->constrained('users')->onDelete('cascade');
-            $table->string('hari');
+            $table->integer('hari_dalam_minggu'); // 1=Senin, 2=Selasa, dst
             $table->time('jam_mulai');
             $table->time('jam_selesai');
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }
