@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Animated, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, ActivityIndicator, Animated, SafeAreaView } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import QRCode from 'react-native-qrcode-svg';
 import * as Brightness from 'expo-brightness';
@@ -71,7 +71,7 @@ export default function QRCodeScreen() {
   };
 
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>;
-  if (!ticket?.qr_code_token) return <View style={styles.center}><Text style={styles.errorText}>QR Code belum tersedia. Tiket belum disetujui penuh.</Text></View>;
+  if (!ticket?.qr_token) return <View style={styles.center}><Text style={styles.errorText}>QR Code belum tersedia. Tiket belum disetujui penuh.</Text></View>;
 
   return (
     <View style={styles.container}>
@@ -105,7 +105,7 @@ export default function QRCodeScreen() {
               
               <View style={styles.qrBg}>
                 <QRCode 
-                  value={ticket.qr_code_token} 
+                  value={ticket.qr_token}
                   size={width * 0.55} 
                   color={COLORS.bgWhite} 
                   backgroundColor={COLORS.textPrimary} 
@@ -142,7 +142,7 @@ export default function QRCodeScreen() {
             </View>
           </Animated.View>
           
-          <Text style={styles.token}>{ticket.qr_code_token}</Text>
+          <Text style={styles.token}>{ticket.qr_token}</Text>
         </View>
       </SafeAreaView>
     </View>

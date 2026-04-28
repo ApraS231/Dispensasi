@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, FlatList, StyleSheet, Alert, SafeAreaView
 import { router as expoRouter, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import * as Haptics from 'expo-haptics';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import api from '../../src/utils/api';
 import { useAuthStore } from '../../src/stores/authStore';
 import SoftCard from '../../src/components/SoftCard';
@@ -42,20 +43,6 @@ export default function PiketDashboard() {
     await SecureStore.deleteItemAsync('userToken');
     logout();
     expoRouter.replace('/login');
-  };
-
-  const toggleReady = async () => {
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      if (!isReady) {
-        await api.post('/piket/ready');
-        Alert.alert('Siap!', 'Anda sekarang dalam status READY. Tiket akan diarahkan ke Anda.');
-      } else {
-        await api.post('/piket/checkout');
-        Alert.alert('Selesai', 'Shift piket Anda telah berakhir.');
-      }
-      setIsReady(!isReady);
-    } catch (e) { Alert.alert('Error', 'Terjadi kesalahan server.'); }
   };
 
   const handleApprove = async (id: string) => {
@@ -111,16 +98,20 @@ export default function PiketDashboard() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.toggleLabel}>Kehadiran</Text>
                   <Text style={[styles.toggleStatus, { color: isReady ? COLORS.primary : COLORS.textMuted }]}>
-                    {isReady ? 'SEDANG BERTUGAS' : 'OFFLINE'}
+                    {isReady ? 'SEDANG BERTUGAS' : 'TIDAK ADA JADWAL SEKARANG'}
                   </Text>
                 </View>
-                <MechanicalToggle 
-                  value={isReady} 
-                  onValueChange={toggleReady} 
-                  labelOn="RDY" 
-                  labelOff="OFF" 
-                />
               </View>
+
+              {/* Scan Button */}
+              {isReady && (
+                <View style={styles.scanActionRow}>
+                  <TouchableOpacity style={styles.scanBtn} onPress={() => expoRouter.push('/scan-qr')}>
+                    <MaterialCommunityIcons name="qrcode-scan" size={24} color={COLORS.onPrimary} />
+                    <Text style={styles.scanBtnText}>Pindai QR Siswa Keluar</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </SoftCard>
           </View>
 
@@ -161,7 +152,7 @@ export default function PiketDashboard() {
                       style={styles.actionBtn}
                     />
                     <BouncyButton 
-                      title="Setujui" 
+                      title="Setujui & Terbitkan QR"
                       onPress={() => handleApprove(item.id)} 
                       style={styles.actionBtn}
                     />
@@ -216,7 +207,25 @@ const styles = StyleSheet.create({
     borderColor: COLORS.outlineVariant,
   },
   toggleLabel: { fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.textSecondary },
-  toggleStatus: { fontFamily: FONTS.heading, fontSize: 16, marginTop: 2 },
+  toggleStatus: { fontFamily: FONTS.heading, fontSize: 14, marginTop: 2 },
+
+  scanActionRow: {
+    marginTop: SPACING.md,
+  },
+  scanBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+    paddingVertical: SPACING.md,
+    borderRadius: SIZES.radiusLg,
+    gap: SPACING.sm,
+  },
+  scanBtnText: {
+    fontFamily: FONTS.headingSemi,
+    color: COLORS.onPrimary,
+    fontSize: 16,
+  },
   
   contentContainer: {
     flex: 1,

@@ -14,6 +14,7 @@ class DispensasiTicket extends Model
     protected $casts = [
         'waktu_mulai' => 'datetime',
         'waktu_selesai' => 'datetime',
+        'scanned_at' => 'datetime',
     ];
 
     public function siswa()
@@ -34,6 +35,11 @@ class DispensasiTicket extends Model
     public function guruPiket()
     {
         return $this->belongsTo(User::class, 'guru_piket_id');
+    }
+
+    public function scanner()
+    {
+        return $this->belongsTo(User::class, 'scanner_id');
     }
 
     public function piketLog()
