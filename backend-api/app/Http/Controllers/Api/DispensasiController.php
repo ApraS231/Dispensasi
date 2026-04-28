@@ -13,6 +13,12 @@ use Illuminate\Support\Str;
 
 class DispensasiController extends Controller
 {
+    public function show($id)
+    {
+        $ticket = DispensasiTicket::with(['siswa', 'kelas', 'waliKelas', 'guruPiket'])->findOrFail($id);
+        return response()->json($ticket);
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -131,7 +137,7 @@ class DispensasiController extends Controller
 
     public function myTickets(Request $request)
     {
-        $tickets = DispensasiTicket::where('siswa_id', $request->user()->id)->get();
+        $tickets = DispensasiTicket::where('siswa_id', $request->user()->id)->latest()->get();
         return response()->json($tickets);
     }
     
@@ -141,7 +147,39 @@ class DispensasiController extends Controller
         if ($user->role !== 'orang_tua') return response()->json(['message' => 'Forbidden'], 403);
         
         $anakIds = SiswaProfile::where('orang_tua_id', $user->id)->pluck('user_id');
-        $tickets = DispensasiTicket::whereIn('siswa_id', $anakIds)->get();
+        $tickets = DispensasiTicket::whereIn('siswa_id', $anakIds)->with('siswa')->latest()->get();
         return response()->json($tickets);
+    }
+
+    public function pending(Request $request)
+    {
+        $user = $request->user();
+        $query = DispensasiTicket::with('siswa')->latest();
+
+        if ($user->role === 'wali_kelas') {
+            $query->where('wali_kelas_id', $user->id)->where('status', 'pending');
+        } else if ($user->role === 'guru_piket') {
+            $query->where('guru_piket_id', $user->id)->where('status', 'approved_by_wali');
+        } else {
+            return response()->json([], 200);
+        }
+
+        return response()->json($query->get());
+    }
+
+    public function index(Request $request)
+    {
+        $user = $request->user();
+        $query = DispensasiTicket::with('siswa')->latest();
+
+        if ($user->role === 'wali_kelas') {
+            $query->where('wali_kelas_id', $user->id);
+        } else if ($user->role === 'guru_piket') {
+            $query->where('guru_piket_id', $user->id);
+        } else {
+            return response()->json([], 200);
+        }
+
+        return response()->json($query->get());
     }
 }

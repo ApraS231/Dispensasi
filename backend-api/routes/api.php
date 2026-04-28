@@ -39,10 +39,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:guru_piket')->group(function () {
         Route::post('/piket/ready', [PiketController::class, 'setReady']);
         Route::post('/piket/checkout', [PiketController::class, 'setCheckout']);
+        Route::get('/piket/status', [PiketController::class, 'getStatus']);
     });
 
     // GURU PIKET ATAU WALI KELAS (Approval Flow)
     Route::middleware('role:guru_piket,wali_kelas')->group(function () {
+        Route::get('/dispensasi', [DispensasiController::class, 'index']);
+        Route::get('/dispensasi/pending', [DispensasiController::class, 'pending']);
         Route::post('/dispensasi/{id}/approve', [DispensasiController::class, 'approve']);
         Route::post('/dispensasi/{id}/reject', [DispensasiController::class, 'reject']);
     });
@@ -56,6 +59,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dispensasi/{id}/chats', [TicketChatController::class, 'index']);
     Route::post('/dispensasi/{id}/chats', [TicketChatController::class, 'store']);
     
+    Route::get('/dispensasi/{id}', [DispensasiController::class, 'show']);
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::put('/notifications/{id}/read', [NotificationController::class, 'update']);
 });

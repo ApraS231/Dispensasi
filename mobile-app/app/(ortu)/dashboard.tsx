@@ -1,77 +1,262 @@
-import { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
+import { useEffect, useState, useCallback } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import { router as expoRouter, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import api from '../../src/utils/api';
 import { useAuthStore } from '../../src/stores/authStore';
+import SoftCard from '../../src/components/SoftCard';
+import TimelineNode from '../../src/components/TimelineNode';
+import TopAppBar from '../../src/components/TopAppBar';
+import AvatarInitials from '../../src/components/AvatarInitials';
+import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../../src/utils/theme';
 
 export default function OrtuDashboard() {
   const { user, logout } = useAuthStore();
   const [tickets, setTickets] = useState<any[]>([]);
+  const children = (user as any)?.anak || [];
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await api.get('/monitoring/anak');
-        setTickets(res.data);
-      } catch (e) {}
-    };
-    fetchData();
-  }, []);
+  const fetchData = async () => {
+    try {
+      const res = await api.get('/monitoring/anak');
+      setTickets(res.data);
+    } catch (e) {}
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
 
   const handleLogout = async () => {
     try { await api.post('/logout'); } catch (e) {}
     await SecureStore.deleteItemAsync('userToken');
     logout();
-    router.replace('/login');
+    expoRouter.replace('/login');
   };
 
-  const statusColor = (s: string) => {
-    if (s === 'approved_final') return '#10B981';
-    if (s === 'rejected') return '#EF4444';
-    if (s.includes('approved')) return '#3B82F6';
-    return '#F59E0B';
-  };
+  const child = tickets.length > 0 && tickets[0].siswa ? tickets[0].siswa : null;
+  const childClass = tickets.length > 0 && tickets[0].kelas ? tickets[0].kelas.nama_kelas : 'Siswa';
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.greeting}>Halo, {user?.name ?? 'Orang Tua'} 👋</Text>
-        <TouchableOpacity onPress={handleLogout}><Text style={styles.logoutText}>Keluar</Text></TouchableOpacity>
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        
+        <TopAppBar 
+          showAvatar={true} 
+          avatarLabel={user?.name?.charAt(0)?.toUpperCase() || 'O'} 
+          showNotification={true} 
+        />
 
-      <Text style={styles.sectionTitle}>Riwayat Dispensasi Anak</Text>
-      <FlatList
-        data={tickets}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={styles.cardRow}>
-              <Text style={styles.cardLabel}>{item.jenis_izin}</Text>
-              <View style={[styles.badge, { backgroundColor: statusColor(item.status) }]}>
-                <Text style={styles.badgeText}>{item.status}</Text>
+        <View style={styles.mainContent}>
+          {/* Header Area */}
+          <View style={styles.headerContainer}>
+            <View style={styles.greetingRow}>
+              <View>
+                <Text style={styles.greeting}>Pantau Aktivitas Anak</Text>
+                <Text style={styles.name}>{user?.name ?? 'Orang Tua'}</Text>
               </View>
+              <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
+                <Text style={styles.logoutText}>Keluar</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.cardAlasan} numberOfLines={2}>{item.alasan}</Text>
+
+            {/* Child Profile Card */}
+            {children.map((child: any) => (
+              <SoftCard style={styles.childCard} key={child.id}>
+                <View style={styles.childHeaderRow}><AvatarInitials name={child.name} size={48} fontSize={20} />
+                <View style={styles.childMeta}>
+                  <Text style={styles.childName}>{child.name}</Text>
+                  <Text style={styles.childClass}>NIS: {child.nis || '-'}</Text>
+                </View>
+                <View style={styles.childAction}>
+                  <Text style={styles.childActionText}>Profil ➔</Text>
+                </View></View>
+              </SoftCard>
+            ))}
           </View>
-        )}
-        ListEmptyComponent={<Text style={styles.emptyText}>Belum ada riwayat dispensasi anak.</Text>}
-      />
+
+          {/* Timeline Content */}
+          <View style={styles.contentContainer}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Izin Terbaru</Text>
+              <TouchableOpacity onPress={() => expoRouter.push('/(ortu)/riwayat')}>
+                <Text style={styles.seeAllText}>Riwayat Lengkap</Text>
+              </TouchableOpacity>
+            </View>
+
+            <FlatList
+              data={tickets.slice(0, 3)} // Show only 3 recent on dashboard
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item }) => {
+                const date = new Date(item.created_at).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
+                const isApprovedByWali = item.status === 'approved_by_wali' || item.status === 'approved_final';
+                const isApprovedFinal = item.status === 'approved_final';
+                const isRejected = item.status === 'rejected';
+                
+                return (
+                  <TouchableOpacity 
+                    style={styles.ticketWrapper} 
+                    activeOpacity={0.8}
+                    onPress={() => expoRouter.push(`/ticket/${item.id}`)}
+                  >
+                    <View style={styles.ticketHeader}>
+                      <Text style={styles.dateHeader}>{date}</Text>
+                      <View style={styles.typeBadge}>
+                        <Text style={styles.typeBadgeText}>{item.jenis_izin.replace(/_/g, ' ')}</Text>
+                      </View>
+                    </View>
+                    
+                    <SoftCard style={styles.timelineCard}>
+                      <View>
+                        <TimelineNode 
+                          title="Pengajuan Dibuat" 
+                          description={item.alasan}
+                          time={new Date(item.created_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})} 
+                          status="past" 
+                          icon="file-document-outline"
+                        />
+                        <TimelineNode 
+                          title={isRejected && !isApprovedByWali ? "Ditolak Wali Kelas" : "Verifikasi Wali Kelas"} 
+                          description={isRejected && !isApprovedByWali ? item.catatan_penolakan : "Menunggu verifikasi dari wali kelas"}
+                          time={isApprovedByWali || (isRejected && !isApprovedByWali) ? new Date(item.updated_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'}) : "Wait"} 
+                          status={isRejected && !isApprovedByWali ? 'rejected' : (isApprovedByWali ? 'past' : 'current')} 
+                          icon="account-outline"
+                        />
+                        <TimelineNode 
+                          title={isRejected && isApprovedByWali ? "Ditolak Guru Piket" : "Izin Keluar (Guru Piket)"} 
+                          description={isRejected && isApprovedByWali ? item.catatan_penolakan : (isApprovedFinal ? "QR Code telah dicetak dan siswa bisa keluar." : "Menunggu pencetakan QR oleh piket")}
+                          time={isApprovedFinal || (isRejected && isApprovedByWali) ? new Date(item.updated_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'}) : "Wait"} 
+                          status={isRejected && isApprovedByWali ? 'rejected' : (isApprovedFinal ? 'final' : 'current')} 
+                          icon="shield-check-outline"
+                          isLast
+                        />
+                      </View>
+                    </SoftCard>
+                  </TouchableOpacity>
+                );
+              }}
+              ListEmptyComponent={<Text style={styles.emptyText}>Anak Anda belum memiliki catatan izin.</Text>}
+            />
+          </View>
+        </View>
+
+        
+      </SafeAreaView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F3F4F6', padding: 16 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  greeting: { fontSize: 20, fontWeight: '700', color: '#1F2937' },
-  logoutText: { color: '#EF4444', fontWeight: '600' },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#374151', marginBottom: 12 },
-  card: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, elevation: 2 },
-  cardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  cardLabel: { fontSize: 14, fontWeight: '600', color: '#4B5563', textTransform: 'capitalize' },
-  badge: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  badgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  cardAlasan: { fontSize: 13, color: '#6B7280' },
-  emptyText: { textAlign: 'center', color: '#9CA3AF', marginTop: 32, fontSize: 14 },
+  container: { flex: 1, backgroundColor: COLORS.surfaceContainerLowest },
+  safeArea: { flex: 1 },
+  mainContent: { flex: 1 },
+  headerContainer: {
+    padding: SPACING.md,
+    zIndex: 10,
+  },
+  greetingRow: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'flex-start',
+    marginBottom: SPACING.md,
+  },
+  greeting: { fontFamily: FONTS.bodyMedium, fontSize: 14, color: COLORS.textSecondary },
+  name: { fontFamily: FONTS.headingSemi, fontSize: 20, color: COLORS.textPrimary },
+  logoutBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: COLORS.errorBg,
+    borderRadius: SIZES.radius,
+  },
+  logoutText: { fontFamily: FONTS.headingSemi, color: COLORS.error, fontSize: 12 },
+  
+  childCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: SPACING.md,
+    backgroundColor: COLORS.bgWhite,
+  },
+  childHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+  },
+  childMeta: {
+    flex: 1,
+    marginLeft: SPACING.md,
+  },
+  childName: {
+    fontFamily: FONTS.heading,
+    fontSize: 16,
+    color: COLORS.textPrimary,
+  },
+  childClass: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  childAction: {
+    backgroundColor: COLORS.surfaceContainerHigh,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 4,
+    borderRadius: SIZES.radius,
+  },
+  childActionText: {
+    fontFamily: FONTS.headingSemi,
+    fontSize: 11,
+    color: COLORS.primary,
+  },
+
+  contentContainer: {
+    flex: 1,
+    paddingHorizontal: SPACING.md,
+  },
+  sectionHeader: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    marginBottom: SPACING.md 
+  },
+  sectionTitle: { fontFamily: FONTS.headingSemi, fontSize: 18, color: COLORS.textPrimary },
+  seeAllText: { fontFamily: FONTS.headingSemi, fontSize: 13, color: COLORS.primary },
+  
+  listContent: { paddingBottom: 100 },
+  ticketWrapper: {
+    marginBottom: SPACING.xl,
+  },
+  ticketHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+    paddingHorizontal: 4,
+  },
+  dateHeader: {
+    fontFamily: FONTS.headingSemi,
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textTransform: 'capitalize',
+  },
+  typeBadge: {
+    backgroundColor: COLORS.surfaceContainerHighest,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant,
+  },
+  typeBadgeText: {
+    fontFamily: FONTS.labelCaps,
+    fontSize: 10,
+    color: COLORS.textPrimary,
+  },
+  timelineCard: {
+    padding: SPACING.md,
+    paddingTop: SPACING.lg,
+  },
+  emptyText: { fontFamily: FONTS.body, textAlign: 'center', color: COLORS.textMuted, marginTop: SPACING.xl, fontSize: 14 },
 });

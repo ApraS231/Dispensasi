@@ -1,14 +1,18 @@
 import { useState } from 'react';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Alert, KeyboardAvoidingView, Platform, SafeAreaView } from 'react-native';
 import api from '../src/utils/api';
 import { useAuthStore } from '../src/stores/authStore';
+import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../src/utils/theme';
+import BouncyButton from '../src/components/BouncyButton';
+import SoftCard from '../src/components/SoftCard';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const { setUser, setToken } = useAuthStore();
 
   const handleLogin = async () => {
@@ -43,43 +47,100 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <View style={styles.card}>
-        <Text style={styles.title}>SiDispen</Text>
-        <Text style={styles.subtitle}>Sistem Dispensasi Digital</Text>
+    <View style={styles.container}>
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
+          
+          <View style={styles.headerContainer}>
+            <View style={styles.logoCircle}>
+              <Text style={styles.logoIcon}>S</Text>
+            </View>
+            <Text style={styles.title}>SiDispen</Text>
+            <Text style={styles.subtitle}>Halo! Yuk masuk ke akunmu.</Text>
+          </View>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
+          <SoftCard style={styles.card}>
+            <View style={[
+              styles.inputWrapper, 
+              focusedInput === 'email' && styles.inputWrapperFocused
+            ]}>
+              <Text style={styles.inputIcon}>@</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                placeholderTextColor={COLORS.textMuted}
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                onFocus={() => setFocusedInput('email')}
+                onBlur={() => setFocusedInput(null)}
+              />
+            </View>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
+            <View style={[
+              styles.inputWrapper, 
+              focusedInput === 'password' && styles.inputWrapperFocused
+            ]}>
+              <Text style={styles.inputIcon}>*</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Password"
+                placeholderTextColor={COLORS.textMuted}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                onFocus={() => setFocusedInput('password')}
+                onBlur={() => setFocusedInput(null)}
+              />
+            </View>
 
-        <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleLogin} disabled={loading}>
-          <Text style={styles.buttonText}>{loading ? 'Memproses...' : 'Masuk'}</Text>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+            <BouncyButton 
+              title={loading ? 'Tunggu Sebentar...' : 'Ayo Mulai!'} 
+              onPress={handleLogin} 
+              loading={loading}
+              style={{ marginTop: SPACING.sm }}
+            />
+            
+            <Text style={styles.helpText}>Lupa Password?</Text>
+          </SoftCard>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F3F4F6', padding: 20 },
-  card: { width: '100%', maxWidth: 400, backgroundColor: '#fff', borderRadius: 16, padding: 32, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 },
-  title: { fontSize: 32, fontWeight: '800', color: '#F59E0B', textAlign: 'center', marginBottom: 4 },
-  subtitle: { fontSize: 14, color: '#9CA3AF', textAlign: 'center', marginBottom: 32 },
-  input: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, marginBottom: 16, backgroundColor: '#F9FAFB' },
-  button: { backgroundColor: '#F59E0B', borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  container: { flex: 1, backgroundColor: COLORS.surfaceContainerLowest },
+  safeArea: { flex: 1 },
+  keyboardView: { flex: 1, justifyContent: 'center', padding: SPACING.xl },
+  headerContainer: { alignItems: 'center', marginBottom: SPACING.xxl },
+  logoCircle: {
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: SPACING.md,
+    ...SHADOWS.bottomStrokePrimary,
+  },
+  logoIcon: { fontSize: 36, color: COLORS.bgWhite, fontFamily: FONTS.heading },
+  title: { fontFamily: FONTS.heading, fontSize: 32, color: COLORS.textPrimary, marginBottom: 8 },
+  subtitle: { fontFamily: FONTS.bodyMedium, fontSize: 16, color: COLORS.textSecondary, textAlign: 'center' },
+  card: { padding: SPACING.lg },
+  inputWrapper: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: COLORS.surfaceContainerLow,
+    borderRadius: SIZES.radiusMd,
+    paddingHorizontal: SPACING.md,
+    height: 56,
+    borderWidth: 2,
+    borderColor: COLORS.outlineVariant,
+    marginBottom: SPACING.md,
+  },
+  inputWrapperFocused: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.bgWhite,
+  },
+  inputIcon: { fontSize: 18, marginRight: SPACING.sm, opacity: 0.5, color: COLORS.textPrimary, fontFamily: FONTS.headingSemi },
+  input: { flex: 1, fontFamily: FONTS.bodyMedium, fontSize: 16, color: COLORS.textPrimary },
+  helpText: { fontFamily: FONTS.headingSemi, fontSize: 14, color: COLORS.primary, textAlign: 'center', marginTop: SPACING.xl }
 });

@@ -1,48 +1,33 @@
 import { useEffect } from 'react';
-import { Slot, router } from 'expo-router';
+import { Slot } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import * as SecureStore from 'expo-secure-store';
-import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
 import { useAuthStore } from '../src/stores/authStore';
 import api from '../src/utils/api';
+import { useFonts } from 'expo-font';
+import {
+  Roboto_400Regular,
+  Roboto_500Medium,
+  Roboto_700Bold,
+} from '@expo-google-fonts/roboto';
+import * as SplashScreen from 'expo-splash-screen';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
-
-async function registerForPushNotificationsAsync() {
-  let token;
-  if (Device.isDevice) {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    
-    if (finalStatus !== 'granted') {
-      console.log('Gagal mendapatkan izin untuk push notification!');
-      return;
-    }
-    
-    // Gunakan projectId dari environment atau secara otomatis (karena kita tidak pakai EAS build saat ini)
-    token = (await Notifications.getExpoPushTokenAsync()).data;
-    console.log("Expo Push Token:", token);
-  } else {
-    console.log('Harus menggunakan perangkat fisik untuk Push Notifications');
-  }
-  return token;
-}
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const { setUser, setToken, setLoading } = useAuthStore();
+  
+  const [fontsLoaded] = useFonts({
+    'Roboto-Regular': Roboto_400Regular,
+    'Roboto-Medium': Roboto_500Medium,
+    'Roboto-Bold': Roboto_700Bold,
+  });
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -52,16 +37,6 @@ export default function RootLayout() {
           setToken(token);
           const response = await api.get('/user');
           setUser(response.data);
-
-          // Daftarkan Push Notification setelah login sukses
-          const pushToken = await registerForPushNotificationsAsync();
-          if (pushToken) {
-             try {
-                await api.post('/user/device-token', { device_token: pushToken });
-             } catch (e) {
-                console.error("Failed to send push token to server", e);
-             }
-          }
         }
       } catch (error) {
         await SecureStore.deleteItemAsync('userToken');
@@ -72,5 +47,14 @@ export default function RootLayout() {
     checkAuth();
   }, []);
 
-  return <Slot />;
+  if (!fontsLoaded) {
+    return null;
+  }
+
+  return (
+    <>
+      <StatusBar style="dark" />
+      <Slot />
+    </>
+  );
 }

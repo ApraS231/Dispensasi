@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Guru Piket Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "bg-base": "#FFFFFF",
+                        "outline": "#6f7b66",
+                        "error-container": "#ffdad6",
+                        "accent-status": "#EBD350",
+                        "outline-variant": "#becbb3",
+                        "on-tertiary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "surface-container-highest": "#dee5d4",
+                        "on-secondary-container": "#4e6c00",
+                        "surface-container-low": "#eff6e5",
+                        "on-primary-fixed": "#052100",
+                        "surface-tint": "#1f6d00",
+                        "secondary-container": "#bff055",
+                        "on-tertiary-fixed-variant": "#653a42",
+                        "on-secondary-fixed-variant": "#384e00",
+                        "tertiary": "#805159",
+                        "tertiary-container": "#ffc2cb",
+                        "on-error-container": "#93000a",
+                        "surface-dim": "#d5ddcc",
+                        "secondary-fixed": "#c2f357",
+                        "primary": "#1f6d00",
+                        "inverse-primary": "#6edf46",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-fixed": "#321018",
+                        "tertiary-fixed-dim": "#f3b7c0",
+                        "on-tertiary-container": "#7b4d55",
+                        "glass-border": "rgba(255, 255, 255, 0.4)",
+                        "surface-container-lowest": "#ffffff",
+                        "on-background": "#171d13",
+                        "surface-variant": "#dee5d4",
+                        "accent-warning": "#EBE650",
+                        "surface-container": "#e9f0df",
+                        "inverse-on-surface": "#ecf3e2",
+                        "tertiary-fixed": "#ffd9de",
+                        "primary-fixed-dim": "#6edf46",
+                        "accent-action": "#50EB63",
+                        "on-primary-container": "#1d6800",
+                        "on-primary-fixed-variant": "#165200",
+                        "secondary-fixed-dim": "#a7d63d",
+                        "secondary": "#4b6700",
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#e3ebda",
+                        "surface-bright": "#f5fceb",
+                        "glass-highlight": "rgba(255, 255, 255, 0.8)",
+                        "background": "#f5fceb",
+                        "surface": "#f5fceb",
+                        "on-surface-variant": "#3f4a38",
+                        "primary-fixed": "#8afd5f",
+                        "primary-container": "#79eb50",
+                        "on-secondary-fixed": "#141f00",
+                        "inverse-surface": "#2b3227",
+                        "on-error": "#ffffff",
+                        "on-surface": "#171d13",
+                        "bg-tint": "#D0EB94"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "bottom-area-ratio": "62%",
+                        "base-unit": "8px",
+                        "top-area-ratio": "38%",
+                        "gutter": "16px",
+                        "margin": "24px"
+                    },
+                    fontFamily: {
+                        "h1": ["Plus Jakarta Sans"],
+                        "h3": ["Plus Jakarta Sans"],
+                        "label-caps": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "h2": ["Plus Jakarta Sans"]
+                    },
+                    fontSize: {
+                        "h1": ["32px", { lineHeight: "1.2", fontWeight: "700" }],
+                        "h3": ["20px", { lineHeight: "1.4", fontWeight: "600" }],
+                        "label-caps": ["12px", { lineHeight: "1.0", letterSpacing: "0.05em", fontWeight: "700" }],
+                        "body-lg": ["16px", { lineHeight: "1.6", fontWeight: "400" }],
+                        "body-md": ["14px", { lineHeight: "1.5", fontWeight: "400" }],
+                        "h2": ["24px", { lineHeight: "1.3", fontWeight: "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .skeuo-glass {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.8);
+            border-left: 1px solid rgba(255, 255, 255, 0.6);
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), inset 0 2px 4px rgba(255, 255, 255, 0.5);
+        }
+        
+        .mechanical-switch-track {
+            background: rgba(23, 29, 19, 0.1);
+            box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.15), 0 1px 0 rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        
+        .mechanical-switch-thumb {
+            background: linear-gradient(145deg, #ffffff, #f0f0f0);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2), inset 0 2px 2px rgba(255, 255, 255, 1), inset 0 -2px 4px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .switch-active .mechanical-switch-track {
+            background: rgba(235, 211, 80, 0.2);
+            box-shadow: inset 0 4px 8px rgba(235, 211, 80, 0.3), 0 1px 0 rgba(255, 255, 255, 0.8), 0 0 15px rgba(235, 211, 80, 0.4);
+        }
+
+        .switch-active .mechanical-switch-thumb {
+            background: #EBD350;
+            box-shadow: 0 4px 12px rgba(235, 211, 80, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.8), inset 0 -2px 4px rgba(200, 175, 40, 0.8);
+            border: 1px solid #D4B92C;
+            transform: translateX(100%);
+        }
+
+        .glass-btn-approve {
+            background: linear-gradient(145deg, rgba(80, 235, 99, 0.9), rgba(60, 200, 80, 0.9));
+            box-shadow: 0 4px 12px rgba(80, 235, 99, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.6), inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+            border-top: 1px solid rgba(255, 255, 255, 0.8);
+        }
+
+        .glass-btn-reject {
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(240, 240, 240, 0.9));
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05), inset 0 2px 4px rgba(255, 255, 255, 1), inset 0 -2px 4px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(186, 26, 26, 0.2);
+        }
+        
+        .led-indicator {
+            box-shadow: 0 0 8px #EBD350, inset 0 1px 2px rgba(255, 255, 255, 0.8);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-gradient-to-b from-white to-surface-container-low min-h-screen text-on-surface antialiased overflow-hidden flex flex-col md:flex-row">
+<!-- TopAppBar (Mobile & Web) -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 h-16 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md rounded-b-2xl border-b border-white/20 backdrop-blur-xl border-b border-white/30 dark:border-zinc-800/50 shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden border-2 border-white shadow-sm">
+<img alt="User profile avatar" class="w-full h-full object-cover" data-alt="professional portrait of a male teacher with glasses smiling slightly" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC2vouZDimoAjl47Nttzeuz-Sf7J-D5C8qgJbU31CfKPVTnTWRqulhcJOe3E9ij7hi246o-Bf0lfVT30Iv0NuKITVexhE2ofIXtRN8hLd6IH7x3d78zNFhuO8MM1ODwWbQinXstM2_GSqWDZIcLxAFWxPvB208UZiWPR5lIxQledZAyebabm__hgD7UexMvIhf1M25qw2K-MgKpQBHCrkJMiuwrMVhoUFhHrlNqV-Zl6tClVpVgh0kLsO8Jn9GXSOigSPjHCMxcyuU"/>
+</div>
+<h1 class="text-xl font-black text-lime-600 dark:text-lime-400 italic font-['Plus_Jakarta_Sans'] tracking-tight">SiDispen</h1>
+</div>
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-lime-500 dark:text-lime-400 hover:bg-white/20 dark:hover:bg-zinc-800/40 transition-colors active:scale-95 transition-transform duration-150">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">notifications</span>
+</button>
+</header>
+<!-- Main Content Area -->
+<main class="w-full h-screen pt-16 pb-24 md:pb-6 flex flex-col">
+<!-- Header Zone (38%) -->
+<section class="h-[335px] shrink-0 p-6 flex items-center justify-center relative z-10">
+<div class="absolute inset-0 bg-gradient-to-br from-lime-100/30 to-transparent -z-10"></div>
+<div class="w-full max-w-md skeuo-glass rounded-3xl p-8 flex flex-col items-center gap-6 relative overflow-hidden">
+<!-- Abstract Glass Element -->
+<div class="absolute -top-10 -right-10 w-32 h-32 bg-white/40 rounded-full blur-2xl"></div>
+<div class="text-center z-10">
+<h2 class="font-h2 text-h2 text-on-surface mb-1">Status Piket Hari Ini</h2>
+<p class="font-body-md text-body-md text-on-surface-variant opacity-80">Rabu, 24 Mei 2024</p>
+</div>
+<div class="z-10 flex flex-col items-center gap-3 w-full">
+<div class="switch-active w-32 h-14 rounded-full mechanical-switch-track relative p-1 cursor-pointer transition-all duration-300">
+<div class="w-[52px] h-[48px] rounded-full mechanical-switch-thumb absolute top-1 left-1 transition-transform duration-300 flex items-center justify-center">
+<div class="w-1 h-4 bg-black/10 rounded-full mx-0.5"></div>
+<div class="w-1 h-4 bg-black/10 rounded-full mx-0.5"></div>
+<div class="w-1 h-4 bg-black/10 rounded-full mx-0.5"></div>
+</div>
+</div>
+<span class="font-label-caps text-label-caps text-accent-status uppercase tracking-widest font-bold drop-shadow-[0_0_8px_rgba(235,211,80,0.5)]">Sedang Bertugas</span>
+</div>
+</div>
+</section>
+<!-- List Area (62%) -->
+<section class="flex-1 overflow-y-auto px-6 pb-6 z-20">
+<div class="max-w-md mx-auto w-full">
+<div class="flex items-center justify-between mb-6 sticky top-0 bg-gradient-to-b from-surface-container-low to-transparent pt-2 pb-4 z-10">
+<h3 class="font-h3 text-h3 text-on-surface">Antrean Persetujuan</h3>
+<span class="bg-surface-variant text-on-surface-variant font-label-caps text-label-caps px-3 py-1 rounded-full shadow-inner">3 PENDING</span>
+</div>
+<div class="flex flex-col gap-4">
+<!-- Ticket Card 1 -->
+<div class="skeuo-glass rounded-2xl p-5 flex flex-col gap-4 relative">
+<div class="absolute top-4 right-4 w-2 h-2 rounded-full bg-accent-status led-indicator"></div>
+<div class="flex items-start gap-4">
+<div class="w-12 h-12 rounded-xl bg-primary-container text-on-primary-container flex items-center justify-center shadow-inner shrink-0">
+<span class="font-h2 text-h2">AM</span>
+</div>
+<div class="flex-1">
+<h4 class="font-h3 text-[18px] font-bold text-on-surface leading-tight mb-1">Ahmad Maulana</h4>
+<div class="flex items-center gap-2 font-body-md text-body-md text-on-surface-variant">
+<span class="bg-white/50 px-2 py-0.5 rounded shadow-sm border border-white/40">XI MIPA 2</span>
+<span>•</span>
+<span>Sakit</span>
+</div>
+</div>
+</div>
+<div class="bg-white/40 rounded-xl p-3 shadow-inner border border-black/5 text-sm font-body-md text-on-surface leading-relaxed">
+                            "Izin pulang lebih awal karena demam tinggi dan pusing sejak jam istirahat pertama."
+                        </div>
+<div class="flex gap-3 mt-1">
+<button class="flex-1 glass-btn-reject rounded-xl py-3 flex items-center justify-center gap-2 active:scale-95 transition-transform duration-150">
+<span class="material-symbols-outlined text-error" style="font-variation-settings: 'FILL' 0;">close</span>
+<span class="font-label-caps text-label-caps text-error">Tolak</span>
+</button>
+<button class="flex-1 glass-btn-approve rounded-xl py-3 flex items-center justify-center gap-2 active:scale-95 transition-transform duration-150">
+<span class="material-symbols-outlined text-on-primary" style="font-variation-settings: 'FILL' 1;">check</span>
+<span class="font-label-caps text-label-caps text-on-primary">Setujui</span>
+</button>
+</div>
+</div>
+<!-- Ticket Card 2 -->
+<div class="skeuo-glass rounded-2xl p-5 flex flex-col gap-4 relative">
+<div class="absolute top-4 right-4 w-2 h-2 rounded-full bg-accent-status led-indicator"></div>
+<div class="flex items-start gap-4">
+<div class="w-12 h-12 rounded-xl bg-tertiary-container text-on-tertiary-container flex items-center justify-center shadow-inner shrink-0">
+<span class="font-h2 text-h2">SD</span>
+</div>
+<div class="flex-1">
+<h4 class="font-h3 text-[18px] font-bold text-on-surface leading-tight mb-1">Siti Dewi</h4>
+<div class="flex items-center gap-2 font-body-md text-body-md text-on-surface-variant">
+<span class="bg-white/50 px-2 py-0.5 rounded shadow-sm border border-white/40">X IPS 1</span>
+<span>•</span>
+<span>Keperluan Keluarga</span>
+</div>
+</div>
+</div>
+<div class="bg-white/40 rounded-xl p-3 shadow-inner border border-black/5 text-sm font-body-md text-on-surface leading-relaxed">
+                            "Menghadiri acara pernikahan kakak kandung di luar kota."
+                        </div>
+<div class="flex gap-3 mt-1">
+<button class="flex-1 glass-btn-reject rounded-xl py-3 flex items-center justify-center gap-2 active:scale-95 transition-transform duration-150">
+<span class="material-symbols-outlined text-error" style="font-variation-settings: 'FILL' 0;">close</span>
+<span class="font-label-caps text-label-caps text-error">Tolak</span>
+</button>
+<button class="flex-1 glass-btn-approve rounded-xl py-3 flex items-center justify-center gap-2 active:scale-95 transition-transform duration-150">
+<span class="material-symbols-outlined text-on-primary" style="font-variation-settings: 'FILL' 1;">check</span>
+<span class="font-label-caps text-label-caps text-on-primary">Setujui</span>
+</button>
+</div>
+</div>
+<!-- Bottom padding for scroll -->
+<div class="h-8"></div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-xl rounded-t-[32px] border-t border-white/40 dark:border-zinc-700/30 shadow-[0_-10px_40px_rgba(0,0,0,0.08)] specular-highlight-top">
+<div class="flex flex-col items-center justify-center bg-lime-400/20 dark:bg-lime-500/10 text-lime-700 dark:text-lime-300 rounded-xl px-4 py-1 shadow-inner active:inner-shadow-lg tap-highlight-none">
+<span class="material-symbols-outlined mb-1 text-[24px]" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="text-[10px] font-bold font-['Plus_Jakarta_Sans'] uppercase tracking-widest">Dashboard</span>
+</div>
+<div class="flex flex-col items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-lime-500 transition-all active:inner-shadow-lg tap-highlight-none">
+<span class="material-symbols-outlined mb-1 text-[24px]" style="font-variation-settings: 'FILL' 0;">pending_actions</span>
+<span class="text-[10px] font-bold font-['Plus_Jakarta_Sans'] uppercase tracking-widest">Queue</span>
+</div>
+<div class="flex flex-col items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-lime-500 transition-all active:inner-shadow-lg tap-highlight-none">
+<span class="material-symbols-outlined mb-1 text-[24px]" style="font-variation-settings: 'FILL' 0;">history</span>
+<span class="text-[10px] font-bold font-['Plus_Jakarta_Sans'] uppercase tracking-widest">History</span>
+</div>
+<div class="flex flex-col items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-lime-500 transition-all active:inner-shadow-lg tap-highlight-none">
+<span class="material-symbols-outlined mb-1 text-[24px]" style="font-variation-settings: 'FILL' 0;">person</span>
+<span class="text-[10px] font-bold font-['Plus_Jakarta_Sans'] uppercase tracking-widest">Profile</span>
+</div>
+</nav>
+<!-- SideNav (Web Only - Implied by hiding bottom nav, simplified version for layout structure) -->
+<aside class="hidden md:flex flex-col w-24 bg-white/60 backdrop-blur-xl border-r border-white/40 fixed left-0 top-16 bottom-0 z-40 items-center py-8 gap-8">
+<div class="flex flex-col items-center justify-center bg-lime-400/20 text-lime-700 rounded-xl p-3 shadow-inner cursor-pointer">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+</div>
+<div class="flex flex-col items-center justify-center text-zinc-400 hover:text-lime-500 transition-all cursor-pointer">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 0;">pending_actions</span>
+</div>
+<div class="flex flex-col items-center justify-center text-zinc-400 hover:text-lime-500 transition-all cursor-pointer">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 0;">history</span>
+</div>
+<div class="mt-auto flex flex-col items-center justify-center text-zinc-400 hover:text-lime-500 transition-all cursor-pointer">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 0;">person</span>
+</div>
+</aside>
+</body></html>

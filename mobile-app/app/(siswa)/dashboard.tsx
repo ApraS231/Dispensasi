@@ -1,85 +1,212 @@
-import { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { router } from 'expo-router';
+import { useEffect, useState, useCallback } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import { router as expoRouter, useFocusEffect as expoUseFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import api from '../../src/utils/api';
 import { useAuthStore } from '../../src/stores/authStore';
+import SoftCard from '../../src/components/SoftCard';
+import TicketCard from '../../src/components/TicketCard';
+import GlassFAB from '../../src/components/GlassFAB';
+import TopAppBar from '../../src/components/TopAppBar';
+import { COLORS, FONTS, SIZES, SPACING } from '../../src/utils/theme';
 
 export default function SiswaDashboard() {
   const { user, logout } = useAuthStore();
   const [tickets, setTickets] = useState<any[]>([]);
+  const [profile, setProfile] = useState<any>(null);
 
-  const fetchTickets = async () => {
+  const fetchData = async () => {
     try {
-      const res = await api.get('/dispensasi/me');
-      setTickets(res.data);
+      const [ticketRes, profileRes] = await Promise.all([
+        api.get('/dispensasi/me'),
+        api.get('/user') // Make sure backend returns profile/kelas if needed, or we might fetch profile explicitly
+      ]);
+      setTickets(ticketRes.data);
+      // user object from authStore might already have it if backend is configured properly
     } catch (e) {}
   };
 
-  useEffect(() => { fetchTickets(); }, []);
+  expoUseFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
 
   const handleLogout = async () => {
     try { await api.post('/logout'); } catch (e) {}
     await SecureStore.deleteItemAsync('userToken');
     logout();
-    router.replace('/login');
-  };
-
-  const statusColor = (s: string) => {
-    if (s === 'approved_final') return '#10B981';
-    if (s === 'rejected') return '#EF4444';
-    if (s.includes('approved')) return '#3B82F6';
-    return '#F59E0B';
+    expoRouter.replace('/login');
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.greeting}>Halo, {user?.name ?? 'Siswa'} 👋</Text>
-        <TouchableOpacity onPress={handleLogout}><Text style={styles.logoutText}>Keluar</Text></TouchableOpacity>
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        
+        <TopAppBar 
+          showAvatar={true} 
+          avatarLabel={user?.name?.charAt(0)?.toUpperCase() || 'S'} 
+          showNotification={true} 
+        />
 
-      <TouchableOpacity style={styles.ajukanBtn} onPress={() => router.push('/(siswa)/pengajuan')}>
-        <Text style={styles.ajukanText}>+ Ajukan Dispensasi Baru</Text>
-      </TouchableOpacity>
-
-      <Text style={styles.sectionTitle}>Riwayat Dispensasi</Text>
-      <FlatList
-        data={tickets}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => item.status === 'approved_final' && item.qr_code_token ? router.push(`/(siswa)/qr/${item.id}`) : null}
-          >
-            <View style={styles.cardRow}>
-              <Text style={styles.cardLabel}>{item.jenis_izin}</Text>
-              <View style={[styles.badge, { backgroundColor: statusColor(item.status) }]}>
-                <Text style={styles.badgeText}>{item.status}</Text>
+        <View style={styles.mainContent}>
+          {/* Header Card */}
+          <View style={styles.headerContainer}>
+            <SoftCard style={styles.headerCard}>
+              <View style={styles.headerRow}>
+                <View>
+                  <Text style={styles.greeting}>Halo,</Text>
+                  <Text style={styles.name}>{user?.name ?? 'Siswa'}!</Text>
+                  <Text style={styles.kelasBadge}>Kelas {(user as any)?.kelas?.nama_kelas || 'X'}</Text>
+                </View>
+                <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
+                  <Text style={styles.logoutText}>Keluar</Text>
+                </TouchableOpacity>
               </View>
+              
+              <View style={styles.statsContainer}>
+                <View style={styles.badgeContainer}>
+                  <Text style={styles.badgeText}>{tickets.length}</Text>
+                  <Text style={styles.badgeLabel}>Izin Bulan Ini</Text>
+                </View>
+              </View>
+            </SoftCard>
+          </View>
+
+          {/* List Area */}
+          <View style={styles.listContainer}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Riwayat Izin Terbaru</Text>
+              <TouchableOpacity>
+                <Text style={styles.seeAllText}>Lihat Semua</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.cardAlasan} numberOfLines={2}>{item.alasan}</Text>
-          </TouchableOpacity>
-        )}
-        ListEmptyComponent={<Text style={styles.emptyText}>Belum ada dispensasi.</Text>}
-      />
+            
+            <FlatList
+              data={tickets.slice(0, 5)} // only show 5 recent
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item }) => (
+                <TicketCard 
+                  item={item} 
+                  onPress={() => expoRouter.push(`/ticket/${item.id}`)} 
+                />
+              )}
+              ListEmptyComponent={<Text style={styles.emptyText}>Belum ada pengajuan izin.</Text>}
+            />
+          </View>
+        </View>
+
+        <GlassFAB onPress={() => expoRouter.push('/(siswa)/pengajuan')} />
+
+      </SafeAreaView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F3F4F6', padding: 16 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  greeting: { fontSize: 20, fontWeight: '700', color: '#1F2937' },
-  logoutText: { color: '#EF4444', fontWeight: '600' },
-  ajukanBtn: { backgroundColor: '#F59E0B', borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginBottom: 24 },
-  ajukanText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#374151', marginBottom: 12 },
-  card: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, elevation: 2 },
-  cardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  cardLabel: { fontSize: 14, fontWeight: '600', color: '#4B5563', textTransform: 'capitalize' },
-  badge: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  badgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  cardAlasan: { fontSize: 13, color: '#6B7280' },
-  emptyText: { textAlign: 'center', color: '#9CA3AF', marginTop: 32, fontSize: 14 },
+  container: { flex: 1, backgroundColor: COLORS.surfaceContainerLowest },
+  safeArea: { flex: 1 },
+  mainContent: {
+    flex: 1,
+  },
+  headerContainer: {
+    padding: SPACING.md,
+    zIndex: 10,
+  },
+  headerCard: {
+    paddingVertical: SPACING.lg,
+    paddingHorizontal: SPACING.md,
+  },
+  headerRow: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'flex-start' 
+  },
+  greeting: { 
+    fontFamily: FONTS.bodyMedium, 
+    fontSize: 16, 
+    color: COLORS.textSecondary 
+  },
+  name: { 
+    fontFamily: FONTS.heading, 
+    fontSize: 24, 
+    color: COLORS.textPrimary,
+    marginTop: 2,
+  },
+  kelasBadge: {
+    fontFamily: FONTS.labelCaps,
+    fontSize: 11,
+    color: COLORS.primary,
+    marginTop: SPACING.xs,
+    letterSpacing: 0.5,
+  },
+  logoutBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: COLORS.errorBg,
+    borderRadius: SIZES.radiusButton,
+  },
+  logoutText: { 
+    fontFamily: FONTS.headingSemi, 
+    color: COLORS.error, 
+    fontSize: 12 
+  },
+  statsContainer: {
+    marginTop: SPACING.lg,
+    flexDirection: 'row',
+  },
+  badgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surfaceContainer,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: SIZES.radiusCard,
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant,
+  },
+  badgeText: { 
+    fontFamily: FONTS.heading, 
+    fontSize: 20, 
+    color: COLORS.primary,
+    marginRight: SPACING.sm,
+  },
+  badgeLabel: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 13,
+    color: COLORS.textSecondary,
+  },
+  
+  listContainer: {
+    flex: 1,
+    paddingHorizontal: SPACING.md,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: SPACING.md,
+  },
+  sectionTitle: { 
+    fontFamily: FONTS.headingSemi, 
+    fontSize: 18, 
+    color: COLORS.textPrimary 
+  },
+  seeAllText: {
+    fontFamily: FONTS.headingSemi,
+    fontSize: 13,
+    color: COLORS.primary,
+  },
+  listContent: { 
+    paddingBottom: 100 
+  },
+  emptyText: { 
+    fontFamily: FONTS.body, 
+    textAlign: 'center', 
+    color: COLORS.textMuted, 
+    marginTop: SPACING.xl, 
+    fontSize: 14 
+  },
 });

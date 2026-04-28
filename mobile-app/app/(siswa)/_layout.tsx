@@ -1,11 +1,34 @@
-import { Stack } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
+import { View } from 'react-native';
+import BottomTabBar, { SISWA_TABS } from '../../src/components/BottomTabBar';
 
 export default function SiswaLayout() {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const hideTabBar = pathname.includes('/pengajuan') || pathname.includes('/qr/');
+  const activeTab = pathname.split('/').pop() || 'dashboard';
+
   return (
-    <Stack screenOptions={{ headerStyle: { backgroundColor: '#F59E0B' }, headerTintColor: '#fff', headerTitleStyle: { fontWeight: '700' } }}>
-      <Stack.Screen name="dashboard" options={{ title: 'Dashboard Siswa' }} />
-      <Stack.Screen name="pengajuan" options={{ title: 'Ajukan Dispensasi' }} />
-      <Stack.Screen name="qr/[id]" options={{ title: 'QR Code Dispensasi' }} />
-    </Stack>
+    <View style={{ flex: 1 }}>
+      <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+        <Stack.Screen name="dashboard" />
+        <Stack.Screen name="riwayat" />
+        <Stack.Screen name="profile" />
+        <Stack.Screen name="pengajuan" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="qr/[id]" />
+      </Stack>
+      
+      {!hideTabBar && (
+        <BottomTabBar 
+          tabs={SISWA_TABS} 
+          activeTab={activeTab} 
+          onTabPress={(tab) => {
+            if (tab === 'pengajuan') router.push('/(siswa)/pengajuan');
+            else router.push(`/(siswa)/${tab}`);
+          }} 
+        />
+      )}
+    </View>
   );
 }

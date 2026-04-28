@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Student Profile - SiDispen</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-highest": "#dee5d4",
+                        "secondary-container": "#bff055",
+                        "secondary-fixed": "#c2f357",
+                        "on-secondary-fixed-variant": "#384e00",
+                        "surface-variant": "#dee5d4",
+                        "accent-status": "#EBD350",
+                        "tertiary-fixed": "#ffd9de",
+                        "bg-base": "#FFFFFF",
+                        "background": "#f5fceb",
+                        "on-background": "#171d13",
+                        "primary-fixed-dim": "#6edf46",
+                        "error-container": "#ffdad6",
+                        "secondary": "#4b6700",
+                        "surface-tint": "#1f6d00",
+                        "inverse-primary": "#6edf46",
+                        "on-primary-fixed": "#052100",
+                        "surface": "#f5fceb",
+                        "surface-bright": "#f5fceb",
+                        "primary": "#1f6d00",
+                        "on-secondary-container": "#4e6c00",
+                        "accent-action": "#50EB63",
+                        "on-primary-fixed-variant": "#165200",
+                        "outline": "#6f7b66",
+                        "on-secondary-fixed": "#141f00",
+                        "tertiary": "#805159",
+                        "on-tertiary-fixed-variant": "#653a42",
+                        "secondary-fixed-dim": "#a7d63d",
+                        "on-primary-container": "#1d6800",
+                        "on-surface": "#171d13",
+                        "on-primary": "#ffffff",
+                        "on-tertiary-fixed": "#321018",
+                        "tertiary-fixed-dim": "#f3b7c0",
+                        "inverse-on-surface": "#ecf3e2",
+                        "glass-border": "rgba(255, 255, 255, 0.4)",
+                        "outline-variant": "#becbb3",
+                        "error": "#ba1a1a",
+                        "accent-warning": "#EBE650",
+                        "on-error": "#ffffff",
+                        "bg-tint": "#D0EB94",
+                        "tertiary-container": "#ffc2cb",
+                        "glass-highlight": "rgba(255, 255, 255, 0.8)",
+                        "on-tertiary-container": "#7b4d55",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-low": "#eff6e5",
+                        "surface-container-high": "#e3ebda",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-dim": "#d5ddcc",
+                        "inverse-surface": "#2b3227",
+                        "on-surface-variant": "#3f4a38",
+                        "surface-container": "#e9f0df",
+                        "primary-container": "#79eb50",
+                        "on-error-container": "#93000a",
+                        "primary-fixed": "#8afd5f",
+                        "on-secondary": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "bottom-area-ratio": "62%",
+                        "base-unit": "8px",
+                        "top-area-ratio": "38%",
+                        "margin": "24px"
+                    },
+                    "fontFamily": {
+                        "h3": ["Plus Jakarta Sans"],
+                        "label-caps": ["Plus Jakarta Sans"],
+                        "h2": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "h1": ["Plus Jakarta Sans"],
+                        "body-md": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "h3": ["20px", { "lineHeight": "1.4", "fontWeight": "600" }],
+                        "label-caps": ["12px", { "lineHeight": "1.0", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "h2": ["24px", { "lineHeight": "1.3", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "h1": ["32px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "body-md": ["14px", { "lineHeight": "1.5", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .skeuo-glass {
+            backdrop-filter: blur(12px);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.1) 100%);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1), inset 0 1px 1px 0 var(--glass-highlight);
+        }
+        .liquid-glass {
+            backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+        }
+        .btn-pressed:active {
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+            transform: translateY(1px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-gradient-to-br from-[#f5fceb] to-[#D0EB94] min-h-screen font-body-md text-on-surface antialiased overflow-x-hidden">
+<!-- TopAppBar -->
+<header class="fixed docked top-0 w-full h-[335px] rounded-b-[40px] border-b border-white/30 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl border-b border-white/20 backdrop-filter shadow-[0_8px_32px_0_rgba(0,0,0,0.1)] flex flex-col justify-end p-8 max-w-none z-40 font-['Plus_Jakarta_Sans'] tracking-tight">
+<div class="flex justify-between items-start w-full mb-auto mt-4">
+<span class="material-symbols-outlined text-lime-500 dark:text-lime-400 hover:bg-white/20 transition-all active:scale-95 duration-200 cursor-pointer p-2 rounded-full" data-icon="arrow_back">arrow_back</span>
+<span class="material-symbols-outlined text-lime-500 dark:text-lime-400 hover:bg-white/20 transition-all active:scale-95 duration-200 cursor-pointer p-2 rounded-full" data-icon="settings">settings</span>
+</div>
+<div class="flex flex-col items-center justify-center -mt-8 relative z-10">
+<div class="relative mb-4">
+<img alt="Student Portrait Budi Santoso" class="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg skeuo-glass" data-alt="High quality headshot of a smiling young male Asian high school student wearing a neat white school uniform with tie, well-lit against a soft blurred background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBo2eOEAfbm7XUxYUvJOCKw1A7dhvgoXxyH7JGDFXqK8sZfvMy6vsXhq6gtI5WGo-kQoZymad2Xfb84mkLuz0ARxBnNM6-8sx_cofWCqH9708de8KG7hrDCQJAL2bFVsE4l4UDsEJPbUpelJlnvFMkeBmGmMbTwDYvphaQ9XC7wjs0mJYSkCfF0F85GA2wU3K02eoDUnwNEjopTF7LvYH2hLeXRd7ApbQ6rpO3hkhN_aFoMFaLpbuQzOOvXYG6xwL9VA8wODyA4OgY"/>
+<div class="absolute bottom-0 right-0 bg-accent-action rounded-full p-1 border-2 border-white shadow-sm flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-xs" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+</div>
+<h1 class="font-h1 text-h1 text-zinc-900 dark:text-white text-center mb-1">Budi Santoso</h1>
+<p class="font-body-lg text-body-lg text-lime-600 dark:text-lime-400 text-center font-semibold">XII IPA 1</p>
+</div>
+</header>
+<!-- Main Content Canvas (Bottom 62%) -->
+<main class="pt-[371px] pb-32 px-gutter space-y-gutter relative z-0">
+<!-- Biodata Card -->
+<section class="liquid-glass rounded-xl p-6">
+<h2 class="font-h3 text-h3 text-primary mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-container" data-icon="badge">badge</span>
+                Biodata
+            </h2>
+<div class="space-y-4">
+<div class="flex flex-col border-b border-outline-variant pb-2">
+<span class="font-label-caps text-label-caps text-on-surface-variant mb-1 uppercase">NISN</span>
+<span class="font-body-lg text-body-lg text-on-surface font-semibold">0041234567</span>
+</div>
+<div class="flex flex-col border-b border-outline-variant pb-2">
+<span class="font-label-caps text-label-caps text-on-surface-variant mb-1 uppercase">Tempat, Tanggal Lahir</span>
+<span class="font-body-lg text-body-lg text-on-surface font-semibold">Jakarta, 15 Agustus 2004</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-on-surface-variant mb-1 uppercase">Jenis Kelamin</span>
+<span class="font-body-lg text-body-lg text-on-surface font-semibold">Laki-laki</span>
+</div>
+</div>
+</section>
+<!-- Kontak Card -->
+<section class="liquid-glass rounded-xl p-6">
+<h2 class="font-h3 text-h3 text-primary mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-container" data-icon="contacts">contacts</span>
+                Kontak
+            </h2>
+<div class="space-y-4">
+<div class="flex flex-col border-b border-outline-variant pb-2">
+<span class="font-label-caps text-label-caps text-on-surface-variant mb-1 uppercase">Email</span>
+<span class="font-body-lg text-body-lg text-on-surface font-semibold">budi.santoso@siswa.sekolah.id</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-on-surface-variant mb-1 uppercase">Nomor Telepon</span>
+<span class="font-body-lg text-body-lg text-on-surface font-semibold">+62 812 3456 7890</span>
+</div>
+</div>
+</section>
+<!-- Data Orang Tua Card -->
+<section class="liquid-glass rounded-xl p-6 mb-8">
+<h2 class="font-h3 text-h3 text-primary mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-container" data-icon="family_restroom">family_restroom</span>
+                Data Orang Tua
+            </h2>
+<div class="space-y-4">
+<div class="flex flex-col border-b border-outline-variant pb-2">
+<span class="font-label-caps text-label-caps text-on-surface-variant mb-1 uppercase">Nama Ayah</span>
+<span class="font-body-lg text-body-lg text-on-surface font-semibold">Agus Santoso</span>
+</div>
+<div class="flex flex-col border-b border-outline-variant pb-2">
+<span class="font-label-caps text-label-caps text-on-surface-variant mb-1 uppercase">Nama Ibu</span>
+<span class="font-body-lg text-body-lg text-on-surface font-semibold">Siti Aminah</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-on-surface-variant mb-1 uppercase">Kontak Darurat (Ayah)</span>
+<span class="font-body-lg text-body-lg text-on-surface font-semibold">+62 811 2233 4455</span>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full rounded-t-[32px] border-t border-white/40 bg-white/30 dark:bg-black/30 backdrop-blur-2xl shadow-[0_-10px_40px_rgba(0,0,0,0.08)] fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pt-3 pb-8 md:hidden font-['Plus_Jakarta_Sans'] text-[10px] font-semibold uppercase tracking-wider">
+<a class="flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-400 opacity-60 hover:opacity-100 transition-opacity active:inner-shadow duration-150 gap-1 w-16" href="#">
+<span class="material-symbols-outlined" data-icon="grid_view">grid_view</span>
+<span class="text-center w-full truncate">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-400 opacity-60 hover:opacity-100 transition-opacity active:inner-shadow duration-150 gap-1 w-16" href="#">
+<span class="material-symbols-outlined" data-icon="menu_book">menu_book</span>
+<span class="text-center w-full truncate">Academic</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-white/40 dark:bg-white/10 text-lime-600 dark:text-lime-400 rounded-2xl px-5 py-2 shadow-[inset_0_1px_2px_rgba(255,255,255,0.5)] hover:opacity-100 transition-opacity active:inner-shadow duration-150 gap-1 w-20" href="#">
+<span class="material-symbols-outlined" data-icon="person" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="text-center w-full truncate">Profile</span>
+</a>
+<a class="flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-400 opacity-60 hover:opacity-100 transition-opacity active:inner-shadow duration-150 gap-1 w-16" href="#">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="text-center w-full truncate">Notifications</span>
+</a>
+</nav>
+</body></html>

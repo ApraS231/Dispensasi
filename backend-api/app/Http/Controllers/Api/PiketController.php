@@ -35,4 +35,14 @@ class PiketController extends Controller
 
         return response()->json(['message' => 'Anda telah menyelesaikan tugas (Checkout).']);
     }
+
+    public function getStatus(Request $request)
+    {
+        $user = $request->user();
+        $aktif = PiketAttendanceLog::where('guru_id', $user->id)
+            ->where('status_aktif', true)
+            ->exists();
+        
+        return response()->json(['is_ready' => $aktif]);
+    }
 }
