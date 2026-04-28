@@ -1,0 +1,360 @@
+# Implementasi Sistem Push Notification SiDispen
+
+Berdasarkan dokumen [Arsitektur & Skema Notifikasi.md](file:///c:/laragon/www/SIdispen%20(SMA%203)/Arsitektur%20&%20Skema%20Notifikasi.md) dan kondisi codebase saat ini.
+
+## Keputusan yang Sudah Disepakati
+
+| # | Keputusan | Detail |
+|---|---|---|
+| 1 | **Deep Link Routing** | Gunakan path yang sudah ada di codebase: `/ticket/[id]` dan `/chat/[id]`. Dokumen arsitektur sifatnya panduan logis — path seperti `/siswa/qr-code/[id]` tidak akan dibuat. |
+| 2 | **Orang Tua Notifikasi** | Tambahkan trigger notif ke Orang Tua di: `store()`, `approve()` (final), dan `validateQR()`. Query via `siswa_profiles.orang_tua_id` → `users.device_token`. |
+| 3 | **EAS Project ID** | Jalankan `npx eas-cli init` di `mobile-app/` untuk mendapatkan `projectId`. |
+
+## Prasyarat: EAS Init
+
+> [!IMPORTANT]
+> **Aksi manual diperlukan:** `eas login` membutuhkan input interaktif (email/password akun Expo). Jalankan perintah berikut **di terminal Anda secara manual** sebelum implementasi dimulai:
+> ```bash
+> cd mobile-app
+> npx eas-cli login
+> npx eas-cli init
+> ```
+> Setelah selesai, `app.json` akan otomatis terisi `extra.eas.projectId`. Beri tahu saya setelah selesai agar saya bisa lanjut.
+
+---
+
+## Status Saat Ini (Audit Codebase)
+
+| Komponen | Status | Keterangan |
+|---|---|---|
+| `ExpoPushService.php` | ✅ Ada | Sudah bisa kirim, tapi belum support batch & belum logging ke DB |
+| `device_token` kolom di `users` | ✅ Ada | Tersedia di database |
+| `notifications` tabel di DB | ✅ Ada | Kolom: `id, user_id, title, body, tipe, reference_id, is_read` |
+| `Notification` model | ✅ Ada | Minimal, sudah ada relasi `user()` |
+| `NotificationController` | ✅ Ada | Endpoint `index` & `update` (mark as read) |
+| API routes notifikasi | ✅ Ada | `GET /notifications` & `PUT /notifications/{id}/read` |
+| Trigger di `DispensasiController` | ⚠️ Parsial | `store` & `approve` sudah trigger push, tapi **reject belum**, **orang tua di store belum**, dan **tidak logging ke tabel notifications** |
+| Trigger di `TicketChatController` | ⚠️ Parsial | Push untuk chat baru sudah ada, tapi **tidak logging** |
+| Trigger di `PiketController` | ❌ Belum | QR scan tidak kirim notif ke Orang Tua |
+| `usePushNotifications` hook | ❌ Belum Ada | Belum ada di mobile app |
+| `app.json` plugin config | ❌ Belum | `expo-notifications` belum di plugins |
+| `notifications.tsx` (UI) | ⚠️ Dummy | Data simulasi hardcoded, bukan API real |
+| `login.tsx` device token | ❌ Belum | Login tidak mengirim `device_token` |
+| Supabase Realtime (Chat) | ❌ Belum | `supabaseClient.ts` ada, belum dipakai di chat |
+
+---
+
+## Proposed Changes
+
+### Komponen 1: Backend — `ExpoPushService` Refactor
+
+#### [MODIFY] [ExpoPushService.php](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/app/Services/ExpoPushService.php)
+
+Refaktor method `send()` menjadi:
+
+```php
+public static function send($to, $title, $body, $data = [], $logForUserIds = [])
+```
+
+**Perubahan:**
+1. **Batch-safe:** Jika `$to` berupa array token, buat array of message payloads (satu per token) sesuai Expo API best practice.
+2. **Auto-log:** Parameter `$logForUserIds` (array user ID) → simpan record ke tabel `notifications` untuk tiap user. Kolom yang diisi: `user_id`, `title`, `body`, `tipe` (dari `$data['type']`), `reference_id` (dari `$data['ticket_id']`).
+3. **Silent fail:** Tetap gunakan try-catch + `Log::error` agar proses utama (create tiket, approve, dll) tidak terganggu.
+
+---
+
+### Komponen 2: Backend — Trigger Notifikasi Lengkap
+
+#### [MODIFY] [DispensasiController.php](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/app/Http/Controllers/Api/DispensasiController.php)
+
+**Matriks trigger yang harus ada setelah perubahan:**
+
+| Method | Event | Penerima | Judul | Status |
+|---|---|---|---|---|
+| `store()` | Siswa ajukan izin | Wali Kelas | 📝 Izin Baru Kelas Anda | ✅ Sudah ada → **tambah logging** |
+| `store()` | Anak ajukan izin | Orang Tua | ℹ️ Info Kehadiran | ❌ **BARU** |
+| `approve()` wali | Tiket diteruskan ke piket | Guru Piket | ⏳ Butuh Persetujuan Final | ✅ Sudah ada → **tambah logging** |
+| `approve()` wali | Status update wali approve | Siswa | 📋 Update Status Izin | ⚠️ Sudah ada → **perbaiki pesan** (bedakan dari final approve) |
+| `approve()` piket | Izin final disetujui | Siswa | ✅ Izin Disetujui! | ⚠️ Sudah ada → **perbaiki pesan** ("QR Code terbit") |
+| `approve()` piket | Izin final disetujui | Orang Tua | ✅ Izin Diverifikasi | ✅ Sudah ada → **tambah logging** |
+| `reject()` | Izin ditolak | Siswa | ❌ Izin Ditolak | ❌ **BARU** |
+| `reject()` | Izin ditolak | Orang Tua | ❌ Izin Anak Ditolak | ❌ **BARU** |
+
+**Detail perubahan di `approve()`:**
+- Pisahkan pesan untuk **wali approve** vs **piket approve**:
+  - Wali approve → Siswa: *"Izin Anda disetujui Wali Kelas, menunggu validasi Guru Piket."* (bukan pesan final)
+  - Piket approve → Siswa: *"QR Code terbit. Silakan menuju meja piket."* (pesan final)
+- Jangan kirim notif ke Orang Tua saat wali approve (hanya saat piket final approve).
+
+**Detail perubahan di `reject()`:**
+- Tambahkan notif push + log ke Siswa: *"Maaf, izin Anda ditolak. Ketuk untuk detail."*
+- Tambahkan notif push + log ke Orang Tua (jika ada): *"Izin anak Anda, [Nama], ditolak oleh sekolah."*
+
+#### [MODIFY] [PiketController.php](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/app/Http/Controllers/Api/PiketController.php)
+
+Tambahkan trigger di `validateQR()` setelah tiket berhasil di-scan:
+- **Orang Tua**: 🚪 Anak Keluar Sekolah — *"[Nama] baru saja tervalidasi keluar gerbang."*
+- **Siswa**: 🚪 QR Tervalidasi — *"Izin Anda telah divalidasi di gerbang."*
+
+Query: `SiswaProfile::where('user_id', $ticket->siswa_id)->first()` → ambil `orang_tua_id` → `User::find()` → `device_token`.
+
+#### [MODIFY] [TicketChatController.php](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/app/Http/Controllers/Api/TicketChatController.php)
+
+Di method `sendChatNotification()`:
+- Tambahkan penyimpanan log ke tabel `notifications` via parameter `$logForUserIds` di `ExpoPushService::send()`.
+- User IDs yang di-log = `$targetUserIds` (semua penerima kecuali sender).
+
+---
+
+### Komponen 3: Backend — NotificationController Endpoints Baru
+
+#### [MODIFY] [NotificationController.php](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/app/Http/Controllers/Api/NotificationController.php)
+
+Tambahkan 2 method baru:
+
+```php
+// POST /notifications/mark-all-read
+public function markAllRead(Request $request)
+{
+    Notification::where('user_id', $request->user()->id)
+        ->where('is_read', false)
+        ->update(['is_read' => true]);
+    return response()->json(['message' => 'All marked as read']);
+}
+
+// GET /notifications/unread-count
+public function unreadCount(Request $request)
+{
+    $count = Notification::where('user_id', $request->user()->id)
+        ->where('is_read', false)
+        ->count();
+    return response()->json(['count' => $count]);
+}
+```
+
+---
+
+### Komponen 4: Backend — Route Tambahan
+
+#### [MODIFY] [api.php](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/routes/api.php)
+
+Tambah 2 route di blok `auth:sanctum`:
+
+```php
+Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead']);
+Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+```
+
+> [!NOTE]
+> Route `mark-all-read` harus didefinisikan **sebelum** route `PUT /notifications/{id}/read` agar tidak tertangkap sebagai parameter `{id}`.
+
+---
+
+### Komponen 5: Mobile — App Config
+
+#### [MODIFY] [app.json](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app.json)
+
+```diff
+ "plugins": [
+   "expo-router",
+   "expo-secure-store",
+-  "@react-native-community/datetimepicker"
++  "@react-native-community/datetimepicker",
++  [
++    "expo-notifications",
++    {
++      "sounds": [],
++      "icon": "./assets/icon.png",
++      "color": "#1B5E20"
++    }
++  ]
+ ]
+```
+
+> [!NOTE]
+> Setelah `eas init` selesai, field `extra.eas.projectId` akan otomatis ditambahkan oleh EAS CLI. Ini akan dipakai oleh hook di langkah selanjutnya.
+
+---
+
+### Komponen 6: Mobile — Push Notification Hook
+
+#### [NEW] `mobile-app/src/hooks/usePushNotifications.ts`
+
+Hook ini menangani seluruh lifecycle push notification:
+
+```typescript
+// 1. Setup notification handler (foreground behavior)
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
+export const usePushNotifications = () => {
+  // State: expoPushToken, notification
+  
+  useEffect(() => {
+    // A. Request permission & generate token
+    registerForPushNotificationsAsync().then(token => {
+      if (token) {
+        setExpoPushToken(token);
+        // Kirim ke backend POST /user/device-token
+        api.post('/user/device-token', { device_token: token }).catch(console.error);
+      }
+    });
+
+    // B. Foreground listener
+    notificationListener.current = Notifications.addNotificationReceivedListener(...);
+
+    // C. Response listener (deep link saat notif ditekan)
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+      const data = response.notification.request.content.data;
+      if (data?.ticket_id) {
+        router.push(`/ticket/${data.ticket_id}`);
+      }
+    });
+
+    return () => { /* cleanup subscriptions */ };
+  }, []);
+
+  return { expoPushToken, notification };
+};
+```
+
+**Fungsi `registerForPushNotificationsAsync()`:**
+1. Setup Android channel (`default`, importance MAX, vibration, `lightColor: '#1B5E20'`)
+2. Check `Device.isDevice` (harus physical device)
+3. Request permissions
+4. Get `projectId` dari `Constants.expoConfig.extra.eas.projectId`
+5. Return `Notifications.getExpoPushTokenAsync({ projectId }).data`
+
+---
+
+### Komponen 7: Mobile — Integrasi di Layout & Login
+
+#### [MODIFY] [_layout.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/_layout.tsx)
+
+- Import `usePushNotifications` hook
+- Panggil di `RootLayout` agar registrasi token berjalan sejak app dibuka
+- Hook hanya akan mengirim token jika user sudah authenticated (cek `SecureStore` token dulu)
+
+```diff
++import { usePushNotifications } from '../src/hooks/usePushNotifications';
+
+ export default function RootLayout() {
+   const { setUser, setToken, setLoading } = useAuthStore();
++  const { expoPushToken } = usePushNotifications();
+```
+
+#### [MODIFY] [login.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/login.tsx)
+
+Setelah login berhasil, kirim `device_token` sebagai bagian dari request login (backend `AuthController@login` sudah support `device_token` field):
+
+```diff
+-const response = await api.post('/login', { email, password });
++// Ambil push token jika tersedia
++let deviceToken: string | undefined;
++try {
++  const { data } = await Notifications.getExpoPushTokenAsync({
++    projectId: Constants?.expoConfig?.extra?.eas?.projectId
++  });
++  deviceToken = data;
++} catch (e) { /* silent */ }
++
++const response = await api.post('/login', { 
++  email, 
++  password, 
++  device_token: deviceToken 
++});
+```
+
+---
+
+### Komponen 8: Mobile — Notifications Screen (Real Data)
+
+#### [MODIFY] [notifications.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/notifications.tsx)
+
+Ganti seluruh data dummy dengan integrasi API real:
+
+1. **Fetch:** `GET /notifications` → map response ke format `NotificationBanner`
+2. **Mark as read:** Saat item di-tap → `PUT /notifications/{id}/read`
+3. **Mark all read:** Tombol "Baca Semua" → `POST /notifications/mark-all-read`
+4. **Deep link:** Saat item di-tap → route ke `/ticket/[reference_id]` berdasarkan field `tipe` dan `reference_id`
+5. **Pull-to-refresh:** `FlatList` dengan `onRefresh` + `refreshing` state
+6. **Type mapping:** Map `tipe` dari DB ke `NotificationBanner` type prop:
+   - `new_ticket`, `ticket_forwarded` → `warning`
+   - `ticket_approved`, `qr_validated` → `success`
+   - `ticket_rejected` → `error`
+   - `chat` → `info`
+
+---
+
+### Komponen 9: Mobile — Supabase Realtime Chat
+
+#### [MODIFY] [chat/[id].tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/chat/[id].tsx)
+
+Tambahkan Supabase Realtime subscription:
+
+```typescript
+import { supabase } from '../../src/utils/supabaseClient';
+
+useEffect(() => {
+  const channel = supabase
+    .channel(`chat_${ticketId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'ticket_chats',
+        filter: `dispensasi_ticket_id=eq.${ticketId}`,
+      },
+      (payload) => {
+        // Append pesan baru ke state tanpa refresh
+        setMessages(prev => [payload.new, ...prev]);
+      }
+    )
+    .subscribe();
+
+  return () => { supabase.removeChannel(channel); };
+}, [ticketId]);
+```
+
+> [!NOTE]
+> **Prasyarat Supabase:** Pastikan Replication untuk tabel `ticket_chats` sudah diaktifkan di Dashboard Supabase → Database → Replication. Tanpa ini, event `postgres_changes` tidak akan dipancarkan.
+
+---
+
+## Urutan Pengerjaan
+
+```mermaid
+graph TD
+    P["0. Prasyarat: eas login + eas init (Manual)"]
+    P --> A["1. app.json — tambah plugin expo-notifications"]
+    A --> B["2. usePushNotifications.ts — buat hook baru"]
+    B --> C["3. _layout.tsx + login.tsx — integrasi hook & device token"]
+    C --> D["4. ExpoPushService.php — refaktor batch + logging"]
+    D --> E["5. DispensasiController — lengkapi semua trigger"]
+    E --> F["6. PiketController — trigger QR scan notif"]
+    F --> G["7. TicketChatController — tambah logging"]
+    G --> H["8. NotificationController + routes — endpoint baru"]
+    H --> I["9. notifications.tsx — ganti dummy → API real"]
+    I --> J["10. chat/id.tsx — Supabase Realtime"]
+    J --> K["11. Testing end-to-end"]
+```
+
+## Verification Plan
+
+### Automated Tests
+1. `php artisan tinker` → test `ExpoPushService::send()` → pastikan record tersimpan di tabel `notifications`
+2. `npx expo start` → login di physical device → cek console log untuk token → cek DB `device_token` terisi
+
+### Manual Verification
+1. **Push E2E:** Login Siswa → ajukan dispensasi → cek HP Wali Kelas & Orang Tua muncul notifikasi
+2. **Reject flow:** Wali Kelas reject tiket → cek HP Siswa & Orang Tua muncul notif
+3. **QR scan:** Guru Piket scan QR → cek HP Orang Tua muncul notif "Anak Keluar Sekolah"
+4. **In-App:** Buka halaman Notifikasi → data real, mark as read, deep link ke detail
+5. **Deep Link:** Tap notif dari tray → app terbuka ke `/ticket/[id]` yang benar
+6. **Realtime Chat:** 2 device buka chat → kirim pesan → muncul real-time
