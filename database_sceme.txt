@@ -1,0 +1,193 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.cache (
+  key character varying NOT NULL,
+  value text NOT NULL,
+  expiration integer NOT NULL,
+  CONSTRAINT cache_pkey PRIMARY KEY (key)
+);
+CREATE TABLE public.cache_locks (
+  key character varying NOT NULL,
+  owner character varying NOT NULL,
+  expiration integer NOT NULL,
+  CONSTRAINT cache_locks_pkey PRIMARY KEY (key)
+);
+CREATE TABLE public.dispensasi_tickets (
+  id uuid NOT NULL,
+  siswa_id uuid NOT NULL,
+  kelas_id uuid NOT NULL,
+  wali_kelas_id uuid,
+  guru_piket_id uuid,
+  piket_attendance_id uuid,
+  jenis_izin character varying NOT NULL DEFAULT 'sakit'::character varying CHECK (jenis_izin::text = ANY (ARRAY['sakit'::character varying, 'keperluan_keluarga'::character varying, 'lainnya'::character varying]::text[])),
+  alasan text NOT NULL,
+  lampiran_bukti character varying,
+  waktu_mulai timestamp without time zone NOT NULL,
+  waktu_selesai timestamp without time zone NOT NULL,
+  status character varying NOT NULL DEFAULT 'pending'::character varying CHECK (status::text = ANY (ARRAY['pending'::character varying, 'approved_by_wali'::character varying, 'approved_by_piket'::character varying, 'approved_final'::character varying, 'rejected'::character varying]::text[])),
+  catatan_penolakan text,
+  qr_code_token character varying UNIQUE,
+  created_at timestamp without time zone,
+  updated_at timestamp without time zone,
+  qr_token uuid UNIQUE,
+  scanned_at timestamp with time zone,
+  scanner_id uuid,
+  CONSTRAINT dispensasi_tickets_pkey PRIMARY KEY (id),
+  CONSTRAINT dispensasi_tickets_siswa_id_foreign FOREIGN KEY (siswa_id) REFERENCES public.users(id),
+  CONSTRAINT dispensasi_tickets_kelas_id_foreign FOREIGN KEY (kelas_id) REFERENCES public.kelas(id),
+  CONSTRAINT dispensasi_tickets_wali_kelas_id_foreign FOREIGN KEY (wali_kelas_id) REFERENCES public.users(id),
+  CONSTRAINT dispensasi_tickets_guru_piket_id_foreign FOREIGN KEY (guru_piket_id) REFERENCES public.users(id),
+  CONSTRAINT dispensasi_tickets_piket_attendance_id_foreign FOREIGN KEY (piket_attendance_id) REFERENCES public.piket_attendance_logs(id),
+  CONSTRAINT dispensasi_tickets_scanner_id_fkey FOREIGN KEY (scanner_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.failed_jobs (
+  id bigint NOT NULL DEFAULT nextval('failed_jobs_id_seq'::regclass),
+  uuid character varying NOT NULL UNIQUE,
+  connection text NOT NULL,
+  queue text NOT NULL,
+  payload text NOT NULL,
+  exception text NOT NULL,
+  failed_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT failed_jobs_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.job_batches (
+  id character varying NOT NULL,
+  name character varying NOT NULL,
+  total_jobs integer NOT NULL,
+  pending_jobs integer NOT NULL,
+  failed_jobs integer NOT NULL,
+  failed_job_ids text NOT NULL,
+  options text,
+  cancelled_at integer,
+  created_at integer NOT NULL,
+  finished_at integer,
+  CONSTRAINT job_batches_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.jobs (
+  id bigint NOT NULL DEFAULT nextval('jobs_id_seq'::regclass),
+  queue character varying NOT NULL,
+  payload text NOT NULL,
+  attempts smallint NOT NULL,
+  reserved_at integer,
+  available_at integer NOT NULL,
+  created_at integer NOT NULL,
+  CONSTRAINT jobs_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.kelas (
+  id uuid NOT NULL,
+  nama_kelas character varying NOT NULL,
+  tingkat character varying NOT NULL,
+  wali_kelas_id uuid,
+  created_at timestamp without time zone,
+  updated_at timestamp without time zone,
+  CONSTRAINT kelas_pkey PRIMARY KEY (id),
+  CONSTRAINT kelas_wali_kelas_id_foreign FOREIGN KEY (wali_kelas_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.migrations (
+  id integer NOT NULL DEFAULT nextval('migrations_id_seq'::regclass),
+  migration character varying NOT NULL,
+  batch integer NOT NULL,
+  CONSTRAINT migrations_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.notifications (
+  id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  title character varying NOT NULL,
+  body text NOT NULL,
+  tipe character varying,
+  reference_id uuid,
+  is_read boolean NOT NULL DEFAULT false,
+  created_at timestamp without time zone,
+  updated_at timestamp without time zone,
+  CONSTRAINT notifications_pkey PRIMARY KEY (id),
+  CONSTRAINT notifications_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.password_reset_tokens (
+  email character varying NOT NULL,
+  token character varying NOT NULL,
+  created_at timestamp without time zone,
+  CONSTRAINT password_reset_tokens_pkey PRIMARY KEY (email)
+);
+CREATE TABLE public.personal_access_tokens (
+  id bigint NOT NULL DEFAULT nextval('personal_access_tokens_id_seq'::regclass),
+  tokenable_type character varying NOT NULL,
+  tokenable_id uuid NOT NULL,
+  name text NOT NULL,
+  token character varying NOT NULL UNIQUE,
+  abilities text,
+  last_used_at timestamp without time zone,
+  expires_at timestamp without time zone,
+  created_at timestamp without time zone,
+  updated_at timestamp without time zone,
+  CONSTRAINT personal_access_tokens_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.piket_attendance_logs (
+  id uuid NOT NULL,
+  guru_id uuid NOT NULL,
+  waktu_masuk timestamp without time zone,
+  waktu_keluar timestamp without time zone,
+  status_aktif boolean NOT NULL DEFAULT false,
+  created_at timestamp without time zone,
+  updated_at timestamp without time zone,
+  CONSTRAINT piket_attendance_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT piket_attendance_logs_guru_id_foreign FOREIGN KEY (guru_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.piket_schedules (
+  id uuid NOT NULL,
+  guru_id uuid NOT NULL,
+  hari character varying NOT NULL,
+  jam_mulai time without time zone NOT NULL,
+  jam_selesai time without time zone NOT NULL,
+  created_at timestamp without time zone,
+  updated_at timestamp without time zone,
+  CONSTRAINT piket_schedules_pkey PRIMARY KEY (id),
+  CONSTRAINT piket_schedules_guru_id_foreign FOREIGN KEY (guru_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.sessions (
+  id character varying NOT NULL,
+  user_id uuid,
+  ip_address character varying,
+  user_agent text,
+  payload text NOT NULL,
+  last_activity integer NOT NULL,
+  CONSTRAINT sessions_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.siswa_profiles (
+  id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  nis character varying NOT NULL UNIQUE,
+  kelas_id uuid NOT NULL,
+  orang_tua_id uuid,
+  created_at timestamp without time zone,
+  updated_at timestamp without time zone,
+  CONSTRAINT siswa_profiles_pkey PRIMARY KEY (id),
+  CONSTRAINT siswa_profiles_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT siswa_profiles_kelas_id_foreign FOREIGN KEY (kelas_id) REFERENCES public.kelas(id),
+  CONSTRAINT siswa_profiles_orang_tua_id_foreign FOREIGN KEY (orang_tua_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.ticket_chats (
+  id uuid NOT NULL,
+  dispensasi_ticket_id uuid NOT NULL,
+  sender_id uuid NOT NULL,
+  pesan text NOT NULL,
+  is_read boolean NOT NULL DEFAULT false,
+  created_at timestamp without time zone,
+  updated_at timestamp without time zone,
+  CONSTRAINT ticket_chats_pkey PRIMARY KEY (id),
+  CONSTRAINT ticket_chats_dispensasi_ticket_id_foreign FOREIGN KEY (dispensasi_ticket_id) REFERENCES public.dispensasi_tickets(id),
+  CONSTRAINT ticket_chats_sender_id_foreign FOREIGN KEY (sender_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.users (
+  id uuid NOT NULL,
+  name character varying NOT NULL,
+  email character varying NOT NULL UNIQUE,
+  email_verified_at timestamp without time zone,
+  password character varying NOT NULL,
+  role character varying NOT NULL DEFAULT 'siswa'::character varying CHECK (role::text = ANY (ARRAY['admin'::character varying, 'siswa'::character varying, 'orang_tua'::character varying, 'guru_piket'::character varying, 'wali_kelas'::character varying]::text[])),
+  device_token character varying,
+  remember_token character varying,
+  created_at timestamp without time zone,
+  updated_at timestamp without time zone,
+  CONSTRAINT users_pkey PRIMARY KEY (id)
+);
