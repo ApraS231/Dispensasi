@@ -15,7 +15,14 @@ class DispensasiTicket extends Model
         'waktu_mulai' => 'datetime',
         'waktu_selesai' => 'datetime',
         'scanned_at' => 'datetime',
+        'expires_at' => 'datetime',
+        'is_scanned' => 'boolean',
     ];
+
+    public function isExpired()
+    {
+        return $this->expires_at && now()->greaterThan($this->expires_at);
+    }
 
     public function siswa()
     {

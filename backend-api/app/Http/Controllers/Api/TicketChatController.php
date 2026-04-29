@@ -65,6 +65,12 @@ class TicketChatController extends Controller
         if (!$this->checkAccess($request->user(), $ticket)) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
+        if ($ticket->isExpired()) {
+            return response()->json([
+                'message' => 'Sesi chat telah berakhir. Tiket ini sudah kedaluwarsa.'
+            ], 403);
+        }
+
 
         $request->validate([
             'pesan' => 'required|string'

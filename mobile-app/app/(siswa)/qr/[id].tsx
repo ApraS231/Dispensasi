@@ -65,6 +65,11 @@ export default function QRCodeScreen() {
     fetchTicket();
   }, [id]);
 
+
+  const isExpired = ticket?.expires_at
+    ? new Date() > new Date(ticket.expires_at)
+    : false;
+
   const formatTime = (isoString: string) => {
     if (!isoString) return '';
     return new Date(isoString).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
@@ -97,21 +102,28 @@ export default function QRCodeScreen() {
             </View>
 
             {/* QR Code Area with Frame */}
-            <View style={styles.qrContainer}>
-              <View style={styles.cornerTL} />
-              <View style={styles.cornerTR} />
-              <View style={styles.cornerBL} />
-              <View style={styles.cornerBR} />
-              
-              <View style={styles.qrBg}>
-                <QRCode 
-                  value={ticket.qr_token}
-                  size={width * 0.55} 
-                  color={COLORS.bgWhite} 
-                  backgroundColor={COLORS.textPrimary} 
-                />
+            {isExpired ? (
+              <View style={[styles.qrContainer, { padding: 40, alignItems: 'center', justifyContent: 'center' }]}>
+                <MaterialCommunityIcons name="clock-alert-outline" size={64} color={COLORS.error} />
+                <Text style={{ fontFamily: FONTS.headingSemi, color: COLORS.error, marginTop: 10, fontSize: 18 }}>TICKET EXPIRED</Text>
               </View>
-            </View>
+            ) : (
+              <View style={styles.qrContainer}>
+                <View style={styles.cornerTL} />
+                <View style={styles.cornerTR} />
+                <View style={styles.cornerBL} />
+                <View style={styles.cornerBR} />
+
+                <View style={styles.qrBg}>
+                  <QRCode
+                    value={ticket.qr_token}
+                    size={width * 0.55}
+                    color={COLORS.bgWhite}
+                    backgroundColor={COLORS.textPrimary}
+                  />
+                </View>
+              </View>
+            )}
 
             {/* Ticket Info */}
             <View style={styles.infoSection}>

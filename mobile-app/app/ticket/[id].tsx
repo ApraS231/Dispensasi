@@ -168,6 +168,11 @@ export default function TicketDetailScreen() {
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>;
   if (!ticket) return <View style={styles.center}><Text>Tiket tidak ditemukan</Text></View>;
 
+
+  const isExpired = ticket?.expires_at
+    ? new Date() > new Date(ticket.expires_at)
+    : false;
+
   const userRole = user?.role;
   const student = ticket.student || ticket.siswa;
   const kelas = ticket.kelas?.nama_kelas;
@@ -288,27 +293,34 @@ export default function TicketDetailScreen() {
             ListEmptyComponent={<Text style={styles.emptyChatText}>Belum ada diskusi untuk tiket ini.</Text>}
           />
 
-          <View style={styles.inputContainer}>
-            <View style={styles.inputWrapper}>
-              <TextInput 
-                style={styles.input} 
-                placeholder="Kirim pesan terkait tiket ini..." 
-                placeholderTextColor={COLORS.textMuted}
-                value={newMsg} 
-                onChangeText={setNewMsg}
-                multiline 
-              />
-              <TouchableOpacity 
-                style={[styles.sendBtn, { right: 4, bottom: 4 }]} 
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  sendMessage();
-                }}
-              >
-                <MaterialCommunityIcons name="send" size={20} color={COLORS.bgWhite} />
-              </TouchableOpacity>
+          {isExpired ? (
+            <View style={[styles.inputContainer, { backgroundColor: COLORS.error + '10', alignItems: 'center', paddingVertical: SPACING.lg }]}>
+              <Text style={{ fontFamily: FONTS.headingSemi, color: COLORS.error, fontSize: 16 }}>Sesi Chat Telah Berakhir</Text>
+              <Text style={{ fontFamily: FONTS.bodyMedium, color: COLORS.textSecondary, fontSize: 13, textAlign: 'center', marginTop: 4 }}>Masa berlaku tiket 12 jam telah habis. Riwayat percakapan ini bersifat Read-Only.</Text>
             </View>
-          </View>
+          ) : (
+            <View style={styles.inputContainer}>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Kirim pesan terkait tiket ini..."
+                  placeholderTextColor={COLORS.textMuted}
+                  value={newMsg}
+                  onChangeText={setNewMsg}
+                  multiline
+                />
+                <TouchableOpacity
+                  style={[styles.sendBtn, { right: 4, bottom: 4 }]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    sendMessage();
+                  }}
+                >
+                  <MaterialCommunityIcons name="send" size={20} color={COLORS.bgWhite} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
         </KeyboardAvoidingView>
 
       </SafeAreaView>
