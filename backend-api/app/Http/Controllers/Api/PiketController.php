@@ -39,6 +39,13 @@ class PiketController extends Controller
             return response()->json(['valid' => false, 'message' => 'QR Code Palsu / Tidak Dikenali'], 404);
         }
 
+        if ($ticket->isExpired()) {
+            return response()->json([
+                'valid' => false,
+                'message' => 'Akses Ditolak: Tiket ini sudah KEDALUWARSA!'
+            ], 400);
+        }
+
         if ($ticket->scanned_at !== null) {
             return response()->json(['valid' => false, 'message' => 'QR Code ini sudah pernah dipakai!'], 400);
         }
@@ -46,6 +53,7 @@ class PiketController extends Controller
         // Jika Valid, kunci tiket
         $ticket->update([
             'status' => 'completed_exit',
+            'is_scanned' => true,
             'scanned_at' => now(),
             'scanner_id' => $request->user()->id
         ]);
@@ -82,4 +90,25 @@ class PiketController extends Controller
         return response()->json(['valid' => true, 'message' => 'Izin Sah. Siswa divalidasi untuk keluar.', 'data' => $ticket]);
     }
 
+
+
+
+    public function getDailyLog(Request $request)
+    {
+        $startOfDay = now()->startOfDay();
+        $endOfDay = now()->endOfDay();
+
+        $logs = \App\Models\DispensasiTicket::with(['siswa', 'scanner'])
+            ->whereBetween('created_at', [$startOfDay, $endOfDay])
+            ->whereIn('status', ['approved_final', 'completed_exit'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'date' => now()->format('Y-m-d'),
+            'total' => $logs->count(),
+            'scanned_count' => $logs->where('is_scanned', true)->count(),
+            'data' => $logs
+        ]);
+    }
 }

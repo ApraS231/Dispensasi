@@ -39,6 +39,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:guru_piket')->group(function () {
         Route::get('/piket/status', [PiketController::class, 'getStatus']);
         Route::post('/piket/validate-qr', [PiketController::class, 'validateQR']);
+    Route::get('/piket/daily-log', [PiketController::class, 'getDailyLog']);
     });
 
     // GURU PIKET ATAU WALI KELAS (Approval Flow)

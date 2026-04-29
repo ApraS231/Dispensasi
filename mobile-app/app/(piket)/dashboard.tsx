@@ -6,6 +6,7 @@ import * as Haptics from 'expo-haptics';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import api from '../../src/utils/api';
 import { useAuthStore } from '../../src/stores/authStore';
+import DailyLogCard from '../../src/components/DailyLogCard';
 import SoftCard from '../../src/components/SoftCard';
 import TicketCard from '../../src/components/TicketCard';
 import MechanicalToggle from '../../src/components/MechanicalToggle';
@@ -17,16 +18,24 @@ import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../../src/utils/theme';
 export default function PiketDashboard() {
   const { user, logout } = useAuthStore();
   const [isReady, setIsReady] = useState(false);
+  const [dailyLogs, setDailyLogs] = useState<any[]>([]);
+  const [dailyLogStats, setDailyLogStats] = useState<any>({ total: 0, scanned: 0 });
   const [pendingTickets, setPendingTickets] = useState<any[]>([]);
 
   const fetchData = async () => {
     try {
-      const [pendingRes, statusRes] = await Promise.all([
+      const [pendingRes, statusRes, logsRes] = await Promise.all([
         api.get('/dispensasi/pending'),
-        api.get('/piket/status')
+        api.get('/piket/status'),
+        api.get('/piket/daily-log')
       ]);
       setPendingTickets(pendingRes.data);
       setIsReady(statusRes.data.is_ready);
+      setDailyLogs(logsRes.data.data);
+      setDailyLogStats({
+        total: logsRes.data.total,
+        scanned: logsRes.data.scanned_count
+      });
     } catch (e) {
       // Silently fail or handle error
     }
@@ -79,6 +88,34 @@ export default function PiketDashboard() {
           avatarLabel={user?.name?.charAt(0)?.toUpperCase() || 'P'} 
           showNotification={true} 
         />
+
+            <View style={[styles.sectionHeader, { marginTop: SPACING.xl }]}>
+              <Text style={styles.sectionTitle}>Log Hari Ini</Text>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 10, marginBottom: SPACING.md }}>
+              <SoftCard style={{ flex: 1, padding: SPACING.sm, alignItems: 'center' }}>
+                <Text style={{ fontFamily: FONTS.heading, fontSize: 24, color: COLORS.primary }}>{dailyLogStats.total}</Text>
+                <Text style={{ fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.textSecondary }}>Total Izin</Text>
+              </SoftCard>
+              <SoftCard style={{ flex: 1, padding: SPACING.sm, alignItems: 'center' }}>
+                <Text style={{ fontFamily: FONTS.heading, fontSize: 24, color: COLORS.success }}>{dailyLogStats.scanned}</Text>
+                <Text style={{ fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.textSecondary }}>Telah Keluar</Text>
+              </SoftCard>
+              <SoftCard style={{ flex: 1, padding: SPACING.sm, alignItems: 'center' }}>
+                <Text style={{ fontFamily: FONTS.heading, fontSize: 24, color: COLORS.warning }}>{dailyLogStats.total - dailyLogStats.scanned}</Text>
+                <Text style={{ fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.textSecondary }}>Menunggu</Text>
+              </SoftCard>
+            </View>
+
+            <FlatList
+              data={dailyLogs}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={{ paddingBottom: 100 }}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item }) => <DailyLogCard item={item} />}
+              ListEmptyComponent={<Text style={styles.emptyText}>Belum ada log hari ini.</Text>}
+            />
 
         <View style={styles.mainContent}>
           {/* Header Card */}

@@ -135,7 +135,8 @@ class DispensasiController extends Controller
         } else if ($user->role === 'guru_piket' && $tiket->guru_piket_id === $user->id) {
             $tiket->update([
                 'status' => 'approved_final',
-                'qr_token' => (string) Str::uuid()
+                'qr_token' => (string) Str::uuid(),
+                'expires_at' => now()->addHours(12)
             ]);
 
             // Notify Siswa (Final Approve)
