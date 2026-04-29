@@ -1,0 +1,510 @@
+# Peningkatan UI/UX SiDispen: Cleanup → Implementasi → Verifikasi
+
+Dokumen ini mencakup 3 fase utama:
+1. **Fase 1**: Membersihkan kode tidak terpakai & redundansi
+2. **Fase 2**: Implementasi UI/UX dari dokumen Perancangan Teknis
+3. **Fase 3**: Verifikasi keseluruhan kode terhadap konflik
+
+---
+
+## Fase 1: Pembersihan Kode (Code Cleanup)
+
+Tujuan: Menghilangkan *dead code*, redundansi, dan ketidakkonsistenan **sebelum** perubahan UI/UX masuk, agar tidak ada kode lama yang tertimpa atau menimbulkan konflik.
+
+---
+
+### 1.1 Hapus Dependensi yang Tidak Terpakai
+
+#### [MODIFY] [package.json](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/package.json)
+
+Hapus package berikut dari `dependencies` karena tidak pernah di-import di satupun file `.tsx`/`.ts`:
+
+| Package | Alasan Hapus |
+|---|---|
+| `@expo-google-fonts/nunito` | Hanya font Roboto yang digunakan |
+| `@expo/html-elements` | Tidak di-import dimanapun |
+| `expo-linear-gradient` | Tidak di-import setelah migrasi M3 |
+
+---
+
+### 1.2 Hapus File & Direktori Mati
+
+#### [DELETE] [chat/\[id\].tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/chat/[id].tsx)
+
+**Alasan**: File ini adalah versi lama chat room yang **seluruh fungsinya sudah digantikan** oleh [ticket/\[id\].tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/ticket/[id].tsx). Perbandingan:
+
+| Fitur | `chat/[id].tsx` (LAMA) | `ticket/[id].tsx` (AKTIF) |
+|---|---|---|
+| Optimistic UI | ❌ | ✅ |
+| Retry on fail | ❌ | ✅ |
+| Cursor pagination | ❌ | ✅ |
+| Inline ticket detail | ❌ | ✅ |
+| Expiry guard | ❌ | ✅ |
+
+`import { createClient } from '@supabase/supabase-js'` di file ini juga merupakan *dead import* (tidak pernah dipanggil).
+
+#### [DELETE] Direktori `mobile-app/components/` (root-level)
+
+Direktori ini **kosong** — semua komponen sudah di `src/components/`.
+
+#### [DELETE] Direktori `mobile-app/src/services/`
+
+Direktori ini **kosong** — tidak ada file.
+
+#### [DELETE] [tailwind.config.js](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/tailwind.config.js)
+
+**207 baris konfigurasi yang 100% dead code**. Tidak ada satupun `className` di seluruh aplikasi — semua styling menggunakan `StyleSheet.create` + `theme.ts`. Dark mode telah diputuskan menggunakan arsitektur Zustand + dual theme, sehingga NativeWind tidak diperlukan.
+
+#### [DELETE] [nativewind-env.d.ts](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/nativewind-env.d.ts)
+
+Type declaration untuk NativeWind yang tidak lagi digunakan.
+
+#### [MODIFY] [babel.config.js](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/babel.config.js) & [metro.config.js](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/metro.config.js)
+
+Hapus referensi ke NativeWind preset jika ada di file-file konfigurasi ini.
+
+#### [DELETE] Direktori `stitch_design_system_implementation/`
+
+17 folder mockup desain lama yang hanya menambah overhead repositori. Sebelum dihapus, arsipkan ke penyimpanan cloud eksternal atau branch terpisah (`archive/design-system`) sebagai referensi cadangan.
+
+> [!IMPORTANT]
+> Setelah menghapus `chat/[id].tsx`, perlu pastikan tidak ada navigasi `router.push('/chat/...')` yang tersisa. Dari analisis, satu-satunya referensi ada di [notifications.tsx L63](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/notifications.tsx#L63) yang harus diubah ke `/ticket/...`.
+
+---
+
+### 1.3 Hapus Dead Code dalam File yang Ada
+
+#### [MODIFY] [theme.ts](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/utils/theme.ts)
+
+- **Hapus `TYPOGRAPHY` export** (L64-L72): Didefinisikan tapi tidak pernah di-import oleh file manapun.
+- **Hapus `bottomStroke*` shadows yang kosong** (L96-L99): `bottomStrokePrimary`, `bottomStrokeSecondary`, `bottomStrokeTertiary`, `bottomStrokeError` semuanya `{}` — tidak memberikan efek visual.
+
+#### [MODIFY] [notifications.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/notifications.tsx#L62-L63)
+
+Ubah navigasi chat:
+```diff
+ if (item.reference_id) {
+-    if (item.tipe === 'chat') {
+-        router.push(`/chat/${item.reference_id}`);
+-    } else {
+-        router.push(`/ticket/${item.reference_id}`);
+-    }
++    router.push(`/ticket/${item.reference_id}`);
+ }
+```
+
+---
+
+### 1.4 Ekstrak Pola Redundan Menjadi Komponen/Hook Reusable
+
+#### A. Buat Hook `useLogout` — [NEW] `src/hooks/useLogout.ts`
+
+Fungsi `handleLogout` saat ini di-copy-paste identik di **8 file**:
+- `(siswa)/dashboard.tsx`, `(siswa)/profile.tsx`
+- `(wali)/dashboard.tsx`, `(wali)/profile.tsx`
+- `(piket)/dashboard.tsx`, `(piket)/profile.tsx`
+- `(ortu)/dashboard.tsx`, `(ortu)/profile.tsx`
+
+```typescript
+// src/hooks/useLogout.ts
+export function useLogout() {
+  const { logout } = useAuthStore();
+  const handleLogout = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try { await api.post('/logout'); } catch (e) {}
+    await SecureStore.deleteItemAsync('userToken');
+    logout();
+    router.replace('/login');
+  };
+  return handleLogout;
+}
+```
+
+Lalu refactor semua 8 file untuk menggunakan `const handleLogout = useLogout();`.
+
+#### B. Buat Komponen `ProfileScreen` — [NEW] `src/components/ProfileScreen.tsx`
+
+**4 file profile** (`siswa/profile`, `wali/profile`, `piket/profile`, `ortu/profile`) memiliki **~90% kode identik**. Perbedaan hanya:
+- Title AppBar (`"Profil Saya"`, `"Profil Wali Kelas"`, dst.)
+- Default name placeholder
+- Section menu tambahan (Ortu punya "Pemantauan Anak")
+
+Buat komponen generik `ProfileScreen` yang menerima `title`, `extraSections?`.
+
+#### C. Buat Komponen `SearchFilterBar` — [NEW] `src/components/SearchFilterBar.tsx`
+
+Pola Search Bar + Filter Pill diulang identik di:
+- `(siswa)/riwayat.tsx`
+- `(ortu)/riwayat.tsx`
+- `(piket)/history.tsx` (tanpa filter pills)
+- `(wali)/history.tsx` (tanpa filter pills)
+
+Buat komponen reusable yang menerima `filters?` prop (optional pill config).
+
+#### D. Buat Komponen `OptionMenu` — [NEW] `src/components/OptionMenu.tsx`
+
+Komponen `OptionMenu` saat ini didefinisikan sebagai **inline function component** yang identik di semua 4 file profile. Ekstrak sebagai komponen standalone yang proper.
+
+---
+
+### 1.5 Seragamkan Arsitektur Layout
+
+#### [MODIFY] [(piket)/_layout.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(piket)/_layout.tsx)
+
+> [!WARNING]
+> `(piket)/_layout.tsx` menggunakan `<Tabs>` (native expo-router tab bar), sedangkan semua role lain (`siswa`, `wali`, `ortu`) menggunakan `<Stack>` + custom `<BottomTabBar>`. Ini menyebabkan **dua sistem navigasi berbeda** yang bisa menimbulkan bug pada navigasi.
+
+Refactor ke `<Stack>` + `<BottomTabBar>` agar konsisten dengan role lain, menggunakan `PIKET_TABS` yang sudah didefinisikan di `BottomTabBar.tsx`.
+
+---
+
+### 1.6 Bersihkan Emoji sebagai Icon (Minor)
+
+Beberapa file masih menggunakan emoji/teks sebagai pengganti icon:
+
+| File | Emoji | Seharusnya |
+|---|---|---|
+| Semua search bar (`riwayat.tsx`, `history.tsx`) | `🔍` | `<MaterialCommunityIcons name="magnify">` |
+| Semua search bar clear button | `✕` (text) | `<MaterialCommunityIcons name="close">` |
+| `notifications.tsx` back button | `←` (text) | `<MaterialCommunityIcons name="arrow-left">` |
+| `profile-settings.tsx` back button | `←` (text) | `<MaterialCommunityIcons name="arrow-left">` |
+| Profile OptionMenu icons | `P`, `K`, `O`, `H`, `A`, `L` (text) | MaterialCommunityIcons proper |
+| Profile chevron | `➔` (text) | `<MaterialCommunityIcons name="chevron-right">` |
+
+---
+
+## Fase 2: Implementasi UI/UX (Dari Dokumen Perancangan Teknis)
+
+Setelah cleanup selesai, implementasi fitur UI/UX baru dari dokumen [Perancangan Teknis UI_UX SiDispen.md](file:///c:/laragon/www/SIdispen%20(SMA%203)/Perancangan%20Teknis%20UI_UX%20SiDispen.md).
+
+---
+
+### 2.1 Arsitektur Animasi & Mikro-Interaksi
+
+#### A. Swipe Actions untuk Antrean Validasi
+
+##### [NEW] `src/components/SwipeableTicketCard.tsx`
+
+Bungkus `TicketCard` dengan gesture handler dari `react-native-gesture-handler` + `react-native-reanimated`:
+- Geser kanan → layer hijau + ikon centang → trigger `onApprove`
+- Geser kiri → layer merah + ikon silang → trigger `onReject`
+- Gunakan `useSharedValue` untuk `translateX`, `useAnimatedStyle` untuk visual
+- `runOnJS` untuk trigger API setelah threshold terpenuhi
+- Threshold: ±120px dari posisi awal
+
+**File yang terpengaruh**: `(wali)/dashboard.tsx`, `(piket)/dashboard.tsx` — ganti render item `FlatList` dengan `SwipeableTicketCard`.
+
+#### B. Shared Element Transition
+
+##### [MODIFY] Komponen terkait list-to-detail
+
+- Bungkus elemen kunci (judul, avatar) di `TicketCard` dengan `<Animated.View sharedTransitionTag={...}>`
+- Terapkan tag yang sama di `ticket/[id].tsx`
+- Gunakan `SharedTransition.custom()` dengan spring config natural
+
+> [!NOTE]
+> Expo Router SDK 54 sudah mendukung Shared Element Transitions via `react-native-reanimated`. Cukup tambahkan `sharedTransitionTag` prop.
+
+#### C. Upgrade BouncyButton ke Reanimated
+
+##### [MODIFY] [BouncyButton.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/BouncyButton.tsx)
+
+Saat ini menggunakan `Animated` dari React Native (JS-driven). Refactor ke:
+- `react-native-reanimated` (`useSharedValue`, `useAnimatedStyle`, `withSpring`)
+- Sinkronkan shadow dengan scale (untuk Dynamic Shadows — Fase 2.5C)
+- `stiffness: 300, damping: 15` untuk feel pegas yang natural
+
+---
+
+### 2.2 Umpan Balik Sensorik (Sensory Feedback)
+
+#### [NEW] `src/utils/haptics.ts` — Haptic Matrix Helper
+
+Buat utility wrapper agar konsisten:
+```typescript
+export const HapticFeedback = {
+  success: () => Haptics.notificationAsync(NotificationFeedbackType.Success),
+  error: () => Haptics.notificationAsync(NotificationFeedbackType.Error),
+  light: () => Haptics.impactAsync(ImpactFeedbackStyle.Light),
+  medium: () => Haptics.impactAsync(ImpactFeedbackStyle.Medium),
+  selection: () => Haptics.selectionAsync(),
+};
+```
+
+Lalu refactor semua pemanggilan `Haptics.*` langsung ke `HapticFeedback.*` agar ada single source of truth.
+
+**File terpengaruh**: Semua file yang menggunakan `expo-haptics` (~12 file).
+
+---
+
+### 2.3 Optimasi Rendering Layout
+
+#### A. Ganti FlatList → FlashList
+
+##### Install `@shopify/flash-list`
+
+Ganti semua `<FlatList>` dengan `<FlashList>` + `estimatedItemSize`:
+
+| Screen | estimatedItemSize |
+|---|---|
+| Semua riwayat/history | `120` (tinggi TicketCard) |
+| Dashboard ticket lists | `120` |
+| Daily log list | `100` |
+| Chat messages | `80` |
+| Notifications | `90` |
+
+**File terpengaruh**: ~10 file yang menggunakan `FlatList`.
+
+#### B. Skeleton Loading States
+
+##### [NEW] `src/components/TicketCardSkeleton.tsx`
+
+Buat skeleton placeholder dengan shimmer animation:
+- Gunakan `react-native-reanimated` untuk animasi gradien bergeser
+- Render 5 skeleton saat `isLoading === true`
+- Dimensi match dengan `TicketCard` untuk menghindari layout shift
+
+**File terpengaruh**: Semua screen yang punya loading state.
+
+#### C. Image Caching dengan expo-image
+
+##### Install `expo-image`
+
+Ganti semua penggunaan `<Image>` dari `react-native` dengan `<Image>` dari `expo-image`:
+- Aktifkan `cachePolicy="disk"`
+- Sediakan `placeholder` blurhash
+- Terpengaruh: `pengajuan.tsx` (lampiran preview), `ticket/[id].tsx` (attachment)
+
+---
+
+### 2.4 Sistem Tema & State
+
+#### A. Dark Mode via Zustand + Dual Theme
+
+> [!TIP]
+> **Keputusan FINAL**: Menggunakan arsitektur **Zustand + dual `theme.ts`**. NativeWind tidak digunakan karena seluruh app sudah berjalan di `StyleSheet.create` + `COLORS` dari `theme.ts`. Migrasi ke className hanya untuk dark mode akan menyita terlalu banyak energi dan berisiko merusak komponen yang sudah stabil. Pendekatan Zustand + theme.ts sudah lebih dari cukup untuk menangani tema Skeuo-Glass dengan mulus.
+
+##### [MODIFY] [theme.ts](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/utils/theme.ts)
+
+Buat `DARK_COLORS` sebagai counterpart dari `COLORS` dengan palette M3 dark:
+```typescript
+export const DARK_COLORS: typeof COLORS = {
+  bgWhite: '#1A1C1E',
+  surface: '#1A1C1E',
+  surfaceDim: '#111411',
+  surfaceContainerLowest: '#0E1210',
+  surfaceContainerLow: '#1A1F1A',
+  surfaceContainer: '#1E231E',
+  surfaceContainerHigh: '#252A25',
+  surfaceContainerHighest: '#303530',
+  primaryLight: '#1B3A1D',
+  primaryMuted: '#2E5530',
+  primary: '#66BB6A',       // Lighter green for dark surfaces
+  onPrimary: '#003910',
+  primaryContainer: '#1B5E20',
+  onPrimaryContainer: '#95F090',
+  // ... semua token warna lainnya
+  textPrimary: '#E1E3DE',
+  textSecondary: '#C1C9BE',
+  textMuted: '#8A9188',
+  outlineVariant: '#414941',
+  // Status Colors (slightly adjusted for dark)
+  success: '#66BB6A',
+  successBg: '#1B3A1D',
+  warning: '#FDD835',
+  warningBg: '#3A3418',
+  error: '#EF5350',
+  errorBg: '#3A1818',
+  info: '#42A5F5',
+  infoBg: '#18293A',
+  inverseSurface: '#E1E3DE',
+  inverseOnSurface: '#2F312E',
+};
+```
+
+Tambahkan helper function:
+```typescript
+export function getColors(isDark: boolean) {
+  return isDark ? DARK_COLORS : COLORS;
+}
+```
+
+##### [NEW] `src/stores/themeStore.ts`
+
+```typescript
+import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+interface ThemeState {
+  mode: 'light' | 'dark' | 'system';
+  setMode: (mode: 'light' | 'dark' | 'system') => void;
+  loadSavedTheme: () => Promise<void>;
+}
+
+export const useThemeStore = create<ThemeState>((set) => ({
+  mode: 'system',
+  setMode: async (mode) => {
+    set({ mode });
+    await AsyncStorage.setItem('themeMode', mode);
+  },
+  loadSavedTheme: async () => {
+    const saved = await AsyncStorage.getItem('themeMode');
+    if (saved) set({ mode: saved as any });
+  },
+}));
+```
+
+##### [NEW] `src/hooks/useThemeColors.ts`
+
+Hook yang return warna aktif berdasarkan state tema + system preference (`useColorScheme`):
+```typescript
+import { useColorScheme } from 'react-native';
+import { useThemeStore } from '../stores/themeStore';
+import { COLORS, DARK_COLORS } from '../utils/theme';
+
+export function useThemeColors() {
+  const systemScheme = useColorScheme();
+  const mode = useThemeStore((s) => s.mode);
+  const isDark = mode === 'dark' || (mode === 'system' && systemScheme === 'dark');
+  return isDark ? DARK_COLORS : COLORS;
+}
+```
+
+#### B. Optimistic UI Updates
+
+Sudah sebagian diimplementasikan:
+- ✅ `ticket/[id].tsx` — chat messages (optimistic + retry)
+- ✅ `notifications.tsx` — mark as read (optimistic)
+- ❌ `wali/dashboard.tsx` — approve/reject (harusnya langsung update UI, baru hit API)
+- ❌ `piket/dashboard.tsx` — approve/reject (sama)
+
+##### [MODIFY] `(wali)/dashboard.tsx` dan `(piket)/dashboard.tsx`
+
+Refactor `handleApprove`/`handleReject`:
+```typescript
+// SEBELUM (blocking):
+const handleApprove = async (id) => {
+  await api.post(`/dispensasi/${id}/approve`);  // ← tunggu dulu
+  setPendingTickets(prev => prev.filter(t => t.id !== id));
+};
+
+// SESUDAH (optimistic):
+const handleApprove = async (id) => {
+  setPendingTickets(prev => prev.filter(t => t.id !== id));  // ← langsung hapus
+  HapticFeedback.success();
+  try {
+    await api.post(`/dispensasi/${id}/approve`);
+  } catch (e) {
+    setPendingTickets(prev => [...prev, /* kembalikan item */]);
+    HapticFeedback.error();
+    Alert.alert('Gagal', '...');
+  }
+};
+```
+
+---
+
+### 2.5 Sistem Elevasi & Soft Shadow
+
+#### A. Standardisasi Soft Shadow
+
+##### [MODIFY] [theme.ts](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/utils/theme.ts)
+
+Update `SHADOWS.softCard` menggunakan low-opacity diffused shadow:
+```typescript
+softCard: {
+  shadowColor: '#000000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.04,  // sangat rendah
+  shadowRadius: 12,     // blur besar → halus
+  elevation: 2,
+},
+```
+
+#### B. Colored Shadows (Glow Effect)
+
+##### [MODIFY] [GlassFAB.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/GlassFAB.tsx)
+
+Tambahkan `shadowColor: COLORS.primary` (bukan hitam) pada FAB:
+```typescript
+shadowColor: '#2E7D32',
+shadowOpacity: 0.35,
+shadowRadius: 8,
+shadowOffset: { width: 0, height: 4 },
+elevation: 6,
+```
+
+#### C. Interactive & Dynamic Shadows
+
+##### [MODIFY] [BouncyButton.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/BouncyButton.tsx) (gabung dengan 2.1C)
+
+Sinkronkan shadow dengan animasi scale:
+- `onPressIn`: scale 0.95 + shadow menurun (elevation↓, opacity↓)
+- `onPressOut`: scale 1.0 + shadow kembali (spring)
+
+---
+
+## Fase 3: Verifikasi Keseluruhan (Post-Implementation Audit)
+
+Setelah Fase 1 & 2 selesai, lakukan audit menyeluruh:
+
+### 3.1 Cek Konflik Navigasi
+- Verifikasi semua `router.push()` / `router.replace()` mengarah ke route yang valid
+- Cek tidak ada route yang mengarah ke `chat/[id]` yang sudah dihapus
+- Verifikasi deep linking dari notifikasi masih bekerja
+
+### 3.2 Cek Import & Export Consistency
+- Pastikan tidak ada import ke file/modul yang sudah dihapus
+- Pastikan semua komponen baru (`SwipeableTicketCard`, `SearchFilterBar`, dll.) ter-import dengan benar
+- Verifikasi tidak ada circular imports
+
+### 3.3 Cek Style Conflicts
+- Audit semua penggunaan `COLORS.*` — pastikan masih valid setelah perubahan `theme.ts`
+- Verifikasi `SHADOWS` yang diperbarui tidak merusak visual existing
+- Cek konsistensi antara role yang menggunakan komponen shared
+
+### 3.4 Cek Package Dependencies
+- Verifikasi package baru (`@shopify/flash-list`, `expo-image`) terpasang dan kompatibel dengan Expo SDK 54
+- Pastikan `react-native-reanimated` v4.1 mendukung semua API baru (SharedTransition, dll.)
+
+### 3.5 Build & Runtime Test
+- Jalankan `npx expo start` dan pastikan app berjalan tanpa error
+- Test di Android (prioritas) dan iOS jika tersedia
+- Verify setiap screen role (siswa, wali, piket, ortu) berfungsi normal
+
+---
+
+## Keputusan Arsitektur (Resolved)
+
+### ✅ 1. Dark Mode Architecture → **Zustand + Dual `theme.ts`**
+
+Mengingat ketatnya tenggat waktu penyelesaian tugas akhir, efisiensi development adalah prioritas utama. Melakukan migrasi total hanya untuk menyisipkan `className` NativeWind akan menyita terlalu banyak energi dan berisiko merusak komponen yang sudah berjalan dengan baik. Arsitektur Zustand + `theme.ts` sudah lebih dari cukup untuk menangani tema Skeuo-Glass dengan sangat mulus.
+
+### ✅ 2. Tailwind Config & Dead Code → **Hapus Total**
+
+Menjaga repositori tetap bersih dari dead code adalah keharusan untuk memastikan maintainability ke depannya. Karena sudah mantap berjalan di jalur `theme.ts`, keberadaan `tailwind.config.js`, `nativewind-env.d.ts`, dan preset NativeWind hanya menambah overhead tanpa memberikan nilai guna. File-file berikut akan dihapus:
+- `tailwind.config.js` (207 baris dead code)
+- `nativewind-env.d.ts`
+- Referensi NativeWind di `babel.config.js` / `metro.config.js`
+
+### ✅ 3. Folder `stitch_design_system_implementation/` → **Hapus dari Repositori Utama**
+
+File-file mockup desain lama yang statis dan berjumlah banyak (17 folder) hanya membuat ukuran repositori membengkak dan memperlambat proses cloning. Sebelum dihapus, arsipkan ke penyimpanan cloud eksternal (Google Drive) atau branch terpisah (`archive/design-system`) sebagai referensi cadangan.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- `npx expo start --android` — pastikan app build dan berjalan
+- Navigasi manual ke setiap screen per role (siswa → wali → piket → ortu)
+- Test swipe gestures pada antrean validasi
+- Test haptic feedback pada tombol-tombol
+- Verify skeleton loading muncul saat fetch data
+
+### Manual Verification
+- Review visual shadow pada SoftCard, FAB, dan BouncyButton
+- Test animasi spring pada BouncyButton (feel harus natural, bukan kaku)
+- Verify dark mode toggle berfungsi dengan benar
+- Test FlashList scrolling performance pada list panjang
+- Verifikasi NativeWind removal tidak menyebabkan error saat build

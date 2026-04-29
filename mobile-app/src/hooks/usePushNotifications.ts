@@ -8,7 +8,8 @@ import api from '../utils/api';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
   }),
@@ -63,8 +64,8 @@ export const usePushNotifications = () => {
   const [notification, setNotification] = useState<Notifications.Notification | undefined>(
     undefined
   );
-  const notificationListener = useRef<Notifications.EventSubscription>();
-  const responseListener = useRef<Notifications.EventSubscription>();
+  const notificationListener = useRef<Notifications.EventSubscription>(null);
+  const responseListener = useRef<Notifications.EventSubscription>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -91,10 +92,10 @@ export const usePushNotifications = () => {
 
     return () => {
       if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
+        notificationListener.current.remove();
       }
       if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
+        responseListener.current.remove();
       }
     };
   }, []);

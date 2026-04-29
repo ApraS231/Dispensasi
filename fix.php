@@ -1,4 +1,0 @@
-<?php
-$content = file_get_contents('backend-api/app/Http/Controllers/Api/PiketController.php');
-$content = str_replace("        if (!\$ticket) {\n            return response()->json(['valid' => false, 'message' => 'QR Code Palsu / Tidak Dikenali'], 404);\n        if (\$ticket->isExpired()) {\n            return response()->json([\n                'valid' => false,\n                'message' => 'Akses Ditolak: Tiket ini sudah KEDALUWARSA!'\n            ], 400);\n        }\n\n        }", "        if (!\$ticket) {\n            return response()->json(['valid' => false, 'message' => 'QR Code Palsu / Tidak Dikenali'], 404);\n        }\n\n        if (\$ticket->isExpired()) {\n            return response()->json([\n                'valid' => false,\n                'message' => 'Akses Ditolak: Tiket ini sudah KEDALUWARSA!'\n            ], 400);\n        }", $content);
-file_put_contents('backend-api/app/Http/Controllers/Api/PiketController.php', $content);
