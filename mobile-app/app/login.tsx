@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { View, Text, TextInput, StyleSheet, Alert, KeyboardAvoidingView, Platform, SafeAreaView } from 'react-native';
 import api from '../src/utils/api';
 import { useAuthStore } from '../src/stores/authStore';
@@ -22,7 +24,24 @@ export default function LoginScreen() {
     }
     setLoading(true);
     try {
-      const response = await api.post('/login', { email, password });
+
+      let deviceToken: string | undefined;
+      try {
+        const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
+        if (projectId) {
+            const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
+            deviceToken = data;
+        }
+      } catch (e) {
+        console.log('Error getting push token during login', e);
+      }
+
+      const response = await api.post('/login', {
+        email,
+        password,
+        device_token: deviceToken
+      });
+
 
       // Simpan Token di SecureStore
       await SecureStore.setItemAsync('userToken', response.data.token);

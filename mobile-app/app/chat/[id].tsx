@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Keyboard
 import { useLocalSearchParams, router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../src/utils/supabaseClient';
 import api from '../../src/utils/api';
 import { useAuthStore } from '../../src/stores/authStore';
 import ChatBubble from '../../src/components/ChatBubble';
@@ -31,40 +32,25 @@ export default function ChatScreen() {
   };
 
   useEffect(() => {
-    // 1. Initial fetch via API
     fetchChats();
 
-    // 2. Subscribe to realtime updates via Supabase WebSocket
-    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
-    const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_KEY || '';
-    
-    if (supabaseUrl && supabaseKey) {
-      const supabase = createClient(supabaseUrl, supabaseKey);
+    const channel = supabase
+      .channel(`chat_${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'ticket_chats',
+          filter: `dispensasi_ticket_id=eq.${id}`,
+        },
+        (payload) => {
+          fetchChats();
+        }
+      )
+      .subscribe();
 
-      const channel = supabase
-        .channel(`chat_room_${id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'ticket_chats',
-            filter: `dispensasi_ticket_id=eq.${id}`,
-          },
-          (payload: any) => {
-            console.log('Pesan baru diterima via realtime!', payload);
-            // Fetch chats again to get the sender's relation (eager loading). 
-            // In a highly optimized setup, we would just append the payload, 
-            // but we need the sender name which is not in the raw insert payload.
-            fetchChats(); 
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
+    return () => { supabase.removeChannel(channel); };
   }, [id]);
 
   const sendMessage = async () => {

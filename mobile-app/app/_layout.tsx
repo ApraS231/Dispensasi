@@ -11,11 +11,14 @@ import {
   Roboto_700Bold,
 } from '@expo-google-fonts/roboto';
 import * as SplashScreen from 'expo-splash-screen';
+import { usePushNotifications } from '../src/hooks/usePushNotifications';
+
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const { setUser, setToken, setLoading } = useAuthStore();
+  const { expoPushToken } = usePushNotifications();
   
   const [fontsLoaded] = useFonts({
     'Roboto-Regular': Roboto_400Regular,

@@ -22,4 +22,20 @@ class NotificationController extends Controller
         $notif->update(['is_read' => true]);
         return response()->json(['message' => 'Marked as read']);
     }
+
+    public function markAllRead(Request $request)
+    {
+        Notification::where('user_id', $request->user()->id)
+            ->where('is_read', false)
+            ->update(['is_read' => true]);
+        return response()->json(['message' => 'All marked as read']);
+    }
+
+    public function unreadCount(Request $request)
+    {
+        $count = Notification::where('user_id', $request->user()->id)
+            ->where('is_read', false)
+            ->count();
+        return response()->json(['count' => $count]);
+    }
 }

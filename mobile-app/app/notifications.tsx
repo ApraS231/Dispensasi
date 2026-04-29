@@ -9,46 +9,17 @@ import { COLORS, FONTS, SPACING, SIZES } from '../src/utils/theme';
 export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchNotifications = async () => {
     try {
-      // Endpoint should fetch from user notifications table or Expo push history
-      // For now, simulate with a standard API call if backend has it
-      // const res = await api.get('/notifications');
-      // setNotifications(res.data);
-      
-      // Simulating data for UI demonstration purposes
-      setTimeout(() => {
-        setNotifications([
-          {
-            id: '1',
-            title: 'Izin Disetujui!',
-            message: 'Izin atas nama Budi (Keperluan Keluarga) telah disetujui oleh Wali Kelas.',
-            type: 'success',
-            created_at: new Date().toISOString(),
-            is_read: false,
-          },
-          {
-            id: '2',
-            title: 'Pengajuan Baru',
-            message: 'Terdapat pengajuan dispensasi baru dari Kelas X-IPA 1 menunggu persetujuan Anda.',
-            type: 'warning',
-            created_at: new Date(Date.now() - 3600000).toISOString(), // 1 hr ago
-            is_read: true,
-          },
-          {
-            id: '3',
-            title: 'Izin Ditolak',
-            message: 'Izin sakit Anda ditolak karena alasan kurang jelas. Silakan ajukan ulang.',
-            type: 'error',
-            created_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-            is_read: true,
-          }
-        ]);
-        setLoading(false);
-      }, 500);
+      const res = await api.get('/notifications');
+      setNotifications(res.data);
     } catch (e) {
+      console.log('Error fetching notifications', e);
+    } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -56,18 +27,52 @@ export default function NotificationsScreen() {
     fetchNotifications();
   }, []);
 
-  const markAllAsRead = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // await api.post('/notifications/mark-read');
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchNotifications();
   };
 
-  const handlePress = (id: string) => {
-    Haptics.selectionAsync();
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-    // Usually route to ticket detail if related
-    // router.push(`/ticket/${ticket_id}`);
+  const markAllAsRead = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+        await api.post('/notifications/mark-all-read');
+        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    } catch (e) {
+        console.log('Error mark all read', e);
+    }
   };
+
+  const handlePress = async (item: any) => {
+    Haptics.selectionAsync();
+
+    // Optimistic UI update
+    setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, is_read: true } : n));
+
+    // Mark as read in backend if not read yet
+    if (!item.is_read) {
+        try {
+            await api.put(`/notifications/${item.id}/read`);
+        } catch(e) {
+            console.log('Error read notif', e);
+        }
+    }
+
+    // Deep link based on type
+    if (item.reference_id) {
+        if (item.tipe === 'chat') {
+            router.push(`/chat/${item.reference_id}`);
+        } else {
+            router.push(`/ticket/${item.reference_id}`);
+        }
+    }
+  };
+
+  const mapType = (tipe: string) => {
+      if (['new_ticket', 'ticket_forwarded'].includes(tipe)) return 'warning';
+      if (['ticket_approved', 'qr_validated'].includes(tipe)) return 'success';
+      if (['ticket_rejected'].includes(tipe)) return 'error';
+      return 'info';
+  }
 
   return (
     <View style={styles.container}>
@@ -93,19 +98,21 @@ export default function NotificationsScreen() {
           ) : (
             <FlatList
               data={notifications}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item) => item.id.toString()}
               contentContainerStyle={styles.listContent}
               showsVerticalScrollIndicator={false}
+              onRefresh={onRefresh}
+              refreshing={refreshing}
               renderItem={({ item }) => {
                 const time = new Date(item.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
                 return (
                   <NotificationBanner 
                     title={item.title}
-                    message={item.message}
-                    type={item.type as any}
+                    message={item.body}
+                    type={mapType(item.tipe)}
                     time={time}
                     isRead={item.is_read}
-                    onPress={() => handlePress(item.id)}
+                    onPress={() => handlePress(item)}
                   />
                 );
               }}
