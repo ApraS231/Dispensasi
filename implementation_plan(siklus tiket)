@@ -1,0 +1,266 @@
+# Implementasi Siklus Tiket, Kedaluwarsa & Log Harian
+
+Implementasi fitur lengkap berdasarkan dokumen [Arsitektur Siklus Tiket & Log Harian.md](file:///c:/laragon/www/SIdispen%20(SMA%203)/Arsitektur%20Siklus%20Tiket%20&%20Log%20Harian.md). Mencakup: expiry 12 jam, read-only chat, validasi QR expired, dan daily log guru piket.
+
+## Analisis Gap (Kondisi Saat Ini vs Target)
+
+| Fitur | Status Saat Ini | Target |
+|---|---|---|
+| `expires_at` kolom | ✅ Sudah ditambahkan di Supabase | ✅ Auto-set 12 jam saat approve |
+| `is_scanned` kolom | ✅ Sudah ditambahkan di Supabase | ✅ Set `true` saat QR discan |
+| Composite Index | ✅ Sudah dibuat di Supabase | ✅ `idx_tickets_daily_log` |
+| Timezone `Asia/Jakarta` | ❌ Default `UTC` di Laravel | ✅ Ubah `config/app.php` → `Asia/Jakarta` |
+| Backfill `expires_at` lama | ❌ Data lama masih null | ✅ SQL backfill `created_at + 12 jam` |
+| Set `expires_at` saat approve | ❌ Tidak ada logika | ✅ `now()->addHours(12)` |
+| Chat read-only jika expired | ❌ Tidak ada pengecekan | ✅ Backend 403 + frontend banner |
+| QR reject jika expired | ❌ Tidak ada pengecekan | ✅ Backend validation layer |
+| Daily Log API | ❌ Tidak ada endpoint | ✅ `GET /api/piket/daily-log` |
+| Daily Log UI (Piket Dashboard) | ❌ Tidak ada tampilan | ✅ Tab/Section baru di dashboard |
+| QR expired UI (Siswa) | ❌ Selalu tampil QR | ✅ Conditional render expired state |
+| Chat expired UI | ❌ Selalu tampil input | ✅ Read-only banner |
+
+## Keputusan yang Sudah Dikonfirmasi
+
+> [!NOTE]
+> **Zona Waktu:** Dikonfirmasi menggunakan `Asia/Jakarta` (WIB). Jika sekolah di WITA/WIT, cukup ubah ke `Asia/Makassar` / `Asia/Jayapura`.
+
+> [!NOTE]
+> **Database:** Kolom `expires_at`, `is_scanned`, dan composite index `idx_tickets_daily_log` **sudah ditambahkan langsung di Supabase**. Tidak perlu migration file Laravel.
+
+> [!NOTE]
+> **Backfill Data Lama:** Akan menjalankan SQL backfill untuk mengisi `expires_at = created_at + interval '12 hours'` pada semua tiket existing yang berstatus `approved_final` atau `completed_exit`, agar validasi di backend/frontend konsisten tanpa penanganan null.
+
+---
+
+## Proposed Changes
+
+### Komponen 1: Database — Backfill Data Lama (Supabase SQL)
+
+> [!NOTE]
+> Kolom `expires_at`, `is_scanned`, dan composite index sudah ditambahkan langsung di Supabase. **Tidak ada migration file Laravel yang dibuat.**
+
+Jalankan SQL berikut di Supabase SQL Editor untuk backfill tiket lama:
+
+```sql
+-- Backfill expires_at untuk tiket yang sudah approved_final atau completed_exit
+UPDATE dispensasi_tickets
+SET expires_at = created_at + interval '12 hours'
+WHERE expires_at IS NULL
+  AND status IN ('approved_final', 'completed_exit');
+
+-- Backfill is_scanned untuk tiket yang sudah pernah discan
+UPDATE dispensasi_tickets
+SET is_scanned = TRUE
+WHERE scanned_at IS NOT NULL
+  AND is_scanned = FALSE;
+```
+
+---
+
+### Komponen 2: Backend — Konfigurasi & Model
+
+#### [MODIFY] [app.php](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/config/app.php)
+- Ubah timezone dari `'UTC'` → `'Asia/Jakarta'`
+
+#### [MODIFY] [DispensasiTicket.php](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/app/Models/DispensasiTicket.php)
+- Tambah `expires_at` ke `$casts` sebagai `datetime`
+- Tambah `is_scanned` ke `$casts` sebagai `boolean`
+- Tambah helper method `isExpired()` → `return $this->expires_at && now()->greaterThan($this->expires_at);`
+
+---
+
+### Komponen 3: Backend — Logic Persetujuan & Expiry (Controller)
+
+#### [MODIFY] [DispensasiController.php](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/app/Http/Controllers/Api/DispensasiController.php)
+
+Pada fungsi `approve()`, saat guru piket memberikan persetujuan final:
+
+```diff
+ } else if ($user->role === 'guru_piket' && $tiket->guru_piket_id === $user->id) {
+     $tiket->update([
+         'status' => 'approved_final',
+-        'qr_token' => (string) Str::uuid()
++        'qr_token' => (string) Str::uuid(),
++        'expires_at' => now()->addHours(12),
+     ]);
+```
+
+Juga tambahkan `expires_at` ke response `show()` agar frontend bisa mengecek status expiry.
+
+---
+
+### Komponen 4: Backend — Chat Read-Only Guard
+
+#### [MODIFY] [TicketChatController.php](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/app/Http/Controllers/Api/TicketChatController.php)
+
+Pada fungsi `store()`, tambahkan pengecekan expiry **sebelum** menyimpan pesan:
+
+```php
+// Cek apakah tiket sudah kedaluwarsa
+if ($ticket->expires_at && now()->greaterThan($ticket->expires_at)) {
+    return response()->json([
+        'message' => 'Sesi chat telah berakhir. Tiket ini sudah kedaluwarsa.'
+    ], 403);
+}
+```
+
+---
+
+### Komponen 5: Backend — QR Validation Expired Guard
+
+#### [MODIFY] [PiketController.php](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/app/Http/Controllers/Api/PiketController.php)
+
+Pada fungsi `validateQR()`, tambahkan validasi expiry **sebelum** pengecekan `scanned_at`:
+
+```php
+// Validasi kedaluwarsa
+if ($ticket->expires_at && now()->greaterThan($ticket->expires_at)) {
+    return response()->json([
+        'valid' => false,
+        'message' => 'Akses Ditolak: Tiket ini sudah KEDALUWARSA!'
+    ], 400);
+}
+```
+
+Juga tambahkan `is_scanned => true` saat update:
+
+```diff
+ $ticket->update([
+     'status' => 'completed_exit',
++    'is_scanned' => true,
+     'scanned_at' => now(),
+     'scanner_id' => $request->user()->id
+ ]);
+```
+
+---
+
+### Komponen 6: Backend — Daily Log API Endpoint
+
+#### [MODIFY] [PiketController.php](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/app/Http/Controllers/Api/PiketController.php)
+
+Tambahkan method baru `getDailyLog()`:
+
+```php
+public function getDailyLog(Request $request)
+{
+    $startOfDay = now()->startOfDay();
+    $endOfDay = now()->endOfDay();
+
+    $logs = DispensasiTicket::with(['siswa', 'scanner'])
+        ->whereBetween('created_at', [$startOfDay, $endOfDay])
+        ->whereIn('status', ['approved_final', 'completed_exit'])
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+    return response()->json([
+        'date' => now()->format('Y-m-d'),
+        'total' => $logs->count(),
+        'scanned_count' => $logs->where('is_scanned', true)->count(),
+        'data' => $logs
+    ]);
+}
+```
+
+#### [MODIFY] [api.php](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/routes/api.php)
+
+Register route baru di grup `guru_piket`:
+
+```diff
+ Route::middleware('role:guru_piket')->group(function () {
+     Route::get('/piket/status', [PiketController::class, 'getStatus']);
+     Route::post('/piket/validate-qr', [PiketController::class, 'validateQR']);
++    Route::get('/piket/daily-log', [PiketController::class, 'getDailyLog']);
+ });
+```
+
+---
+
+### Komponen 7: Frontend Mobile — QR Expired UI (Siswa)
+
+#### [MODIFY] [[id].tsx (QR Screen)](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(siswa)/qr/[id].tsx)
+
+Tambahkan logika `isExpired`:
+
+```typescript
+const isExpired = ticket?.expires_at 
+  ? new Date() > new Date(ticket.expires_at) 
+  : false;
+```
+
+Conditional render:
+- **Jika expired →** Tampilkan ikon `clock-alert-outline` + teks "TICKET EXPIRED" + sembunyikan QR Code
+- **Jika aktif →** Tampilkan QR Code normal (seperti sekarang)
+- Tambahkan **countdown timer** (opsional, tapi recommended UX) yang menampilkan sisa waktu
+
+---
+
+### Komponen 8: Frontend Mobile — Chat Read-Only UI
+
+#### [MODIFY] [[id].tsx (Ticket Detail/Chat)](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/ticket/[id].tsx)
+
+Tambahkan logika `isExpired` berdasarkan `ticket.expires_at`:
+
+- **Jika expired →** Ganti area input chat dengan banner merah peringatan:
+  ```
+  "Sesi Chat Telah Berakhir"
+  "Masa berlaku tiket 12 jam telah habis. Riwayat percakapan ini bersifat Read-Only."
+  ```
+- **Jika aktif →** Tampilkan input chat normal (tidak berubah)
+
+---
+
+### Komponen 9: Frontend Mobile — Daily Log UI (Piket Dashboard)
+
+#### [MODIFY] [dashboard.tsx (Piket)](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(piket)/dashboard.tsx)
+
+Tambahkan **section baru "Log Hari Ini"** di bawah antrean persetujuan:
+
+- Fetch data dari `GET /piket/daily-log`
+- Tampilkan summary card: **Total Hari Ini** | **Sudah Discan** | **Menunggu Scan**
+- Render list `DailyLogCard` untuk setiap tiket:
+  - Nama siswa, jenis izin
+  - Badge "Telah Discan" (hijau) atau "Menunggu Scan" (kuning)
+  - Info scanner + waktu scan jika sudah discan
+- Auto-reset visual tiap hari (natural dari API `startOfDay`/`endOfDay`)
+
+#### [NEW] [DailyLogCard.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/DailyLogCard.tsx)
+
+Komponen card untuk setiap item di daily log, menampilkan:
+- Nama siswa + jenis izin
+- Badge status scan (hijau/kuning)
+- Nama scanner + waktu scan (jika sudah discan)
+
+---
+
+## Ringkasan File yang Berubah
+
+| Layer | File | Aksi |
+|---|---|---|
+| DB | Supabase SQL Editor | Backfill `expires_at` & `is_scanned` ✅ |
+| Config | `config/app.php` | MODIFY (timezone → `Asia/Jakarta`) |
+| Model | `DispensasiTicket.php` | MODIFY (casts + helper) |
+| Controller | `DispensasiController.php` | MODIFY (expires_at on approve) |
+| Controller | `TicketChatController.php` | MODIFY (expiry guard) |
+| Controller | `PiketController.php` | MODIFY (expiry QR + daily log) |
+| Routes | `api.php` | MODIFY (daily-log route) |
+| Mobile | `(siswa)/qr/[id].tsx` | MODIFY (expired state UI) |
+| Mobile | `ticket/[id].tsx` | MODIFY (read-only chat) |
+| Mobile | `(piket)/dashboard.tsx` | MODIFY (daily log section) |
+| Mobile | `components/DailyLogCard.tsx` | NEW |
+
+## Verification Plan
+
+### Automated Tests
+1. **Backfill:** Cek bahwa semua tiket `approved_final`/`completed_exit` memiliki `expires_at` non-null
+2. **Approve flow:** POST approve → cek bahwa `expires_at` terisi di database (12 jam dari sekarang)
+3. **Chat guard:** POST chat pada tiket yang expired → harus return 403
+4. **QR validation:** POST validate-qr dengan tiket expired → harus return 400 "KEDALUWARSA"
+5. **Daily log:** GET daily-log → cek response JSON berisi `date`, `total`, `scanned_count`, `data`
+
+### Manual Verification (Browser/Device)
+1. Buat tiket baru → approve sampai final → pastikan QR Code tampil dengan `expires_at` terisi
+2. Simulasikan expiry (update `expires_at` ke waktu lampau di Supabase) → buka QR screen → harus tampil "TICKET EXPIRED"
+3. Buka chat tiket expired → input harus hilang, banner merah muncul
+4. Scan QR expired → alert "Akses Ditolak: Tiket KEDALUWARSA"
+5. Buka dashboard piket → lihat section "Log Hari Ini" dengan data hari ini
