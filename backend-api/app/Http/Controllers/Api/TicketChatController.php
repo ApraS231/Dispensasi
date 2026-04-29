@@ -107,13 +107,13 @@ class TicketChatController extends Controller
             ->pluck('device_token')
             ->toArray();
 
-        if (!empty($tokens)) {
-            ExpoPushService::send(
-                $tokens,
-                'Pesan Baru: ' . $sender->name,
-                $chat->pesan,
-                ['ticket_id' => $ticket->id, 'type' => 'chat']
-            );
-        }
+        // Pass $targetUserIds to ExpoPushService for logging, even if tokens is empty
+        ExpoPushService::send(
+            $tokens,
+            'Pesan Baru: ' . $sender->name,
+            $chat->pesan,
+            ['ticket_id' => $ticket->id, 'type' => 'chat'],
+            array_values($targetUserIds) // Reset keys
+        );
     }
 }

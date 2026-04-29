@@ -59,6 +59,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/dispensasi/{id}/chats', [TicketChatController::class, 'store']);
     
     Route::get('/dispensasi/{id}', [DispensasiController::class, 'show']);
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead']);
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::put('/notifications/{id}/read', [NotificationController::class, 'update']);
 });
