@@ -95,15 +95,15 @@ export default function PiketDashboard() {
             </View>
 
             <View style={{ flexDirection: 'row', gap: 10, marginBottom: SPACING.md }}>
-              <SoftCard style={{ flex: 1, padding: SPACING.sm, alignItems: 'center' }}>
+              <SoftCard style={{ flex: 1, padding: SPACING.sm, alignItems: 'center', backgroundColor: COLORS.surfaceContainerLow }}>
                 <Text style={{ fontFamily: FONTS.heading, fontSize: 24, color: COLORS.primary }}>{dailyLogStats.total}</Text>
                 <Text style={{ fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.textSecondary }}>Total Izin</Text>
               </SoftCard>
-              <SoftCard style={{ flex: 1, padding: SPACING.sm, alignItems: 'center' }}>
+              <SoftCard style={{ flex: 1, padding: SPACING.sm, alignItems: 'center', backgroundColor: COLORS.surfaceContainerLow }}>
                 <Text style={{ fontFamily: FONTS.heading, fontSize: 24, color: COLORS.success }}>{dailyLogStats.scanned}</Text>
                 <Text style={{ fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.textSecondary }}>Telah Keluar</Text>
               </SoftCard>
-              <SoftCard style={{ flex: 1, padding: SPACING.sm, alignItems: 'center' }}>
+              <SoftCard style={{ flex: 1, padding: SPACING.sm, alignItems: 'center', backgroundColor: COLORS.surfaceContainerLow }}>
                 <Text style={{ fontFamily: FONTS.heading, fontSize: 24, color: COLORS.warning }}>{dailyLogStats.total - dailyLogStats.scanned}</Text>
                 <Text style={{ fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.textSecondary }}>Menunggu</Text>
               </SoftCard>
@@ -227,6 +227,7 @@ const styles = StyleSheet.create({
   },
   headerCard: {
     padding: SPACING.lg,
+    backgroundColor: COLORS.secondaryContainer, // Teal background
   },
   headerTop: { 
     flexDirection: 'row', 

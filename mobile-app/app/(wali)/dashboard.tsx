@@ -187,6 +187,7 @@ const styles = StyleSheet.create({
   },
   headerCard: {
     padding: SPACING.lg,
+    backgroundColor: COLORS.tertiaryContainer, // Gold/Amber background
   },
   headerTop: { 
     flexDirection: 'row', 
@@ -221,17 +222,18 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   legendItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: COLORS.surfaceContainerLowest,
-      padding: SPACING.sm,
-      borderRadius: SIZES.radiusButton,
-
-      shadowColor: '#1A1A1A',
-      shadowOffset: { width: 2, height: 2 },
-      shadowOpacity: 1,
-      shadowRadius: 0,
-    },
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.bgWhite,
+    padding: SPACING.sm,
+    borderRadius: SIZES.radiusButton,
+    borderWidth: 2,
+    borderColor: '#1A1A1A',
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+  },
   legendColor: {
     width: 12,
     height: 12,

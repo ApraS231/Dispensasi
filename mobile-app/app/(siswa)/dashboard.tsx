@@ -118,6 +118,7 @@ const styles = StyleSheet.create({
   headerCard: {
     paddingVertical: SPACING.lg,
     paddingHorizontal: SPACING.md,
+    backgroundColor: COLORS.primaryContainer, // Vibrant yellow
   },
   headerRow: { 
     flexDirection: 'row', 
@@ -127,7 +128,7 @@ const styles = StyleSheet.create({
   greeting: { 
     fontFamily: FONTS.bodyMedium, 
     fontSize: 16, 
-    color: COLORS.textSecondary 
+    color: COLORS.textPrimary
   },
   name: { 
     fontFamily: FONTS.heading, 
@@ -138,9 +139,16 @@ const styles = StyleSheet.create({
   kelasBadge: {
     fontFamily: FONTS.labelCaps,
     fontSize: 11,
-    color: '#1A1A1A',
+    color: COLORS.bgWhite,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#1A1A1A',
     marginTop: SPACING.xs,
     letterSpacing: 0.5,
+    alignSelf: 'flex-start',
   },
   logoutBtn: {
     paddingHorizontal: 12,
@@ -166,7 +174,7 @@ const styles = StyleSheet.create({
   badgeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.warning,
+    backgroundColor: COLORS.bgWhite,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderRadius: SIZES.radiusButton,
@@ -186,7 +194,7 @@ const styles = StyleSheet.create({
   badgeLabel: {
     fontFamily: FONTS.bodyMedium,
     fontSize: 13,
-    color: COLORS.textSecondary,
+    color: COLORS.textPrimary,
   },
   
   listContainer: {
