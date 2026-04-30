@@ -1,6 +1,6 @@
+import { HapticFeedback } from '../../src/utils/haptics';
 import { StyleSheet, TouchableWithoutFeedback, Animated, View } from 'react-native';
 import { useRef } from 'react';
-import * as Haptics from 'expo-haptics';
 import { COLORS, SHADOWS } from '../utils/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ICONS } from '../utils/icons';
@@ -9,7 +9,7 @@ export default function GlassFAB({ onPress }: { onPress: () => void }) {
   const scaleValue = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    HapticFeedback.light();
     Animated.spring(scaleValue, {
       toValue: 0.9,
       useNativeDriver: true,

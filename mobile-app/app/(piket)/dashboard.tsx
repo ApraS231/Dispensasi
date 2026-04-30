@@ -1,8 +1,8 @@
+import { HapticFeedback } from '../../src/utils/haptics';
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, FlatList, StyleSheet, Alert, SafeAreaView } from 'react-native';
 import { router as expoRouter, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import * as Haptics from 'expo-haptics';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import api from '../../src/utils/api';
 import { useAuthStore } from '../../src/stores/authStore';
@@ -56,7 +56,7 @@ export default function PiketDashboard() {
 
   const handleApprove = async (id: string) => {
     try {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      HapticFeedback.success();
       await api.post(`/dispensasi/${id}/approve`);
       setPendingTickets(prev => prev.filter(t => t.id !== id));
     } catch (e: any) { Alert.alert('Gagal', e.response?.data?.message || 'Error'); }
@@ -67,7 +67,7 @@ export default function PiketDashboard() {
       Alert.prompt('Alasan Penolakan', 'Masukkan catatan penolakan:', async (catatan) => {
         if (!catatan) return;
         try {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          HapticFeedback.success();
           await api.post(`/dispensasi/${id}/reject`, { catatan_penolakan: catatan });
           setPendingTickets(prev => prev.filter(t => t.id !== id));
         } catch (e) {}

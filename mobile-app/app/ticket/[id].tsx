@@ -1,7 +1,7 @@
+import { HapticFeedback } from '../../src/utils/haptics';
 import { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, SafeAreaView, Alert, KeyboardAvoidingView, Platform, TextInput, ScrollView } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import * as Haptics from 'expo-haptics';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import api from '../../src/utils/api';
 import { supabase } from '../../src/utils/supabaseClient';
@@ -112,13 +112,13 @@ export default function TicketDetailScreen() {
     try {
       if (action !== 'reject') {
         await api.post(`/dispensasi/${id}/${action}`);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        HapticFeedback.success();
         Alert.alert('Berhasil', 'Tiket telah diperbarui.');
       } else {
         Alert.prompt('Catatan Penolakan', 'Berikan alasan penolakan:', async (catatan) => {
           if (!catatan) return;
           await api.post(`/dispensasi/${id}/reject`, { catatan_penolakan: catatan });
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          HapticFeedback.success();
           Alert.alert('Berhasil', 'Tiket telah ditolak.');
           fetchTicket();
         });
@@ -312,7 +312,7 @@ export default function TicketDetailScreen() {
                 <TouchableOpacity
                   style={[styles.sendBtn, { right: 4, bottom: 4 }]}
                   onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    HapticFeedback.light();
                     sendMessage();
                   }}
                 >

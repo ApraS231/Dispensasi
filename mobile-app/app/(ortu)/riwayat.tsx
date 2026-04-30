@@ -1,7 +1,7 @@
+import { HapticFeedback } from '../../src/utils/haptics';
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
 import { router as expoRouter, useFocusEffect } from 'expo-router';
-import * as Haptics from 'expo-haptics';
 import api from '../../src/utils/api';
 import TopAppBar from '../../src/components/TopAppBar';
 import TicketCard from '../../src/components/TicketCard';
@@ -60,7 +60,7 @@ export default function OrtuRiwayatScreen() {
       <TouchableOpacity 
         style={[styles.filterPill, isActive && styles.filterPillActive]}
         onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          HapticFeedback.light();
           setActiveFilter(id);
         }}
       >

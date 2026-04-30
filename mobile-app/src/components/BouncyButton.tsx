@@ -1,3 +1,4 @@
+import { HapticFeedback } from '../../src/utils/haptics';
 import React, { useRef } from 'react';
 import { 
   Text, 
@@ -8,7 +9,6 @@ import {
   TextStyle, 
   ActivityIndicator 
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
 import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../utils/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ICONS } from '../utils/icons';
@@ -39,7 +39,7 @@ export default function BouncyButton({
 
   const handlePressIn = () => {
     if (disabled || loading) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    HapticFeedback.light();
     
     Animated.spring(scaleAnim, {
       toValue: 0.95,

@@ -1,8 +1,8 @@
+import { HapticFeedback } from '../../src/utils/haptics';
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, SafeAreaView, Dimensions } from 'react-native';
 import { router as expoRouter, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import * as Haptics from 'expo-haptics';
 import api from '../../src/utils/api';
 import { useAuthStore } from '../../src/stores/authStore';
 import SoftCard from '../../src/components/SoftCard';
@@ -44,7 +44,7 @@ export default function WaliDashboard() {
 
   const handleApprove = async (id: string) => {
     try {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      HapticFeedback.success();
       await api.post(`/dispensasi/${id}/approve`);
       setPendingTickets(prev => prev.filter(t => t.id !== id));
     } catch (e: any) { Alert.alert('Gagal', e.response?.data?.message || 'Error'); }
@@ -55,7 +55,7 @@ export default function WaliDashboard() {
       Alert.prompt('Alasan Penolakan', 'Masukkan catatan penolakan:', async (catatan) => {
         if (!catatan) return;
         try {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          HapticFeedback.success();
           await api.post(`/dispensasi/${id}/reject`, { catatan_penolakan: catatan });
           setPendingTickets(prev => prev.filter(t => t.id !== id));
         } catch (e) {}

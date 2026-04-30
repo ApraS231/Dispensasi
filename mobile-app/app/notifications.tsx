@@ -1,7 +1,7 @@
+import { HapticFeedback } from '../src/utils/haptics';
 import { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
-import * as Haptics from 'expo-haptics';
 import api from '../src/utils/api';
 import NotificationBanner from '../src/components/NotificationBanner';
 import { COLORS, FONTS, SPACING, SIZES } from '../src/utils/theme';
@@ -33,7 +33,7 @@ export default function NotificationsScreen() {
   };
 
   const markAllAsRead = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    HapticFeedback.medium();
     try {
         await api.post('/notifications/mark-all-read');
         setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
@@ -43,7 +43,7 @@ export default function NotificationsScreen() {
   };
 
   const handlePress = async (item: any) => {
-    Haptics.selectionAsync();
+    HapticFeedback.selection();
 
     // Optimistic UI update
     setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, is_read: true } : n));

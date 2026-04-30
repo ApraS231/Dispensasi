@@ -18,12 +18,12 @@ export const COLORS = {
   // 10% Aksen (Focal Point & Aksi Utama)
   primary: '#2E7D32', // M3 Green 800 (Contrast for white text)
   onPrimary: '#FFFFFF',
-  primaryContainer: '#53F726', // User's vibrant green
+  primaryContainer: '#53f726b0', // User's vibrant green
   onPrimaryContainer: '#1B5E20', // Dark green text
   
   secondary: '#9CCC65', // Lime
   onSecondary: '#000000',
-  secondaryContainer: '#BCF726', // User's lime green
+  secondaryContainer: '#65f758ff', // User's lime green
   onSecondaryContainer: '#33691E',
   
   tertiary: '#F9A825', // Amber

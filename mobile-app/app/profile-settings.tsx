@@ -1,7 +1,7 @@
+import { HapticFeedback } from '../src/utils/haptics';
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, Alert } from 'react-native';
 import { router } from 'expo-router';
-import * as Haptics from 'expo-haptics';
 import { useAuthStore } from '../src/stores/authStore';
 import api from '../src/utils/api';
 import SoftCard from '../src/components/SoftCard';
@@ -18,7 +18,7 @@ export default function ProfileSettingsScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    HapticFeedback.medium();
     setLoading(true);
     try {
       // Assuming a generic endpoint for profile update
@@ -27,12 +27,12 @@ export default function ProfileSettingsScreen() {
       // Simulate network request
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      HapticFeedback.success();
       Alert.alert('Berhasil', 'Pengaturan profil telah diperbarui.', [
         { text: 'OK', onPress: () => router.back() }
       ]);
     } catch (error: any) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      HapticFeedback.error();
       Alert.alert('Gagal', error.response?.data?.message || 'Gagal menyimpan pengaturan.');
     } finally {
       setLoading(false);

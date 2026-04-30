@@ -1,6 +1,6 @@
+import { HapticFeedback } from '../../src/utils/haptics';
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableWithoutFeedback, Animated } from 'react-native';
-import * as Haptics from 'expo-haptics';
 import { COLORS, FONTS, SHADOWS } from '../utils/theme';
 
 interface MechanicalToggleProps {
@@ -22,7 +22,7 @@ export default function MechanicalToggle({ value, onValueChange, labelOff = 'OFF
   }, [value]);
 
   const handlePress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    HapticFeedback.medium();
     onValueChange(!value);
   };
 

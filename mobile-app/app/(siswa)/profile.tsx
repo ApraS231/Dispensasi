@@ -1,7 +1,7 @@
+import { HapticFeedback } from '../../src/utils/haptics';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
 import { router as expoRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import * as Haptics from 'expo-haptics';
 import api from '../../src/utils/api';
 import { useAuthStore } from '../../src/stores/authStore';
 import TopAppBar from '../../src/components/TopAppBar';
@@ -14,7 +14,7 @@ export default function ProfileScreen() {
   const { user, logout } = useAuthStore();
 
   const handleLogout = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    HapticFeedback.medium();
     try { await api.post('/logout'); } catch (e) {}
     await SecureStore.deleteItemAsync('userToken');
     logout();

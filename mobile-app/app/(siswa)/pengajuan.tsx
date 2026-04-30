@@ -1,7 +1,7 @@
+import { HapticFeedback } from '../../src/utils/haptics';
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, SafeAreaView, Platform, Image } from 'react-native';
 import { router } from 'expo-router';
-import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -27,7 +27,7 @@ export default function PengajuanScreen() {
   const [lampiran, setLampiran] = useState<ImagePicker.ImagePickerAsset | null>(null);
 
   const handlePickImage = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    HapticFeedback.light();
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (permissionResult.granted === false) {
@@ -43,7 +43,7 @@ export default function PengajuanScreen() {
 
     if (!result.canceled) {
       setLampiran(result.assets[0]);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      HapticFeedback.success();
     }
   };
 
@@ -83,10 +83,10 @@ export default function PengajuanScreen() {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      HapticFeedback.success();
       Alert.alert('Berhasil', 'Dispensasi berhasil diajukan!', [{ text: 'OK', onPress: () => router.back() }]);
     } catch (error: any) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      HapticFeedback.error();
       Alert.alert('Gagal', error.response?.data?.message || 'Terjadi kesalahan saat mengajukan izin.');
     } finally {
       setLoading(false);
