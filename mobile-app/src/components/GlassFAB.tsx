@@ -1,7 +1,7 @@
 import { HapticFeedback } from '../../src/utils/haptics';
 import { StyleSheet, TouchableWithoutFeedback, Animated, View } from 'react-native';
 import { useRef } from 'react';
-import { COLORS, SHADOWS } from '../utils/theme';
+import { COLORS, SHADOWS, SIZES } from '../utils/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ICONS } from '../utils/icons';
 
@@ -46,11 +46,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 24,
     right: 24,
-    width: 56, // M3 standard FAB size
+    width: 56,
     height: 56,
-    borderRadius: 16, // M3 standard FAB radius
+    borderRadius: SIZES.radiusButton,
     backgroundColor: COLORS.primaryContainer,
-    ...SHADOWS.elevation3,
+    borderWidth: 2,
+    borderColor: '#1A1A1A',
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   inner: {
     flex: 1,

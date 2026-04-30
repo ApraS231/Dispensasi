@@ -81,9 +81,9 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'ios' ? 24 : 16,
     paddingTop: 12,
     paddingHorizontal: 8,
-    ...SHADOWS.elevation2,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.outlineVariant,
+    // ...SHADOWS.elevation2,
+    borderTopWidth: 2,
+    borderTopColor: '#1A1A1A',
   },
   tab: {
     flex: 1,
@@ -98,6 +98,13 @@ const styles = StyleSheet.create({
   },
   activeIconContainer: {
     backgroundColor: COLORS.primaryContainer,
+    borderWidth: 2,
+    borderColor: '#1A1A1A',
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 0,
   },
   label: {
     fontFamily: FONTS.bodyMedium,

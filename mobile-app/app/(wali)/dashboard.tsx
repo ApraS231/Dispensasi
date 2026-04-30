@@ -221,14 +221,17 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surfaceContainerLow,
-    padding: SPACING.sm,
-    borderRadius: SIZES.radius,
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant,
-  },
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: COLORS.surfaceContainerLowest,
+      padding: SPACING.sm,
+      borderRadius: SIZES.radiusButton,
+
+      shadowColor: '#1A1A1A',
+      shadowOffset: { width: 2, height: 2 },
+      shadowOpacity: 1,
+      shadowRadius: 0,
+    },
   legendColor: {
     width: 12,
     height: 12,
@@ -263,8 +266,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceContainerHighest,
     borderRadius: SIZES.radiusXl,
     padding: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant,
+
     ...SHADOWS.softCard,
   },
   ticketHeaderRow: {
