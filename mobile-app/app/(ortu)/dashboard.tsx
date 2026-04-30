@@ -168,16 +168,22 @@ const styles = StyleSheet.create({
   logoutBtn: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: COLORS.errorBg,
-    borderRadius: SIZES.radius,
+    backgroundColor: COLORS.error,
+    borderRadius: SIZES.radiusButton,
+    borderWidth: 2,
+    borderColor: '#1A1A1A',
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
-  logoutText: { fontFamily: FONTS.headingSemi, color: COLORS.error, fontSize: 12 },
+  logoutText: { fontFamily: FONTS.headingSemi, color: COLORS.inverseOnSurface, fontSize: 12 },
   
   childCard: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: SPACING.md,
-    backgroundColor: COLORS.bgWhite,
+    backgroundColor: COLORS.secondaryContainer, // Teal/Mint
   },
   childHeaderRow: {
     flexDirection: 'row',
@@ -200,15 +206,17 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   childAction: {
-    backgroundColor: COLORS.surfaceContainerHigh,
+    backgroundColor: COLORS.bgWhite,
     paddingHorizontal: SPACING.sm,
     paddingVertical: 4,
-    borderRadius: SIZES.radius,
+    borderRadius: SIZES.radiusButton,
+    borderWidth: 2,
+    borderColor: '#1A1A1A',
   },
   childActionText: {
     fontFamily: FONTS.headingSemi,
     fontSize: 11,
-    color: COLORS.primary,
+    color: '#1A1A1A',
   },
 
   contentContainer: {
@@ -222,7 +230,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md 
   },
   sectionTitle: { fontFamily: FONTS.headingSemi, fontSize: 18, color: COLORS.textPrimary },
-  seeAllText: { fontFamily: FONTS.headingSemi, fontSize: 13, color: COLORS.primary },
+  seeAllText: { fontFamily: FONTS.headingSemi, fontSize: 13, color: '#1A1A1A' },
   
   listContent: { paddingBottom: 100 },
   ticketWrapper: {
@@ -242,12 +250,12 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   typeBadge: {
-    backgroundColor: COLORS.surfaceContainerHighest,
+    backgroundColor: COLORS.primaryContainer,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant,
+    borderRadius: SIZES.radiusButton,
+    borderWidth: 2,
+    borderColor: '#1A1A1A',
   },
   typeBadgeText: {
     fontFamily: FONTS.labelCaps,
