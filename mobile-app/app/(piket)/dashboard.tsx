@@ -11,6 +11,7 @@ import SoftCard from '../../src/components/SoftCard';
 import TicketCard from '../../src/components/TicketCard';
 import MechanicalToggle from '../../src/components/MechanicalToggle';
 import TopAppBar from '../../src/components/TopAppBar';
+import GlassFAB from '../../src/components/GlassFAB';
 import AvatarInitials from '../../src/components/AvatarInitials';
 import BouncyButton from '../../src/components/BouncyButton';
 import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../../src/utils/theme';
@@ -135,9 +136,18 @@ export default function PiketDashboard() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.toggleLabel}>Kehadiran</Text>
                   <Text style={[styles.toggleStatus, { color: isReady ? COLORS.primary : COLORS.textMuted }]}>
-                    {isReady ? 'SEDANG BERTUGAS' : 'TIDAK ADA JADWAL SEKARANG'}
+                    {isReady ? 'SEDANG BERTUGAS' : 'ISTIRAHAT'}
                   </Text>
                 </View>
+                <MechanicalToggle
+                  value={isReady}
+                  onValueChange={async (val) => {
+                    try {
+                      await api.post('/piket/status', { is_ready: val });
+                      setIsReady(val);
+                    } catch(e) {}
+                  }}
+                />
               </View>
 
               {/* Scan Button */}
@@ -201,6 +211,7 @@ export default function PiketDashboard() {
           </View>
         </View>
 
+        <GlassFAB onPress={() => expoRouter.push('/scan-qr')} icon="qrcode-scan" />
       </SafeAreaView>
     </View>
   );

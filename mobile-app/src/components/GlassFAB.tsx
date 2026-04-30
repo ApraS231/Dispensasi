@@ -5,7 +5,7 @@ import { COLORS, SHADOWS, SIZES } from '../utils/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ICONS } from '../utils/icons';
 
-export default function GlassFAB({ onPress }: { onPress: () => void }) {
+export default function GlassFAB({ onPress, icon }: { onPress: () => void; icon?: keyof typeof MaterialCommunityIcons.glyphMap }) {
   const scaleValue = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
@@ -34,7 +34,7 @@ export default function GlassFAB({ onPress }: { onPress: () => void }) {
         { transform: [{ scale: scaleValue }] }
       ]}>
         <View style={styles.inner}>
-          <MaterialCommunityIcons name={ICONS.add} size={32} color={COLORS.onPrimaryContainer} />
+          <MaterialCommunityIcons name={icon || ICONS.add} size={28} color={COLORS.onPrimaryContainer} />
         </View>
       </Animated.View>
     </TouchableWithoutFeedback>
