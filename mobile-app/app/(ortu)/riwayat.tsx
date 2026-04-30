@@ -154,8 +154,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.radiusLg,
     paddingHorizontal: SPACING.md,
     height: 48,
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant,
+
     marginBottom: SPACING.md,
     ...SHADOWS.softCard,
   },
@@ -188,8 +187,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: COLORS.surfaceContainerHighest,
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant,
+
   },
   filterPillActive: {
     backgroundColor: COLORS.primary,

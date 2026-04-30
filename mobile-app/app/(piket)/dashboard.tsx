@@ -11,6 +11,7 @@ import SoftCard from '../../src/components/SoftCard';
 import TicketCard from '../../src/components/TicketCard';
 import MechanicalToggle from '../../src/components/MechanicalToggle';
 import TopAppBar from '../../src/components/TopAppBar';
+import GlassFAB from '../../src/components/GlassFAB';
 import AvatarInitials from '../../src/components/AvatarInitials';
 import BouncyButton from '../../src/components/BouncyButton';
 import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../../src/utils/theme';
@@ -135,9 +136,18 @@ export default function PiketDashboard() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.toggleLabel}>Kehadiran</Text>
                   <Text style={[styles.toggleStatus, { color: isReady ? COLORS.primary : COLORS.textMuted }]}>
-                    {isReady ? 'SEDANG BERTUGAS' : 'TIDAK ADA JADWAL SEKARANG'}
+                    {isReady ? 'SEDANG BERTUGAS' : 'ISTIRAHAT'}
                   </Text>
                 </View>
+                <MechanicalToggle
+                  value={isReady}
+                  onValueChange={async (val) => {
+                    try {
+                      await api.post('/piket/status', { is_ready: val });
+                      setIsReady(val);
+                    } catch(e) {}
+                  }}
+                />
               </View>
 
               {/* Scan Button */}
@@ -201,6 +211,7 @@ export default function PiketDashboard() {
           </View>
         </View>
 
+        <GlassFAB onPress={() => expoRouter.push('/scan-qr')} icon="qrcode-scan" />
       </SafeAreaView>
     </View>
   );
@@ -234,15 +245,18 @@ const styles = StyleSheet.create({
   logoutText: { fontFamily: FONTS.headingSemi, color: COLORS.error, fontSize: 12 },
   
   toggleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: COLORS.surfaceContainerLow,
-    padding: SPACING.md,
-    borderRadius: SIZES.radiusLg,
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant,
-  },
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: COLORS.surfaceContainerLow,
+      padding: SPACING.md,
+      borderRadius: SIZES.radiusCard,
+
+      shadowColor: '#1A1A1A',
+      shadowOffset: { width: 3, height: 3 },
+      shadowOpacity: 1,
+      shadowRadius: 0,
+    },
   toggleLabel: { fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.textSecondary },
   toggleStatus: { fontFamily: FONTS.heading, fontSize: 14, marginTop: 2 },
 
@@ -250,17 +264,22 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
   },
   scanBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.primary,
-    paddingVertical: SPACING.md,
-    borderRadius: SIZES.radiusLg,
-    gap: SPACING.sm,
-  },
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: COLORS.primary,
+      paddingVertical: SPACING.md,
+      borderRadius: SIZES.radiusButton,
+      gap: SPACING.sm,
+
+      shadowColor: '#1A1A1A',
+      shadowOffset: { width: 4, height: 4 },
+      shadowOpacity: 1,
+      shadowRadius: 0,
+    },
   scanBtnText: {
     fontFamily: FONTS.headingSemi,
-    color: COLORS.onPrimary,
+    color: COLORS.inverseOnSurface,
     fontSize: 16,
   },
   
@@ -293,8 +312,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceContainerHighest,
     borderRadius: SIZES.radiusXl,
     padding: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant,
+
     ...SHADOWS.softCard,
   },
   ticketHeaderRow: {

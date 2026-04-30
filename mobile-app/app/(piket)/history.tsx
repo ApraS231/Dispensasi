@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.bgWhite,
     borderRadius: SIZES.radiusLg, paddingHorizontal: SPACING.md, height: 48,
-    borderWidth: 1, borderColor: COLORS.outlineVariant, ...SHADOWS.softCard,
+     ...SHADOWS.softCard,
   },
   searchIcon: { fontSize: 16, marginRight: SPACING.sm, opacity: 0.5 },
   searchInput: { flex: 1, fontFamily: FONTS.body, fontSize: 14, color: COLORS.textPrimary },

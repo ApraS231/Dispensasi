@@ -37,12 +37,19 @@ export default function AvatarInitials({ name, size = 40, fontSize = 16 }: Avata
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.primaryContainer,
+    alignItems: 'center',
+    backgroundColor: COLORS.secondaryContainer,
+    borderWidth: 2,
+    borderColor: '#1A1A1A',
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    borderRadius: 4, // Boxy brutalist avatar
   },
   text: {
     fontFamily: FONTS.headingSemi,
-    color: COLORS.onPrimaryContainer,
+    color: COLORS.onSecondaryContainer,
   },
 });

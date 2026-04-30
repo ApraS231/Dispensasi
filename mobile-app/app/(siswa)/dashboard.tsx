@@ -138,19 +138,25 @@ const styles = StyleSheet.create({
   kelasBadge: {
     fontFamily: FONTS.labelCaps,
     fontSize: 11,
-    color: COLORS.primary,
+    color: '#1A1A1A',
     marginTop: SPACING.xs,
     letterSpacing: 0.5,
   },
   logoutBtn: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: COLORS.errorBg,
+    backgroundColor: COLORS.error,
     borderRadius: SIZES.radiusButton,
+    borderWidth: 2,
+    borderColor: '#1A1A1A',
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
   logoutText: { 
     fontFamily: FONTS.headingSemi, 
-    color: COLORS.error, 
+    color: COLORS.inverseOnSurface,
     fontSize: 12 
   },
   statsContainer: {
@@ -160,17 +166,21 @@ const styles = StyleSheet.create({
   badgeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surfaceContainer,
+    backgroundColor: COLORS.warning,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
-    borderRadius: SIZES.radiusCard,
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant,
+    borderRadius: SIZES.radiusButton,
+    borderWidth: 2,
+    borderColor: '#1A1A1A',
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
   badgeText: { 
     fontFamily: FONTS.heading, 
     fontSize: 20, 
-    color: COLORS.primary,
+    color: '#1A1A1A',
     marginRight: SPACING.sm,
   },
   badgeLabel: {
@@ -197,7 +207,7 @@ const styles = StyleSheet.create({
   seeAllText: {
     fontFamily: FONTS.headingSemi,
     fontSize: 13,
-    color: COLORS.primary,
+    color: '#1A1A1A',
   },
   listContent: { 
     paddingBottom: 100 

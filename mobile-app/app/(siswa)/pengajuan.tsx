@@ -276,8 +276,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.warningBg,
     padding: SPACING.md,
     borderRadius: SIZES.radiusLg,
-    borderWidth: 1,
-    borderColor: COLORS.warning,
     marginBottom: SPACING.lg,
     ...SHADOWS.softCard,
   },
@@ -286,10 +284,8 @@ const styles = StyleSheet.create({
 
   glassCard: {
     backgroundColor: COLORS.bgWhite,
-    borderRadius: SIZES.radiusXl,
+    borderRadius: SIZES.radiusCard,
     padding: SPACING.lg,
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant,
     ...SHADOWS.softCard,
   },
 
@@ -302,10 +298,13 @@ const styles = StyleSheet.create({
   },
   pickerContainer: {
     backgroundColor: COLORS.surfaceContainerLow,
-    borderRadius: SIZES.radiusMd,
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant,
+    borderRadius: SIZES.radiusButton,
+
     overflow: 'hidden',
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
   picker: {
     height: 50,
@@ -316,11 +315,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: COLORS.surfaceContainerLow,
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant,
-    borderRadius: SIZES.radiusMd,
+
+    borderRadius: SIZES.radiusButton,
     paddingHorizontal: SPACING.md,
     height: 50,
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
   dateText: {
     fontFamily: FONTS.body,
@@ -339,22 +341,24 @@ const styles = StyleSheet.create({
 
   textarea: { 
     backgroundColor: COLORS.surfaceContainerLow, 
-    borderRadius: SIZES.radiusMd, 
-    borderWidth: 1, 
-    borderColor: COLORS.outlineVariant, 
+    borderRadius: SIZES.radiusButton,
+
     padding: SPACING.md, 
     fontSize: 15, 
     fontFamily: FONTS.body,
     color: COLORS.textPrimary,
-    minHeight: 120 
+    minHeight: 120,
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
   
   uploadArea: {
-    borderWidth: 2,
-    borderColor: COLORS.outlineVariant,
+
     borderStyle: 'dashed',
-    borderRadius: SIZES.radiusMd,
-    backgroundColor: COLORS.surfaceContainerHighest,
+    borderRadius: SIZES.radiusButton,
+    backgroundColor: COLORS.surfaceContainerLowest,
     padding: SPACING.xl,
     alignItems: 'center',
     justifyContent: 'center',

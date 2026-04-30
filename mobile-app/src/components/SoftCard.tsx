@@ -30,5 +30,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.radiusCard,
     padding: SPACING.lg,
     ...SHADOWS.softCard,
+    borderWidth: 2,
+    borderColor: '#1A1A1A',
   }
 });

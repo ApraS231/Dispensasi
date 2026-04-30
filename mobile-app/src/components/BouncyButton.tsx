@@ -66,26 +66,26 @@ export default function BouncyButton({
         return { 
           bg: COLORS.secondaryContainer, 
           text: COLORS.onSecondaryContainer, 
-          border: 'transparent'
+          border: COLORS.outlineVariant
         };
       case 'outlined':
         return { 
-          bg: 'transparent', 
-          text: COLORS.primary, 
+          bg: COLORS.bgWhite,
+          text: COLORS.textPrimary,
           border: COLORS.outlineVariant
         };
       case 'danger':
         return { 
           bg: COLORS.error, 
-          text: COLORS.bgWhite, 
-          border: 'transparent'
+          text: COLORS.onPrimary,
+          border: COLORS.outlineVariant
         };
       case 'primary':
       default:
         return { 
           bg: COLORS.primary, 
           text: COLORS.onPrimary, 
-          border: 'transparent'
+          border: COLORS.outlineVariant
         };
     }
   };
@@ -104,8 +104,8 @@ export default function BouncyButton({
         styles.container,
         { 
           backgroundColor: disabled ? COLORS.surfaceContainerHigh : styleConfig.bg,
-          borderColor: disabled ? 'transparent' : styleConfig.border,
-          borderWidth: variant === 'outlined' ? 1 : 0
+          /* removed */
+          ...SHADOWS.softCard
         },
         { transform: [{ scale: scaleAnim }] }
       ]}>

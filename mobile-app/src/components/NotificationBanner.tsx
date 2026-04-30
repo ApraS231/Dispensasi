@@ -71,8 +71,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.6)',
     borderRadius: SIZES.radiusLg,
     marginBottom: SPACING.sm,
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant,
+
     alignItems: 'center',
     ...SHADOWS.softCard,
   },

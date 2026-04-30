@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS, FONTS } from '../utils/theme';
+import { COLORS, FONTS, SHADOWS, SIZES } from '../utils/theme';
 
 interface ChatBubbleProps {
   message: string;
@@ -18,9 +18,15 @@ export default function ChatBubble({ message, time, isMe, isPending, isFailed, o
         styles.bubbleWrapper,
         { 
           backgroundColor: isMe ? COLORS.primaryContainer : COLORS.surfaceContainerHighest,
-          borderBottomRightRadius: isMe ? 0 : 20,
-          borderBottomLeftRadius: isMe ? 20 : 0,
+          borderBottomRightRadius: isMe ? 0 : SIZES.radiusCard,
+          borderBottomLeftRadius: isMe ? SIZES.radiusCard : 0,
           opacity: isPending ? 0.6 : 1,
+          borderWidth: 2,
+          borderColor: '#1A1A1A',
+          shadowColor: '#1A1A1A',
+          shadowOffset: { width: 3, height: 3 },
+          shadowOpacity: 1,
+          shadowRadius: 0,
         }
       ]}>
         <Text style={[
@@ -62,12 +68,12 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   bubbleWrapper: {
-    borderRadius: 20,
+    borderRadius: SIZES.radiusCard,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   message: {
-    fontFamily: FONTS.body,
+    fontFamily: FONTS.bodyMedium,
     fontSize: 14,
     lineHeight: 20,
   },
