@@ -1,8 +1,8 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, Animated, Dimensions, LayoutChangeEvent } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, SIZES, SHADOWS } from '../utils/theme';
-import { ICONS } from '../utils/icons';
+import { HapticFeedback } from './../utils/haptics';
 
 export interface TabItem {
   name: string;
@@ -17,36 +17,74 @@ interface BottomTabBarProps {
   onTabPress: (tabName: string) => void;
 }
 
+const { width } = Dimensions.get('window');
+
 export default function BottomTabBar({ tabs, activeTab, onTabPress }: BottomTabBarProps) {
+  const [containerWidth, setContainerWidth] = useState(width - SPACING.md * 2);
+  const slideAnim = useRef(new Animated.Value(0)).current;
+
+  const tabWidth = containerWidth / tabs.length;
+  const activeIndex = tabs.findIndex(t => t.name === activeTab) >= 0 ? tabs.findIndex(t => t.name === activeTab) : 0;
+
+  useEffect(() => {
+    Animated.spring(slideAnim, {
+      toValue: activeIndex * tabWidth,
+      useNativeDriver: true,
+      bounciness: 12,
+      speed: 14,
+    }).start();
+  }, [activeTab, containerWidth]);
+
+  const handlePress = (tabName: string) => {
+    HapticFeedback.light();
+    onTabPress(tabName);
+  };
+
+  const onLayout = (event: LayoutChangeEvent) => {
+    setContainerWidth(event.nativeEvent.layout.width);
+  };
+
   return (
-    <View style={styles.container}>
-      {tabs.map((tab) => {
-        const isActive = activeTab === tab.name;
-        return (
-          <TouchableOpacity
-            key={tab.name}
-            style={styles.tab}
-            onPress={() => onTabPress(tab.name)}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.iconContainer, isActive && styles.activeIconContainer]}>
-              <MaterialCommunityIcons 
-                name={isActive ? tab.activeIcon : tab.icon} 
-                size={24} 
-                color={isActive ? COLORS.onPrimaryContainer : COLORS.textSecondary} 
-              />
-            </View>
-            <Text style={[styles.label, isActive && styles.activeLabel]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
+    <View style={styles.outerContainer}>
+      <View style={styles.container} onLayout={onLayout}>
+        <Animated.View
+          style={[
+            styles.slider,
+            {
+              width: tabWidth - 16, // padding adjustment
+              transform: [{ translateX: slideAnim }],
+            },
+          ]}
+        />
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.name;
+          return (
+            <TouchableOpacity
+              key={tab.name}
+              style={styles.tab}
+              onPress={() => handlePress(tab.name)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.iconWrapper}>
+                <MaterialCommunityIcons
+                  name={isActive ? tab.activeIcon : tab.icon}
+                  size={24}
+                  color={isActive ? COLORS.textPrimary : COLORS.textMuted}
+                />
+              </View>
+              {isActive && (
+                <Text style={styles.activeLabel}>
+                  {tab.label}
+                </Text>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </View>
   );
 }
 
-// Pre-defined tab configurations per role
 export const SISWA_TABS: TabItem[] = [
   { name: 'dashboard', label: 'HOME', icon: 'home-outline', activeIcon: 'home' },
   { name: 'riwayat', label: 'HISTORY', icon: 'clock-outline', activeIcon: 'clock' },
@@ -55,14 +93,14 @@ export const SISWA_TABS: TabItem[] = [
 ];
 
 export const PIKET_TABS: TabItem[] = [
-  { name: 'dashboard', label: 'DASHBOARD', icon: 'view-dashboard-outline', activeIcon: 'view-dashboard' },
+  { name: 'dashboard', label: 'HOME', icon: 'view-dashboard-outline', activeIcon: 'view-dashboard' },
   { name: 'queue', label: 'QUEUE', icon: 'format-list-bulleted', activeIcon: 'format-list-bulleted' },
   { name: 'history', label: 'HISTORY', icon: 'clock-outline', activeIcon: 'clock' },
   { name: 'profile', label: 'PROFILE', icon: 'account-outline', activeIcon: 'account' },
 ];
 
 export const WALI_TABS: TabItem[] = [
-  { name: 'dashboard', label: 'DASHBOARD', icon: 'view-dashboard-outline', activeIcon: 'view-dashboard' },
+  { name: 'dashboard', label: 'HOME', icon: 'view-dashboard-outline', activeIcon: 'view-dashboard' },
   { name: 'queue', label: 'QUEUE', icon: 'format-list-bulleted', activeIcon: 'format-list-bulleted' },
   { name: 'history', label: 'HISTORY', icon: 'clock-outline', activeIcon: 'clock' },
   { name: 'profile', label: 'PROFILE', icon: 'account-outline', activeIcon: 'account' },
@@ -75,44 +113,52 @@ export const ORTU_TABS: TabItem[] = [
 ];
 
 const styles = StyleSheet.create({
+  outerContainer: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 24 : 16,
+    left: SPACING.md,
+    right: SPACING.md,
+  },
   container: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surfaceContainerLowest,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 16,
-    paddingTop: 12,
+    backgroundColor: COLORS.bgWhite,
+    borderRadius: SIZES.radiusLg,
+    paddingVertical: 8,
     paddingHorizontal: 8,
-    // ...SHADOWS.elevation2,
-    borderTopWidth: 2,
-    borderTopColor: '#1A1A1A',
+    borderWidth: 2,
+    borderColor: '#1A1A1A',
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+  },
+  slider: {
+    position: 'absolute',
+    top: 8,
+    bottom: 8,
+    left: 8,
+    backgroundColor: COLORS.primaryContainer,
+    borderRadius: SIZES.radiusCard,
+    borderWidth: 2,
+    borderColor: '#1A1A1A',
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
+    height: 40,
+    zIndex: 1,
   },
-  iconContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 4,
-    borderRadius: 16,
-    marginBottom: 4,
-  },
-  activeIconContainer: {
-    backgroundColor: COLORS.primaryContainer,
-    borderWidth: 2,
-    borderColor: '#1A1A1A',
-    shadowColor: '#1A1A1A',
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 0,
-  },
-  label: {
-    fontFamily: FONTS.bodyMedium,
-    fontSize: 12,
-    color: COLORS.textSecondary,
+  iconWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   activeLabel: {
     fontFamily: FONTS.headingSemi,
+    fontSize: 12,
     color: COLORS.textPrimary,
+    marginLeft: 6,
   },
 });
