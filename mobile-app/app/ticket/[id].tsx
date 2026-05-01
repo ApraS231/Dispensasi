@@ -29,7 +29,7 @@ export default function TicketDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuthStore();
   const [ticket, setTicket] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const loading = false;
   const [actionLoading, setActionLoading] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
   
@@ -69,7 +69,6 @@ export default function TicketDetailScreen() {
     } catch (e) {
     } finally {
       if (isLoadMore) setIsLoadingMore(false);
-      setLoading(false);
     }
   };
 

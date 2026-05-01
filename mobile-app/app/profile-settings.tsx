@@ -20,7 +20,7 @@ export default function ProfileSettingsScreen() {
   const [newPassword, setNewPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const [photoUri, setPhotoUri] = useState<string | null>(user?.profile_photo_url || null);
+  const [photoUri, setPhotoUri] = useState<string | null>((user as any)?.profile_photo_url || null);
   const { setUser } = useAuthStore();
 
 
@@ -51,7 +51,7 @@ export default function ProfileSettingsScreen() {
         formData.append('newPassword', newPassword);
       }
 
-      if (photoUri && photoUri !== user?.profile_photo_url) {
+      if (photoUri && photoUri !== (user as any)?.profile_photo_url) {
         const filename = photoUri.split('/').pop() || 'photo.jpg';
         const match = /\.(\w+)$/.exec(filename);
         const type = match ? `image/${match[1]}` : `image`;

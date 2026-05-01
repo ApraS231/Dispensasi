@@ -1,6 +1,7 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
-import { router as expoRouter, useFocusEffect as expoUseFocusEffect } from 'expo-router';
+import { router as expoRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import api from '../../src/utils/api';
 import { useAuthStore } from '../../src/stores/authStore';
@@ -12,25 +13,15 @@ import { COLORS, FONTS, SIZES, SPACING } from '../../src/utils/theme';
 
 export default function SiswaDashboard() {
   const { user, logout } = useAuthStore();
-  const [tickets, setTickets] = useState<any[]>([]);
-  const [profile, setProfile] = useState<any>(null);
+  const { data: ticketsData, isLoading } = useQuery({
+    queryKey: ['dispensasi-me'],
+    queryFn: async () => {
+      const { data } = await api.get('/dispensasi/me');
+      return data;
+    }
+  });
 
-  const fetchData = async () => {
-    try {
-      const [ticketRes, profileRes] = await Promise.all([
-        api.get('/dispensasi/me'),
-        api.get('/user') // Make sure backend returns profile/kelas if needed, or we might fetch profile explicitly
-      ]);
-      setTickets(ticketRes.data);
-      // user object from authStore might already have it if backend is configured properly
-    } catch (e) {}
-  };
-
-  expoUseFocusEffect(
-    useCallback(() => {
-      fetchData();
-    }, [])
-  );
+  const tickets = ticketsData || [];
 
   const handleLogout = async () => {
     try { await api.post('/logout'); } catch (e) {}
