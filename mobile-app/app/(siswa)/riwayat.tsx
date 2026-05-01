@@ -1,7 +1,8 @@
 import { HapticFeedback } from '../../src/utils/haptics';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
-import { router as expoRouter, useFocusEffect } from 'expo-router';
+import { router as expoRouter } from 'expo-router';
 import api from '../../src/utils/api';
 import TopAppBar from '../../src/components/TopAppBar';
 import TicketCard from '../../src/components/TicketCard';
@@ -9,36 +10,28 @@ import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../../src/utils/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function SiswaRiwayatScreen() {
-  const [tickets, setTickets] = useState<any[]>([]);
   const [filteredTickets, setFilteredTickets] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('semua');
   const [timeFilter, setTimeFilter] = useState('semua');
 
+  const { data: ticketsData, isLoading: loading } = useQuery({
+    queryKey: ['dispensasi-me'],
+    queryFn: async () => {
+      const { data } = await api.get('/dispensasi/me');
+      return data;
+    }
+  });
+
+  const tickets = ticketsData || [];
+
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
 
-  const thisMonthTicketsCount = tickets.filter(t => {
+  const thisMonthTicketsCount = tickets.filter((t: any) => {
     const d = new Date(t.created_at);
     return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
   }).length;
-
-  const fetchData = async () => {
-    try {
-      const res = await api.get('/dispensasi/me');
-      setTickets(res.data);
-      setFilteredTickets(res.data);
-    } catch (e) {} finally {
-      setLoading(false);
-    }
-  };
-
-  useFocusEffect(
-    useCallback(() => {
-      fetchData();
-    }, [])
-  );
 
   useEffect(() => {
     let result = tickets;
