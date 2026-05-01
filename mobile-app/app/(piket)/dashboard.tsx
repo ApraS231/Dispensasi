@@ -1,7 +1,7 @@
 import { HapticFeedback } from '../../src/utils/haptics';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, FlatList, StyleSheet, Alert, SafeAreaView } from 'react-native';
-import { router as expoRouter, useFocusEffect } from 'expo-router';
+import { router as expoRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import api from '../../src/utils/api';
@@ -42,11 +42,7 @@ export default function PiketDashboard() {
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchData();
-    }, [])
-  );
+
 
   const handleLogout = async () => {
     try { await api.post('/logout'); } catch (e) {}
