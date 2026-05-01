@@ -8,6 +8,7 @@ import { useAuthStore } from '../../src/stores/authStore';
 import SoftCard from '../../src/components/SoftCard';
 import TicketCard from '../../src/components/TicketCard';
 import BouncyButton from '../../src/components/BouncyButton';
+import RejectModal from '../../src/components/RejectModal';
 import TopAppBar from '../../src/components/TopAppBar';
 import AvatarInitials from '../../src/components/AvatarInitials';
 import DonutChart from '../../src/components/DonutChart';
@@ -16,6 +17,7 @@ import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../../src/utils/theme';
 export default function WaliDashboard() {
   const { user, logout } = useAuthStore();
   const [pendingTickets, setPendingTickets] = useState<any[]>([]);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
 
   // Assume total students = 36 for UI demo if not provided by backend yet
   const totalStudents = 36;
@@ -47,21 +49,25 @@ export default function WaliDashboard() {
       HapticFeedback.success();
       await api.post(`/dispensasi/${id}/approve`);
       setPendingTickets(prev => prev.filter(t => t.id !== id));
-    } catch (e: any) { Alert.alert('Gagal', e.response?.data?.message || 'Error'); }
+      Alert.alert('Berhasil', 'Izin berhasil disetujui');
+    } catch (e: any) { Alert.alert('Gagal', e.response?.data?.message || 'Terjadi kesalahan'); }
   };
   
   const handleReject = async (id: string) => {
-    if (Alert.prompt) {
-      Alert.prompt('Alasan Penolakan', 'Masukkan catatan penolakan:', async (catatan) => {
-        if (!catatan) return;
-        try {
-          HapticFeedback.success();
-          await api.post(`/dispensasi/${id}/reject`, { catatan_penolakan: catatan });
-          setPendingTickets(prev => prev.filter(t => t.id !== id));
-        } catch (e) {}
-      });
-    } else {
-      Alert.alert('Info', 'Gunakan fitur reject di perangkat yang mendukung prompt.');
+    setRejectingId(id);
+  };
+
+  const confirmReject = async (catatan: string) => {
+    if (!rejectingId) return;
+    const id = rejectingId;
+    setRejectingId(null);
+    try {
+      HapticFeedback.success();
+      await api.post(`/dispensasi/${id}/reject`, { catatan_penolakan: catatan });
+      setPendingTickets(prev => prev.filter(t => t.id !== id));
+      Alert.alert('Berhasil', 'Izin berhasil ditolak');
+    } catch (e: any) {
+      Alert.alert('Gagal', e.response?.data?.message || 'Terjadi kesalahan');
     }
   };
 
@@ -173,6 +179,12 @@ export default function WaliDashboard() {
 
         
       </SafeAreaView>
+
+      <RejectModal
+        visible={!!rejectingId}
+        onClose={() => setRejectingId(null)}
+        onSubmit={confirmReject}
+      />
     </View>
   );
 }

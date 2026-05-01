@@ -37,6 +37,16 @@ class DispensasiController extends Controller
             return response()->json(['message' => 'Profil siswa tidak ditemukan'], 400);
         }
 
+        // Prevent multiple requests on the same day
+        $today = now()->toDateString();
+        $existingTicket = DispensasiTicket::where('siswa_id', $siswa->id)
+            ->whereDate('created_at', $today)
+            ->first();
+
+        if ($existingTicket) {
+            return response()->json(['message' => 'Anda sudah mengajukan dispensasi hari ini.'], 400);
+        }
+
         $waliKelasId = $profilSiswa->kelas->wali_kelas_id ?? null;
 
         $tiket = DispensasiTicket::create([
