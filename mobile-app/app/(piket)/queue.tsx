@@ -8,6 +8,14 @@ import AvatarInitials from '../../src/components/AvatarInitials';
 import PillBadge from '../../src/components/PillBadge';
 import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../../src/utils/theme';
 
+const isToday = (dateString: string) => {
+    const d = new Date(dateString);
+    const today = new Date();
+    return d.getDate() === today.getDate() &&
+      d.getMonth() === today.getMonth() &&
+      d.getFullYear() === today.getFullYear();
+  };
+
 export default function PiketQueueScreen() {
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -16,7 +24,10 @@ export default function PiketQueueScreen() {
     try {
       const res = await api.get('/dispensasi'); // Guru Piket gets all active tickets
       // Filter only active queue (pending & approved_by_wali)
-      const queue = res.data.filter((t: any) => t.status === 'pending' || t.status === 'approved_by_wali');
+      const queue = res.data.filter((t: any) =>
+        (t.status === 'pending' || t.status === 'approved_by_wali') &&
+        isToday(t.created_at)
+      );
       setTickets(queue);
     } catch (e) {} finally {
       setLoading(false);
@@ -98,12 +109,22 @@ const styles = StyleSheet.create({
   listContainer: { flex: 1, paddingHorizontal: SPACING.md, paddingTop: SPACING.md },
   listContent: { paddingBottom: 100 },
   queueCard: { marginBottom: SPACING.md },
-  cardInner: { padding: SPACING.md },
+  cardInner: {
+    padding: SPACING.md,
+    borderWidth: 2,
+    borderColor: '#1A1A1A',
+    borderRadius: SIZES.radiusCard,
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
+  },
   studentInfo: { flexDirection: 'row', alignItems: 'center', marginBottom: SPACING.md },
   textStack: { flex: 1, marginLeft: SPACING.sm, marginRight: SPACING.xs },
   studentName: { fontFamily: FONTS.headingSemi, fontSize: 16, color: COLORS.textPrimary },
   studentClass: { fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.textSecondary, textTransform: 'capitalize' },
-  reasonBox: { backgroundColor: COLORS.surfaceContainerLow, padding: SPACING.sm, borderRadius: SIZES.radius, borderWidth: 1, borderColor: COLORS.outlineVariant },
+  reasonBox: { backgroundColor: COLORS.surfaceContainerLow, padding: SPACING.sm, borderRadius: SIZES.radiusButton, borderWidth: 2, borderColor: '#1A1A1A' },
   reasonText: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.textMuted },
   emptyText: { fontFamily: FONTS.body, textAlign: 'center', color: COLORS.textMuted, marginTop: SPACING.xl, fontSize: 14 },
 });

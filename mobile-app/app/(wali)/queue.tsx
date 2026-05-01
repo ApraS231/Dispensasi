@@ -6,6 +6,14 @@ import TopAppBar from '../../src/components/TopAppBar';
 import TicketCard from '../../src/components/TicketCard';
 import { COLORS, FONTS, SIZES, SPACING } from '../../src/utils/theme';
 
+const isToday = (dateString: string) => {
+    const d = new Date(dateString);
+    const today = new Date();
+    return d.getDate() === today.getDate() &&
+      d.getMonth() === today.getMonth() &&
+      d.getFullYear() === today.getFullYear();
+  };
+
 export default function WaliQueueScreen() {
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -14,7 +22,7 @@ export default function WaliQueueScreen() {
     try {
       const res = await api.get('/dispensasi');
       // For Wali Kelas, active queue is specifically 'pending' status
-      const queue = res.data.filter((t: any) => t.status === 'pending');
+      const queue = res.data.filter((t: any) => t.status === 'pending' && isToday(t.created_at));
       setTickets(queue);
     } catch (e) {} finally {
       setLoading(false);

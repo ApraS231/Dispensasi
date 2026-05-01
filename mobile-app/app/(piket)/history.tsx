@@ -13,6 +13,24 @@ export default function PiketHistoryScreen() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const [timeFilter, setTimeFilter] = useState('semua'); // 'semua', 'hari_ini', 'minggu_ini'
+
+  const FilterPill = ({ id, label }: { id: string, label: string }) => {
+    const isActive = timeFilter === id;
+    return (
+      <TouchableOpacity
+        style={[styles.filterPill, isActive && styles.filterPillActive]}
+        onPress={() => {
+          HapticFeedback.light();
+          setTimeFilter(id);
+        }}
+      >
+        <Text style={[styles.filterText, isActive && styles.filterTextActive]}>{label}</Text>
+      </TouchableOpacity>
+    );
+  };
+
+
   const fetchData = async () => {
     try {
       const res = await api.get('/dispensasi');
@@ -30,18 +48,40 @@ export default function PiketHistoryScreen() {
     }, [])
   );
 
+
   useEffect(() => {
+    let result = tickets;
+
+    // Text search filter
     if (searchQuery.trim()) {
       const lowerQ = searchQuery.toLowerCase();
-      const result = tickets.filter(t => 
+      result = result.filter(t =>
         (t.siswa?.name && t.siswa.name.toLowerCase().includes(lowerQ)) ||
         (t.jenis_izin && t.jenis_izin.replace(/_/g, ' ').toLowerCase().includes(lowerQ))
       );
-      setFilteredTickets(result);
-    } else {
-      setFilteredTickets(tickets);
     }
-  }, [searchQuery, tickets]);
+
+    // Time filter
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    if (timeFilter === 'hari_ini') {
+      result = result.filter(t => {
+        const d = new Date(t.created_at);
+        d.setHours(0,0,0,0);
+        return d.getTime() === today.getTime();
+      });
+    } else if (timeFilter === 'minggu_ini') {
+      const firstDay = new Date(today.setDate(today.getDate() - today.getDay()));
+      result = result.filter(t => {
+        const d = new Date(t.created_at);
+        return d >= firstDay;
+      });
+    }
+
+    setFilteredTickets(result);
+  }, [searchQuery, timeFilter, tickets]);
+
 
   return (
     <View style={styles.container}>
@@ -65,6 +105,11 @@ export default function PiketHistoryScreen() {
                   <Text style={styles.clearText}>✕</Text>
                 </TouchableOpacity>
               )}
+            </View>
+            <View style={styles.filterRow}>
+              <FilterPill id="semua" label="Semua" />
+              <FilterPill id="hari_ini" label="Hari Ini" />
+              <FilterPill id="minggu_ini" label="Minggu Ini" />
             </View>
           </View>
 
@@ -104,9 +149,19 @@ const styles = StyleSheet.create({
   },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.bgWhite,
-    borderRadius: SIZES.radiusLg, paddingHorizontal: SPACING.md, height: 48,
-     ...SHADOWS.softCard,
+    borderRadius: SIZES.radiusButton, paddingHorizontal: SPACING.md, height: 48,
+    borderWidth: 2, borderColor: '#1A1A1A',
+    shadowColor: '#1A1A1A', shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0,
+    marginBottom: SPACING.md,
   },
+  filterRow: { flexDirection: 'row', gap: SPACING.sm },
+  filterPill: {
+    paddingHorizontal: 16, paddingVertical: 8, borderRadius: SIZES.radiusButton,
+    backgroundColor: COLORS.surfaceContainerLowest, borderWidth: 2, borderColor: '#1A1A1A',
+  },
+  filterPillActive: { backgroundColor: COLORS.primaryContainer, borderColor: '#1A1A1A' },
+  filterText: { fontFamily: FONTS.headingSemi, fontSize: 12, color: COLORS.textSecondary },
+  filterTextActive: { color: COLORS.onPrimaryContainer },
   searchIcon: { fontSize: 16, marginRight: SPACING.sm, opacity: 0.5 },
   searchInput: { flex: 1, fontFamily: FONTS.body, fontSize: 14, color: COLORS.textPrimary },
   clearBtn: { padding: SPACING.xs },
