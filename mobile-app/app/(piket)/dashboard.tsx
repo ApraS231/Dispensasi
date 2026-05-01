@@ -94,19 +94,19 @@ export default function PiketDashboard() {
               <Text style={styles.sectionTitle}>Log Hari Ini</Text>
             </View>
 
-            <View style={{ flexDirection: 'row', gap: 10, marginBottom: SPACING.md }}>
-              <SoftCard style={{ flex: 1, padding: SPACING.sm, alignItems: 'center', backgroundColor: COLORS.surfaceContainerLow }}>
-                <Text style={{ fontFamily: FONTS.heading, fontSize: 24, color: COLORS.primary }}>{dailyLogStats.total}</Text>
-                <Text style={{ fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.textSecondary }}>Total Izin</Text>
-              </SoftCard>
-              <SoftCard style={{ flex: 1, padding: SPACING.sm, alignItems: 'center', backgroundColor: COLORS.surfaceContainerLow }}>
-                <Text style={{ fontFamily: FONTS.heading, fontSize: 24, color: COLORS.success }}>{dailyLogStats.scanned}</Text>
-                <Text style={{ fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.textSecondary }}>Telah Keluar</Text>
-              </SoftCard>
-              <SoftCard style={{ flex: 1, padding: SPACING.sm, alignItems: 'center', backgroundColor: COLORS.surfaceContainerLow }}>
-                <Text style={{ fontFamily: FONTS.heading, fontSize: 24, color: COLORS.warning }}>{dailyLogStats.total - dailyLogStats.scanned}</Text>
-                <Text style={{ fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.textSecondary }}>Menunggu</Text>
-              </SoftCard>
+            <View style={{ flexDirection: 'row', gap: 12, marginBottom: SPACING.md }}>
+              <View style={[styles.statCard, { backgroundColor: COLORS.primaryContainer }]}>
+                <Text style={[styles.statValue, { color: COLORS.textPrimary }]}>{dailyLogStats.total}</Text>
+                <Text style={styles.statLabel}>Total Izin</Text>
+              </View>
+              <View style={[styles.statCard, { backgroundColor: COLORS.secondaryContainer }]}>
+                <Text style={[styles.statValue, { color: COLORS.textPrimary }]}>{dailyLogStats.scanned}</Text>
+                <Text style={styles.statLabel}>Telah Keluar</Text>
+              </View>
+              <View style={[styles.statCard, { backgroundColor: COLORS.tertiaryContainer }]}>
+                <Text style={[styles.statValue, { color: COLORS.textPrimary }]}>{dailyLogStats.total - dailyLogStats.scanned}</Text>
+                <Text style={styles.statLabel}>Menunggu</Text>
+              </View>
             </View>
 
             <FlatList
@@ -218,6 +218,29 @@ export default function PiketDashboard() {
 }
 
 const styles = StyleSheet.create({
+  statCard: {
+    flex: 1,
+    padding: SPACING.sm,
+    alignItems: 'center',
+    borderRadius: SIZES.radiusCard,
+    borderWidth: 2,
+    borderColor: '#1A1A1A',
+    shadowColor: '#1A1A1A',
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
+  },
+  statValue: {
+    fontFamily: FONTS.heading,
+    fontSize: 24,
+  },
+  statLabel: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 11,
+    color: '#1A1A1A',
+    marginTop: 2,
+  },
   container: { flex: 1 },
   safeArea: { flex: 1 },
   mainContent: { flex: 1 },
