@@ -11,12 +11,12 @@ export default function PiketLayout() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+      <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
         <Stack.Screen name="dashboard" />
         <Stack.Screen name="queue" />
         <Stack.Screen name="history" />
         <Stack.Screen name="profile" />
-        <Stack.Screen name="scan-qr" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="scan-qr" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
       </Stack>
 
       {!hideTabBar && (

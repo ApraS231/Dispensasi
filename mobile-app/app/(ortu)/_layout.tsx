@@ -10,7 +10,7 @@ export default function OrtuLayout() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+      <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
         <Stack.Screen name="dashboard" />
         <Stack.Screen name="riwayat" />
         <Stack.Screen name="profile" />
