@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, SIZES, SHADOWS } from '../utils/theme';
@@ -59,11 +60,19 @@ export default function TopAppBar({
         )}
       </View>
 
-      <Text style={styles.title}>{title}</Text>
+      {title === 'SiDispen' ? (
+        <View style={styles.titleWrapper}>
+          <Image source={require('../../assets/images/logo.png')} style={styles.logoImg} resizeMode="contain" />
+          <Text style={styles.title}>{title}</Text>
+        </View>
+      ) : (
+        <Text style={styles.title}>{title}</Text>
+      )}
 
       {showNotification ? (
         <TouchableOpacity style={styles.iconBtn} onPress={handleNotification} activeOpacity={0.7}>
           <MaterialCommunityIcons name={ICONS.notification} size={24} color={COLORS.textPrimary} />
+          <View style={styles.notificationDot} />
         </TouchableOpacity>
       ) : (
         <View style={styles.placeholder} />
@@ -73,6 +82,44 @@ export default function TopAppBar({
 }
 
 const styles = StyleSheet.create({
+  titleWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoBox: {
+    backgroundColor: COLORS.tertiaryContainer,
+    width: 28,
+    height: 28,
+    borderRadius: SIZES.radiusSm,
+    borderWidth: 2,
+    borderColor: '#1A1A1A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+    transform: [{ rotate: '-5deg' }],
+  },
+  logoImg: {
+    width: 32,
+    height: 32,
+    marginRight: 8,
+  },
+  logoText: {
+    fontFamily: FONTS.heading,
+    fontSize: 16,
+    color: '#1A1A1A',
+  },
+  notificationDot: {
+    position: 'absolute',
+    top: 6,
+    right: 8,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.error,
+    borderWidth: 2,
+    borderColor: '#1A1A1A',
+  },
   container: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -80,7 +127,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.xs,
     paddingTop: SPACING.statusBar + SPACING.sm,
     paddingBottom: SPACING.sm,
-    backgroundColor: COLORS.bgWhite,
+    backgroundColor: COLORS.surfaceContainerLowest,
     borderBottomWidth: 2,
     borderBottomColor: '#1A1A1A',
     height: SPACING.statusBar + 64,

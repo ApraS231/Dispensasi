@@ -11,11 +11,11 @@ export default function SiswaLayout() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+      <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
         <Stack.Screen name="dashboard" />
         <Stack.Screen name="riwayat" />
         <Stack.Screen name="profile" />
-        <Stack.Screen name="pengajuan" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="pengajuan" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="qr/[id]" />
       </Stack>
       

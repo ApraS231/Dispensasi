@@ -4,6 +4,7 @@ import * as SecureStore from 'expo-secure-store';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { View, Text, TextInput, StyleSheet, Alert, KeyboardAvoidingView, Platform, SafeAreaView } from 'react-native';
+import { Image } from 'expo-image';
 import api from '../src/utils/api';
 import { useAuthStore } from '../src/stores/authStore';
 import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../src/utils/theme';
@@ -72,7 +73,7 @@ export default function LoginScreen() {
           
           <View style={styles.headerContainer}>
             <View style={styles.logoCircle}>
-              <Text style={styles.logoIcon}>S</Text>
+              <Image source={require('../assets/images/logo.png')} style={styles.logoImg} resizeMode="contain" />
             </View>
             <Text style={styles.title}>SiDispen</Text>
             <Text style={styles.subtitle}>Halo! Yuk masuk ke akunmu.</Text>
@@ -146,7 +147,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 0,
   },
-  logoIcon: { fontSize: 36, color: COLORS.onPrimaryContainer, fontFamily: FONTS.heading },
+  logoImg: { width: 48, height: 48 },
   title: { fontFamily: FONTS.heading, fontSize: 32, color: COLORS.textPrimary, marginBottom: 8 },
   subtitle: { fontFamily: FONTS.bodyMedium, fontSize: 16, color: COLORS.textSecondary, textAlign: 'center' },
   card: { padding: SPACING.lg },

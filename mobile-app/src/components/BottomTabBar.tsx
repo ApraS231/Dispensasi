@@ -115,7 +115,7 @@ export const ORTU_TABS: TabItem[] = [
 const styles = StyleSheet.create({
   outerContainer: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 24 : 16,
+    bottom: Platform.OS === 'ios' ? 32 : 24,
     left: SPACING.md,
     right: SPACING.md,
   },
