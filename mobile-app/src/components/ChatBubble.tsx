@@ -1,8 +1,12 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
+import AvatarInitials from './AvatarInitials';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SHADOWS, SIZES } from '../utils/theme';
 
 interface ChatBubbleProps {
+  senderName?: string;
+  profilePhotoUrl?: string | null;
   message: string;
   time: string;
   isMe: boolean;
@@ -11,9 +15,23 @@ interface ChatBubbleProps {
   onRetry?: () => void;
 }
 
-export default function ChatBubble({ message, time, isMe, isPending, isFailed, onRetry }: ChatBubbleProps) {
+export default function ChatBubble({ message, time, isMe, isPending, isFailed, onRetry, senderName, profilePhotoUrl }: ChatBubbleProps) {
   return (
+
     <View style={[styles.container, isMe ? styles.alignRight : styles.alignLeft]}>
+
+      {!isMe && (
+        <View style={styles.avatarContainer}>
+          {profilePhotoUrl ? (
+            <Image source={{ uri: profilePhotoUrl }} style={styles.avatar} />
+          ) : (
+            <AvatarInitials name={senderName || '?'} size={32} fontSize={14} />
+          )}
+        </View>
+      )}
+
+      <View style={styles.contentContainer}>
+
       <View style={[
         styles.bubbleWrapper,
         { 
@@ -49,25 +67,47 @@ export default function ChatBubble({ message, time, isMe, isPending, isFailed, o
             {isMe && isPending && (
               <MaterialCommunityIcons name="clock-outline" size={12} color={COLORS.textMuted} style={styles.checkIcon} />
             )}
+
           </>
         )}
       </View>
+      </View>
     </View>
+
   );
 }
 
 const styles = StyleSheet.create({
+
   container: {
     marginBottom: 16,
-    maxWidth: '80%',
+    flexDirection: 'row',
+    maxWidth: '85%',
   },
   alignRight: {
     alignSelf: 'flex-end',
+    flexDirection: 'row-reverse',
   },
   alignLeft: {
     alignSelf: 'flex-start',
   },
+  avatarContainer: {
+    marginRight: 8,
+    alignSelf: 'flex-end',
+    marginBottom: 20,
+  },
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#1A1A1A',
+  },
+  contentContainer: {
+    flex: 1,
+  },
   bubbleWrapper: {
+
     borderRadius: SIZES.radiusCard,
     paddingHorizontal: 16,
     paddingVertical: 12,

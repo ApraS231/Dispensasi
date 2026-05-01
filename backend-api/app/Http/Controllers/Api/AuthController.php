@@ -20,7 +20,8 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json(['message' => 'Kredensial salah'], 401);
+            $user->makeVisible('profile_photo_url');
+        return response()->json(['message' => 'Kredensial salah'], 401);
         }
 
         if ($request->has('device_token')) {
@@ -29,6 +30,7 @@ class AuthController extends Controller
 
         $token = $user->createToken('mobile-app-token')->plainTextToken;
 
+        $user->makeVisible('profile_photo_url');
         return response()->json([
             'user' => $user->load('siswaProfile', 'kelasWali'),
             'token' => $token
@@ -38,6 +40,7 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
+        $user->makeVisible('profile_photo_url');
         return response()->json(['message' => 'Logout berhasil']);
     }
 
@@ -51,6 +54,7 @@ class AuthController extends Controller
             'device_token' => $request->device_token
         ]);
 
+        $user->makeVisible('profile_photo_url');
         return response()->json(['message' => 'Device token updated successfully']);
     }
 }

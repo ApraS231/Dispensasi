@@ -278,8 +278,10 @@ export default function TicketDetailScreen() {
               const time = new Date(item.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
               return (
                 <View style={styles.bubbleRow}>
-                  {! (item.sender_id === user?.id) && <Text style={styles.senderName}>{item.sender?.name ?? 'Sistem'}</Text>}
+                  {! (item.sender_id === user?.id) && <Text style={[styles.senderName, { marginLeft: 40 }]}>{item.sender?.name ?? 'Sistem'}</Text>}
                   <ChatBubble 
+                    senderName={item.sender?.name ?? 'Sistem'}
+                    profilePhotoUrl={item.sender?.profile_photo_url}
                     message={item.pesan} 
                     time={time} 
                     isMe={item.sender_id === user?.id} 

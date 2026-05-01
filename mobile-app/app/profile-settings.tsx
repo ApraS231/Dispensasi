@@ -1,3 +1,6 @@
+import * as ImagePicker from 'expo-image-picker';
+import { Image } from 'expo-image';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { HapticFeedback } from '../src/utils/haptics';
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, Alert } from 'react-native';
@@ -17,15 +20,55 @@ export default function ProfileSettingsScreen() {
   const [newPassword, setNewPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const [photoUri, setPhotoUri] = useState<string | null>(user?.profile_photo_url || null);
+  const { setUser } = useAuthStore();
+
+
+
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+
+    if (!result.canceled) {
+      setPhotoUri(result.assets[0].uri);
+    }
+  };
+
   const handleSave = async () => {
     HapticFeedback.medium();
     setLoading(true);
     try {
-      // Assuming a generic endpoint for profile update
-      // await api.put('/user/profile', { name, email, oldPassword, newPassword });
       
-      // Simulate network request
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const formData = new FormData();
+      if (name !== user?.name) formData.append('name', name);
+      if (email !== user?.email) formData.append('email', email);
+      if (oldPassword && newPassword) {
+        formData.append('oldPassword', oldPassword);
+        formData.append('newPassword', newPassword);
+      }
+
+      if (photoUri && photoUri !== user?.profile_photo_url) {
+        const filename = photoUri.split('/').pop() || 'photo.jpg';
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : `image`;
+
+        formData.append('profile_photo', {
+          uri: photoUri,
+          name: filename,
+          type
+        } as any);
+      }
+
+      const response = await api.post('/user/profile', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      setUser(response.data.user);
+
       
       HapticFeedback.success();
       Alert.alert('Berhasil', 'Pengaturan profil telah diperbarui.', [
@@ -54,10 +97,24 @@ export default function ProfileSettingsScreen() {
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           
           <SoftCard style={styles.card}>
+
             <View style={styles.avatarSection}>
-              <AvatarInitials name={user?.name || 'User'} size={64} />
-              <Text style={styles.sectionTitle}>Data Pribadi</Text>
+              <TouchableOpacity onPress={pickImage} style={styles.avatarWrapper} activeOpacity={0.8}>
+                {photoUri ? (
+                  <Image source={{ uri: photoUri }} style={{ width: 64, height: 64, borderRadius: 32 }} />
+                ) : (
+                  <AvatarInitials name={user?.name || 'User'} size={64} fontSize={24} />
+                )}
+                <View style={styles.editBadge}>
+                  <MaterialCommunityIcons name="camera" size={14} color="#FFF" />
+                </View>
+              </TouchableOpacity>
+              <View>
+                <Text style={styles.sectionTitle}>Data Pribadi</Text>
+                <Text style={styles.helperText}>Ketuk foto untuk mengubah</Text>
+              </View>
             </View>
+
             
             <Text style={styles.label}>Nama Lengkap</Text>
             <TextInput 
@@ -158,6 +215,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.primary,
     marginBottom: SPACING.md,
+  },
+
+  avatarWrapper: {
+    position: 'relative',
+  },
+  editBadge: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    backgroundColor: COLORS.primary,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.surfaceContainerLowest,
   },
   avatarSection: {
     flexDirection: 'row',
