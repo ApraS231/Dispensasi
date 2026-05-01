@@ -5,6 +5,7 @@ interface User {
   name: string;
   email: string;
   role: 'siswa' | 'guru_piket' | 'wali_kelas' | 'orang_tua' | 'admin';
+  profile_photo_url?: string;
 }
 
 interface AuthState {

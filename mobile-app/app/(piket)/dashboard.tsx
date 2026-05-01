@@ -14,6 +14,7 @@ import TopAppBar from '../../src/components/TopAppBar';
 import GlassFAB from '../../src/components/GlassFAB';
 import AvatarInitials from '../../src/components/AvatarInitials';
 import BouncyButton from '../../src/components/BouncyButton';
+import RejectModal from '../../src/components/RejectModal';
 import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../../src/utils/theme';
 
 export default function PiketDashboard() {
@@ -22,6 +23,7 @@ export default function PiketDashboard() {
   const [dailyLogs, setDailyLogs] = useState<any[]>([]);
   const [dailyLogStats, setDailyLogStats] = useState<any>({ total: 0, scanned: 0 });
   const [pendingTickets, setPendingTickets] = useState<any[]>([]);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
 
   const fetchData = async () => {
     try {
@@ -60,21 +62,26 @@ export default function PiketDashboard() {
       HapticFeedback.success();
       await api.post(`/dispensasi/${id}/approve`);
       setPendingTickets(prev => prev.filter(t => t.id !== id));
-    } catch (e: any) { Alert.alert('Gagal', e.response?.data?.message || 'Error'); }
+      fetchData();
+      Alert.alert('Berhasil', 'Izin berhasil disetujui');
+    } catch (e: any) { Alert.alert('Gagal', e.response?.data?.message || 'Terjadi kesalahan'); }
   };
 
   const handleReject = async (id: string) => {
-    if (Alert.prompt) {
-      Alert.prompt('Alasan Penolakan', 'Masukkan catatan penolakan:', async (catatan) => {
-        if (!catatan) return;
-        try {
-          HapticFeedback.success();
-          await api.post(`/dispensasi/${id}/reject`, { catatan_penolakan: catatan });
-          setPendingTickets(prev => prev.filter(t => t.id !== id));
-        } catch (e) {}
-      });
-    } else {
-      Alert.alert('Info', 'Gunakan fitur reject di perangkat yang mendukung prompt.');
+    setRejectingId(id);
+  };
+
+  const confirmReject = async (catatan: string) => {
+    if (!rejectingId) return;
+    const id = rejectingId;
+    setRejectingId(null);
+    try {
+      HapticFeedback.success();
+      await api.post(`/dispensasi/${id}/reject`, { catatan_penolakan: catatan });
+      setPendingTickets(prev => prev.filter(t => t.id !== id));
+      Alert.alert('Berhasil', 'Izin berhasil ditolak');
+    } catch (e: any) {
+      Alert.alert('Gagal', e.response?.data?.message || 'Terjadi kesalahan');
     }
   };
 
@@ -213,6 +220,12 @@ export default function PiketDashboard() {
 
         <GlassFAB onPress={() => expoRouter.push('/scan-qr')} icon="qrcode-scan" />
       </SafeAreaView>
+
+      <RejectModal
+        visible={!!rejectingId}
+        onClose={() => setRejectingId(null)}
+        onSubmit={confirmReject}
+      />
     </View>
   );
 }

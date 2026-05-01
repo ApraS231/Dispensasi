@@ -10,6 +10,7 @@ import TopAppBar from '../../src/components/TopAppBar';
 import SoftCard from '../../src/components/SoftCard';
 import AvatarInitials from '../../src/components/AvatarInitials';
 import BouncyButton from '../../src/components/BouncyButton';
+import RejectModal from '../../src/components/RejectModal';
 import PillBadge from '../../src/components/PillBadge';
 import ChatBubble from '../../src/components/ChatBubble';
 import { COLORS, FONTS, SPACING, SIZES, SHADOWS } from '../../src/utils/theme';
@@ -30,6 +31,7 @@ export default function TicketDetailScreen() {
   const [ticket, setTicket] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
   
   // Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -108,22 +110,31 @@ export default function TicketDetailScreen() {
   }, [id]);
 
   const handleAction = async (action: 'approve_wali' | 'approve_final' | 'reject') => {
+    if (action === 'reject') {
+      setIsRejecting(true);
+      return;
+    }
+
     setActionLoading(true);
     try {
-      if (action !== 'reject') {
-        await api.post(`/dispensasi/${id}/${action}`);
-        HapticFeedback.success();
-        Alert.alert('Berhasil', 'Tiket telah diperbarui.');
-      } else {
-        Alert.prompt('Catatan Penolakan', 'Berikan alasan penolakan:', async (catatan) => {
-          if (!catatan) return;
-          await api.post(`/dispensasi/${id}/reject`, { catatan_penolakan: catatan });
-          HapticFeedback.success();
-          Alert.alert('Berhasil', 'Tiket telah ditolak.');
-          fetchTicket();
-        });
-        return;
-      }
+      await api.post(`/dispensasi/${id}/${action}`);
+      HapticFeedback.success();
+      Alert.alert('Berhasil', 'Tiket telah diperbarui.');
+      fetchTicket();
+    } catch (e: any) {
+      Alert.alert('Gagal', e.response?.data?.message || 'Terjadi kesalahan.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const confirmReject = async (catatan: string) => {
+    setIsRejecting(false);
+    setActionLoading(true);
+    try {
+      await api.post(`/dispensasi/${id}/reject`, { catatan_penolakan: catatan });
+      HapticFeedback.success();
+      Alert.alert('Berhasil', 'Tiket ditolak.');
       fetchTicket();
     } catch (e: any) {
       Alert.alert('Gagal', e.response?.data?.message || 'Terjadi kesalahan.');
@@ -326,6 +337,12 @@ export default function TicketDetailScreen() {
         </KeyboardAvoidingView>
 
       </SafeAreaView>
+
+      <RejectModal
+        visible={isRejecting}
+        onClose={() => setIsRejecting(false)}
+        onSubmit={confirmReject}
+      />
     </View>
   );
 }
