@@ -1,7 +1,7 @@
 import { HapticFeedback } from '../../src/utils/haptics';
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, SafeAreaView, Dimensions } from 'react-native';
-import { router as expoRouter, useFocusEffect } from 'expo-router';
+import { router as expoRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import api from '../../src/utils/api';
 import { useAuthStore } from '../../src/stores/authStore';
@@ -31,11 +31,7 @@ export default function WaliDashboard() {
     } catch (e) {}
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchPending();
-    }, [])
-  );
+
 
   const handleLogout = async () => {
     try { await api.post('/logout'); } catch (e) {}
