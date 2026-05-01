@@ -5,7 +5,7 @@ import { COLORS, SHADOWS, SIZES } from '../utils/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ICONS } from '../utils/icons';
 
-export default function GlassFAB({ onPress, icon }: { onPress: () => void; icon?: keyof typeof MaterialCommunityIcons.glyphMap }) {
+export default function GlassFAB({ onPress, icon, style }: { onPress: () => void; icon?: keyof typeof MaterialCommunityIcons.glyphMap; style?: any }) {
   const scaleValue = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
@@ -30,7 +30,8 @@ export default function GlassFAB({ onPress, icon }: { onPress: () => void; icon?
   return (
     <TouchableWithoutFeedback onPress={onPress} onPressIn={handlePressIn} onPressOut={handlePressOut}>
       <Animated.View style={[
-        styles.container, 
+        styles.container,
+        style,
         { transform: [{ scale: scaleValue }] }
       ]}>
         <View style={styles.inner}>
