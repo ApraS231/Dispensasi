@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, SIZES, SHADOWS } from '../utils/theme';
@@ -61,9 +62,7 @@ export default function TopAppBar({
 
       {title === 'SiDispen' ? (
         <View style={styles.titleWrapper}>
-          <View style={styles.logoBox}>
-            <Text style={styles.logoText}>S</Text>
-          </View>
+          <Image source={require('../../assets/images/logo.png')} style={styles.logoImg} resizeMode="contain" />
           <Text style={styles.title}>{title}</Text>
         </View>
       ) : (
@@ -99,6 +98,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 8,
     transform: [{ rotate: '-5deg' }],
+  },
+  logoImg: {
+    width: 32,
+    height: 32,
+    marginRight: 8,
   },
   logoText: {
     fontFamily: FONTS.heading,
