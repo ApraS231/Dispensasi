@@ -157,8 +157,8 @@ const styles = StyleSheet.create({
   },
   activeLabel: {
     fontFamily: FONTS.headingSemi,
-    fontSize: 12,
+    fontSize: 10,
     color: COLORS.textPrimary,
-    marginLeft: 6,
+    marginLeft: 4,
   },
 });
