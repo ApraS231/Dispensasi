@@ -1,53 +1,54 @@
 import { StatusBar, Platform } from 'react-native';
 
 export const COLORS = {
-  // Skeuomorphism & Liquid Glass Theme
-  bgWhite: '#F0F4F8', // Slightly cool off-white for glass contrast
-  surface: 'rgba(255, 255, 255, 0.4)', // Translucent glass surface
-  surfaceDim: 'rgba(255, 255, 255, 0.2)',
+  // Skeuomorphism & Liquid Glass Theme - Blue Palette
+  bgWhite: '#BDD8E9', // Lightest blue as a base bright color
+
+  surface: 'rgba(255, 255, 255, 0.25)', // Translucent glass surface
+  surfaceDim: 'rgba(255, 255, 255, 0.15)',
   surfaceContainerLowest: 'rgba(255, 255, 255, 0.8)',
   surfaceContainerLow: 'rgba(255, 255, 255, 0.6)',
-  surfaceContainer: 'rgba(255, 255, 255, 0.5)',
-  surfaceContainerHigh: 'rgba(255, 255, 255, 0.7)',
-  surfaceContainerHighest: 'rgba(255, 255, 255, 0.9)',
+  surfaceContainer: 'rgba(255, 255, 255, 0.4)',
+  surfaceContainerHigh: 'rgba(255, 255, 255, 0.5)',
+  surfaceContainerHighest: 'rgba(255, 255, 255, 0.7)',
   
-  primaryLight: '#FFA1B2',
-  primaryMuted: '#FF87A0',
+  primaryLight: '#7BBDE8', // Bright blue
+  primaryMuted: '#6EA2B3', // Muted blue
   
-  primary: '#FF4D6D', // Vibrant but soft red
+  primary: '#0A4174', // Deep blue
   onPrimary: '#FFFFFF',
-  primaryContainer: 'rgba(255, 77, 109, 0.15)', // Glassy primary
-  onPrimaryContainer: '#D90429',
+  primaryContainer: 'rgba(10, 65, 116, 0.2)', // Glassy primary
+  onPrimaryContainer: '#001D39', // Darkest blue
   
-  secondary: '#00B4D8', // Bright blue
+  secondary: '#49769F', // Medium blue
   onSecondary: '#FFFFFF',
-  secondaryContainer: 'rgba(0, 180, 216, 0.15)',
-  onSecondaryContainer: '#0077B6',
-  
-  tertiary: '#FFD166', // Warm yellow
-  onTertiary: '#000000',
-  tertiaryContainer: 'rgba(255, 209, 102, 0.2)',
-  onTertiaryContainer: '#D99000',
+  secondaryContainer: 'rgba(73, 118, 159, 0.2)',
+  onSecondaryContainer: '#001D39',
+
+  tertiary: '#4E8EA2', // Teal/Blue-green
+  onTertiary: '#FFFFFF',
+  tertiaryContainer: 'rgba(78, 142, 162, 0.2)',
+  onTertiaryContainer: '#001D39',
   
   // Semantic Colors
-  textPrimary: '#2B2D42',
-  textSecondary: '#8D99AE',
-  textMuted: '#A0AABF',
+  textPrimary: '#001D39', // Darkest blue for high contrast text
+  textSecondary: '#0A4174', // Deep blue for secondary text
+  textMuted: '#49769F',
   outlineVariant: 'rgba(255, 255, 255, 0.6)', // White highlight for glass edge
   
-  // Status Colors
+  // Status Colors (Kept vibrant but slightly adjusted for the blue theme)
   success: '#06D6A0',
   successBg: 'rgba(6, 214, 160, 0.15)',
   warning: '#FFD166',
   warningBg: 'rgba(255, 209, 102, 0.15)',
   error: '#EF476F',
   errorBg: 'rgba(239, 71, 111, 0.15)',
-  info: '#118AB2',
-  infoBg: 'rgba(17, 138, 178, 0.15)',
+  info: '#7BBDE8',
+  infoBg: 'rgba(123, 189, 232, 0.15)',
   
   // Inverse
-  inverseSurface: '#2B2D42',
-  inverseOnSurface: '#F0F4F8',
+  inverseSurface: '#001D39',
+  inverseOnSurface: '#BDD8E9',
 };
 
 export const FONTS = {
@@ -71,7 +72,7 @@ export const TYPOGRAPHY = {
 
 export const SHADOWS = {
   softCard: {
-    shadowColor: '#8D99AE',
+    shadowColor: '#001D39',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.15,
     shadowRadius: 20,
@@ -80,7 +81,7 @@ export const SHADOWS = {
     borderColor: 'rgba(255, 255, 255, 0.8)', // Glass edge
   },
   elevation2: {
-    shadowColor: '#8D99AE',
+    shadowColor: '#001D39',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -89,7 +90,7 @@ export const SHADOWS = {
     borderColor: 'rgba(255, 255, 255, 0.6)',
   },
   elevation3: {
-    shadowColor: '#8D99AE',
+    shadowColor: '#001D39',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.12,
     shadowRadius: 16,

@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { useAuthStore } from '../src/stores/authStore';
 import { COLORS, FONTS } from '../src/utils/theme';
+import LiquidBackground from '../src/components/LiquidBackground';
 
 export default function IndexScreen() {
   const { user, isLoading } = useAuthStore();
@@ -42,7 +43,7 @@ export default function IndexScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' },
   title: {
     fontFamily: FONTS.heading,
     fontSize: 48,

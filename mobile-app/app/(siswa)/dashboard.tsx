@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: '#1A1A1A',
+    borderColor: 'transparent',
     marginTop: SPACING.xs,
     letterSpacing: 0.5,
     alignSelf: 'flex-start',
@@ -147,8 +147,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.error,
     borderRadius: SIZES.radiusButton,
     borderWidth: 2,
-    borderColor: '#1A1A1A',
-    shadowColor: '#1A1A1A',
+    borderColor: 'transparent',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 2, height: 2 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -165,13 +165,13 @@ const styles = StyleSheet.create({
   badgeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.bgWhite,
+    backgroundColor: 'transparent',
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderRadius: SIZES.radiusButton,
     borderWidth: 2,
-    borderColor: '#1A1A1A',
-    shadowColor: '#1A1A1A',
+    borderColor: 'transparent',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 3, height: 3 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
   badgeText: { 
     fontFamily: FONTS.heading, 
     fontSize: 20, 
-    color: '#1A1A1A',
+    color: COLORS.textPrimary,
     marginRight: SPACING.sm,
   },
   badgeLabel: {
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   seeAllText: {
     fontFamily: FONTS.headingSemi,
     fontSize: 13,
-    color: '#1A1A1A',
+    color: COLORS.textPrimary,
   },
   listContent: { 
     paddingBottom: 100 

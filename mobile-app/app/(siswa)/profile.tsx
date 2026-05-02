@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
     ...SHADOWS.softCard,
     borderRadius: 50,
-    backgroundColor: COLORS.bgWhite,
+    backgroundColor: 'transparent',
     padding: 4,
   },
   name: {

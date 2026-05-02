@@ -252,8 +252,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: SIZES.radiusCard,
     borderWidth: 2,
-    borderColor: '#1A1A1A',
-    shadowColor: '#1A1A1A',
+    borderColor: 'transparent',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 3, height: 3 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   statLabel: {
     fontFamily: FONTS.bodyMedium,
     fontSize: 11,
-    color: '#1A1A1A',
+    color: COLORS.textPrimary,
     marginTop: 2,
   },
   container: { flex: 1 },
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
       padding: SPACING.md,
       borderRadius: SIZES.radiusCard,
 
-      shadowColor: '#1A1A1A',
+      shadowColor: COLORS.primary,
       shadowOffset: { width: 3, height: 3 },
       shadowOpacity: 1,
       shadowRadius: 0,
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
       borderRadius: SIZES.radiusButton,
       gap: SPACING.sm,
 
-      shadowColor: '#1A1A1A',
+      shadowColor: COLORS.primary,
       shadowOffset: { width: 4, height: 4 },
       shadowOpacity: 1,
       shadowRadius: 0,

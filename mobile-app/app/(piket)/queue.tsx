@@ -104,9 +104,9 @@ const styles = StyleSheet.create({
   cardInner: {
     padding: SPACING.md,
     borderWidth: 2,
-    borderColor: '#1A1A1A',
+    borderColor: 'transparent',
     borderRadius: SIZES.radiusCard,
-    shadowColor: '#1A1A1A',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 3, height: 3 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
   textStack: { flex: 1, marginLeft: SPACING.sm, marginRight: SPACING.xs },
   studentName: { fontFamily: FONTS.headingSemi, fontSize: 16, color: COLORS.textPrimary },
   studentClass: { fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.textSecondary, textTransform: 'capitalize' },
-  reasonBox: { backgroundColor: COLORS.surfaceContainerLow, padding: SPACING.sm, borderRadius: SIZES.radiusButton, borderWidth: 2, borderColor: '#1A1A1A' },
+  reasonBox: { backgroundColor: COLORS.surfaceContainerLow, padding: SPACING.sm, borderRadius: SIZES.radiusButton, borderWidth: 2, borderColor: 'transparent' },
   reasonText: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.textMuted },
   emptyText: { fontFamily: FONTS.body, textAlign: 'center', color: COLORS.textMuted, marginTop: SPACING.xl, fontSize: 14 },
 });
