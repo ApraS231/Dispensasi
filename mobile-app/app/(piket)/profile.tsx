@@ -68,7 +68,7 @@ export default function PiketProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.surfaceContainerLowest },
+  container: { flex: 1, backgroundColor: 'transparent' },
   safeArea: { flex: 1 },
   content: { padding: SPACING.md, paddingBottom: 100 },
   profileHeader: { alignItems: 'center', marginBottom: SPACING.xl, marginTop: SPACING.lg },

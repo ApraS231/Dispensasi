@@ -102,7 +102,7 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.surfaceContainerLowest },
+  container: { flex: 1, backgroundColor: 'transparent' },
   safeArea: { flex: 1 },
   content: {
     padding: SPACING.md,
