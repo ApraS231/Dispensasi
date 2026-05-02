@@ -166,8 +166,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.error,
     borderRadius: SIZES.radiusButton,
     borderWidth: 2,
-    borderColor: '#1A1A1A',
-    shadowColor: '#1A1A1A',
+    borderColor: 'transparent',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 2, height: 2 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -201,17 +201,17 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   childAction: {
-    backgroundColor: COLORS.bgWhite,
+    backgroundColor: 'transparent',
     paddingHorizontal: SPACING.sm,
     paddingVertical: 4,
     borderRadius: SIZES.radiusButton,
     borderWidth: 2,
-    borderColor: '#1A1A1A',
+    borderColor: 'transparent',
   },
   childActionText: {
     fontFamily: FONTS.headingSemi,
     fontSize: 11,
-    color: '#1A1A1A',
+    color: COLORS.textPrimary,
   },
 
   contentContainer: {
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md 
   },
   sectionTitle: { fontFamily: FONTS.headingSemi, fontSize: 18, color: COLORS.textPrimary },
-  seeAllText: { fontFamily: FONTS.headingSemi, fontSize: 13, color: '#1A1A1A' },
+  seeAllText: { fontFamily: FONTS.headingSemi, fontSize: 13, color: COLORS.textPrimary },
   
   listContent: { paddingBottom: 100 },
   ticketWrapper: {
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: SIZES.radiusButton,
     borderWidth: 2,
-    borderColor: '#1A1A1A',
+    borderColor: 'transparent',
   },
   typeBadgeText: {
     fontFamily: FONTS.labelCaps,

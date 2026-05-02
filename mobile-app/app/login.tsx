@@ -138,7 +138,7 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bgWhite },
+  container: { flex: 1, backgroundColor: 'transparent' },
   safeArea: { flex: 1 },
   keyboardView: { flex: 1, justifyContent: 'center', padding: SPACING.xl },
   backgroundImage: {
@@ -157,9 +157,9 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xs,
     borderRadius: SIZES.radiusButton,
     borderWidth: 2,
-    borderColor: '#1A1A1A',
+    borderColor: 'transparent',
     marginBottom: SPACING.md,
-    shadowColor: '#1A1A1A',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 3, height: 3 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontFamily: FONTS.headingSemi,
     fontSize: 16,
-    color: '#1A1A1A',
+    color: COLORS.textPrimary,
   },
   title: { fontFamily: FONTS.heading, fontSize: 36, color: COLORS.textPrimary, marginBottom: SPACING.sm },
   subtitle: { fontFamily: FONTS.bodyMedium, fontSize: 16, color: COLORS.textSecondary, lineHeight: 24 },
@@ -180,9 +180,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     height: 56,
     borderWidth: 2,
-    borderColor: '#1A1A1A', // Brutalist thick border
+    borderColor: 'transparent', // Brutalist thick border
     marginBottom: SPACING.md,
-    shadowColor: '#1A1A1A',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 3, height: 3 },
     shadowOpacity: 1,
     shadowRadius: 0,

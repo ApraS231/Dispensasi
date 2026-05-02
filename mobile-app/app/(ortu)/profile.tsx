@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   avatarWrapper: {
     marginBottom: SPACING.md,
     ...SHADOWS.softCard,
-    borderRadius: 50, backgroundColor: COLORS.bgWhite, padding: 4 },
+    borderRadius: 50, backgroundColor: 'transparent', padding: 4 },
   name: { fontFamily: FONTS.heading, fontSize: 24, color: COLORS.textPrimary, marginBottom: 4 },
   email: { fontFamily: FONTS.bodyMedium, fontSize: 14, color: COLORS.textSecondary, marginBottom: SPACING.sm },
   roleBadge: { backgroundColor: COLORS.primary, paddingHorizontal: SPACING.md, paddingVertical: 6, borderRadius: 20 },

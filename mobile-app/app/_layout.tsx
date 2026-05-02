@@ -14,7 +14,7 @@ import {
 } from '@expo-google-fonts/roboto';
 import * as SplashScreen from 'expo-splash-screen';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
-
+import LiquidBackground from '../src/components/LiquidBackground';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -78,6 +78,7 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <StatusBar style="dark" />
+      <LiquidBackground />
       <Slot />
     </QueryClientProvider>
   );

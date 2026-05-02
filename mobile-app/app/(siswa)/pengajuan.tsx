@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
   infoText: { fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.warning, lineHeight: 18 },
 
   glassCard: {
-    backgroundColor: COLORS.bgWhite,
+    backgroundColor: 'transparent',
     borderRadius: SIZES.radiusCard,
     padding: SPACING.lg,
     ...SHADOWS.softCard,
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.radiusButton,
 
     overflow: 'hidden',
-    shadowColor: '#1A1A1A',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 2, height: 2 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.radiusButton,
     paddingHorizontal: SPACING.md,
     height: 50,
-    shadowColor: '#1A1A1A',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 2, height: 2 },
     shadowOpacity: 1,
     shadowRadius: 0,
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
     color: COLORS.textPrimary,
     minHeight: 120,
-    shadowColor: '#1A1A1A',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 2, height: 2 },
     shadowOpacity: 1,
     shadowRadius: 0,
