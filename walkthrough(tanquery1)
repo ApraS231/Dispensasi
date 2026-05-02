@@ -1,0 +1,32 @@
+# Phase 1: Data Fetching Fixes (Regression Bug)
+
+Fase 1 telah berhasil diimplementasikan untuk memperbaiki bug regresi di mana layar Piket, Wali Kelas, dan Orang Tua menampilkan data kosong.
+
+## Perubahan yang Dilakukan
+
+> [!NOTE]
+> Semua fetch manual yang tidak pernah dipanggil (`fetchData`) di berbagai layar telah diganti dengan `useQuery` milik TanStack. 
+
+### 1. Piket Screens
+- **Dashboard (`app/(piket)/dashboard.tsx`)**: Ditambahkan `useQuery` untuk `dispensasi-pending`, `piket-status`, dan `piket-daily-log`. Fungsi mutasi (Approve/Reject) sekarang memanggil `refetchPending` dan `refetchLogs` setelah mutasi berhasil agar data di layar langsung segar.
+- **Queue (`app/(piket)/queue.tsx`)**: Menghapus fetch manual dan menggunakan state dari `useQuery` dengan cache key `dispensasi-all`, dan memfilter data berdasarkan status aktif pada hari ini.
+- **History (`app/(piket)/history.tsx`)**: Sama seperti Queue, mengkonsumsi `dispensasi-all` dari cache lalu menampilkan filter status riwayat.
+
+### 2. Wali Kelas Screens
+- **Dashboard (`app/(wali)/dashboard.tsx`)**: `useQuery` dengan key `dispensasi-pending` telah diaktifkan, dan UI statistik kehadiran murid (`absentStudents`, `presentStudents`) telah dipulihkan agar sinkron dengan daftar persetujuan yang tertunda.
+- **Queue (`app/(wali)/queue.tsx`) & History (`app/(wali)/history.tsx`)**: Mengimplementasikan `useQuery` dengan key `dispensasi-all` seperti pada Piket, memastikan sinkronisasi cache jika data diperbarui dari layar lain.
+
+### 3. Orang Tua Screen
+- **Dashboard (`app/(ortu)/dashboard.tsx`)**: Mengimplementasikan `useQuery` dengan key `monitoring-anak` sehingga timeline dispensasi (terbaru) kini kembali berfungsi. Variabel `children` untuk merender informasi anak juga telah dilestarikan.
+
+### 4. Ticket Detail Caching
+- **Ticket Detail (`app/ticket/[id].tsx`)**:
+  - `fetchTicket` manual di `useEffect` dihilangkan.
+  - Data detail dispensasi kini di-cache dan diambil via `useQuery` dengan key spesifik `['dispensasi', id]`.
+  - Fungsi chat (riwayat pesan dan langganan socket Realtime) tetap menggunakan logika aslinya untuk kecepatan dan respons instan, sesuai kesepakatan desain.
+
+## Verifikasi yang Diperlukan
+
+> [!IMPORTANT]
+> Harap jalankan aplikasi dan periksa halaman **Dashboard Piket**, **Wali Kelas**, dan **Orang Tua**. 
+> Pastikan daftar tiket kini **tidak lagi kosong** dan tampil dengan benar saat login dengan role masing-masing.

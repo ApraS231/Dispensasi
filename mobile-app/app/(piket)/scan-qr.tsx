@@ -4,6 +4,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import api from '../../src/utils/api';
+import { useValidateQR } from '../../src/hooks/usePiketQueries';
 import { COLORS, FONTS, SPACING, SIZES, SHADOWS } from '../../src/utils/theme';
 
 const { width } = Dimensions.get('window');
@@ -11,6 +12,7 @@ const { width } = Dimensions.get('window');
 export default function QRScannerScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
+  const validateMutation = useValidateQR();
 
   if (!permission) {
     return <View />;
@@ -31,8 +33,8 @@ export default function QRScannerScreen() {
     setScanned(true);
 
     try {
-      const res = await api.post('/piket/validate-qr', { qr_token: data });
-      Alert.alert("✅ BERHASIL", res.data.message, [
+      const res = await validateMutation.mutateAsync(data);
+      Alert.alert("✅ BERHASIL", res.message, [
           { text: "OK", onPress: () => router.back() }
       ]);
     } catch (err: any) {

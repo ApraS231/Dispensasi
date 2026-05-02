@@ -18,23 +18,18 @@ const isToday = (dateString: string) => {
   };
 
 export default function PiketQueueScreen() {
-  const [tickets, setTickets] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchData = async () => {
-    try {
-      const res = await api.get('/dispensasi'); // Guru Piket gets all active tickets
-      // Filter only active queue (pending & approved_by_wali)
-      const queue = res.data.filter((t: any) =>
-        (t.status === 'pending' || t.status === 'approved_by_wali') &&
-        isToday(t.created_at)
-      );
-      setTickets(queue);
-    } catch (e) {} finally {
-      setLoading(false);
+  const { data: allTickets = [], isLoading: loading } = useQuery({
+    queryKey: ['dispensasi-all'],
+    queryFn: async () => {
+      const { data } = await api.get('/dispensasi');
+      return data;
     }
-  };
+  });
 
+  const tickets = allTickets.filter((t: any) =>
+    (t.status === 'pending' || t.status === 'approved_by_wali') &&
+    isToday(t.created_at)
+  );
 
 
   return (

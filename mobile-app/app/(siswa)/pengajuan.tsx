@@ -6,10 +6,12 @@ import * as ImagePicker from 'expo-image-picker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
-import api from '../../src/utils/api';
 import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../../src/utils/theme';
+import { useSubmitDispensasi } from '../../src/hooks/useDispensasiQueries';
 
 export default function PengajuanScreen() {
+  const submitMutation = useSubmitDispensasi();
+
   const [jenisIzin, setJenisIzin] = useState('sakit');
   const [alasan, setAlasan] = useState('');
   
@@ -79,9 +81,7 @@ export default function PengajuanScreen() {
         } as any);
       }
 
-      await api.post('/dispensasi', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      await submitMutation.mutateAsync(formData);
       
       HapticFeedback.success();
       Alert.alert('Berhasil', 'Dispensasi berhasil diajukan!', [{ text: 'OK', onPress: () => router.back() }]);

@@ -1,0 +1,44 @@
+# Optimalisasi Data Flow (Fase 1-4 Selesai)
+
+Semua fase perbaikan alur data dan implementasi TanStack Query telah diselesaikan. Aplikasi SiDispen kini memiliki data layer yang terpusat, robust, dan responsif dengan fitur cache invalidation otomatis.
+
+## Perubahan yang Dilakukan
+
+> [!TIP]
+> **Service Layer & Custom Hooks**
+> Semua pemanggilan API (`api.get`, `api.post`) kini telah disentralisasi ke dalam `Service Layer` dan di-wrap menggunakan custom hooks (`useQuery` & `useMutation`). Ini memisahkan UI logic dari Data logic dan membuat kode jauh lebih bersih (DRY).
+
+### Fase 1: Perbaikan Bug Regresi (Data Kosong)
+- ✅ Mengubah semua `fetchData()` manual yang rusak menjadi `useQuery` di Dashboard Piket, Queue Piket, History Piket, Dashboard Wali, Queue Wali, History Wali, dan Dashboard Ortu.
+- ✅ Ticket Detail (`app/ticket/[id].tsx`) kini mengambil data via cache untuk instant load, sedangkan chat tetap via realtime.
+
+### Fase 2: Implementasi Service Layer & Custom Hooks
+- ✅ **`src/services/dispensasiService.ts`**: Sentralisasi endpoint `/dispensasi/*` dan `/monitoring/anak`.
+- ✅ **`src/services/piketService.ts`**: Sentralisasi endpoint `/piket/*`.
+- ✅ **`src/hooks/useDispensasiQueries.ts`**: Memuat hooks seperti `useMyTickets`, `useAllTickets`, `usePendingTickets`, `useSubmitDispensasi`, `useApproveTicket`, dan `useRejectTicket`.
+- ✅ **`src/hooks/usePiketQueries.ts`**: Memuat hooks seperti `usePiketStatus`, `usePiketDailyLog`, `useTogglePiketStatus`, dan `useValidateQR`.
+
+### Fase 3: Konfigurasi Global QueryClient
+- ✅ **`app/_layout.tsx`**: Menambahkan konfigurasi default `QueryClient`.
+  - `staleTime: 30000` (Data tidak akan di-refetch jika belum 30 detik, menghemat bandwidth).
+  - `gcTime: 10 * 60 * 1000` (Data yang tidak terlihat di layar akan dibuang dari memori setelah 10 menit).
+  - `refetchOnWindowFocus: true` (Auto-refresh data saat aplikasi kembali dibuka dari background).
+
+### Fase 4: Cache Invalidation Otomatis via Mutations
+Fitur ini menjamin bahwa tidak akan ada lagi "data lama/stale" setelah user melakukan tindakan.
+
+- ✅ **`app/(siswa)/pengajuan.tsx`**: Setelah siswa berhasil submit izin, cache `['dispensasi-me']` dan `['dispensasi-all']` akan langsung kadaluarsa (invalidated).
+- ✅ **`app/(piket)/dashboard.tsx` & `app/(wali)/dashboard.tsx`**: Setelah Wali Kelas atau Piket melakukan *Approve*/*Reject*, list *pending tickets* dan log harian akan otomatis di-refetch di background.
+- ✅ **`app/(piket)/scan-qr.tsx`**: Setelah QR divalidasi, log harian piket akan otomatis diperbarui tanpa perlu reload.
+- ✅ **`app/ticket/[id].tsx`**: Memperbaiki bug path API pada tombol *approve*, serta mengintegrasikannya dengan mutation hook.
+
+---
+
+## Verifikasi Akhir
+Silakan dicoba alur lengkap (End-to-End) berikut di aplikasi Anda untuk merasakan perubahannya:
+1. **Siswa** login dan mengajukan dispensasi baru.
+2. Buka dashboard **Wali Kelas**. Data siswa tersebut akan langsung muncul tanpa perlu di-refresh.
+3. Wali Kelas menekan tombol *Approve*. List akan otomatis berkurang dengan transisi yang mulus.
+4. Buka dashboard **Piket**. Tiket yang baru saja disetujui wali kelas akan otomatis muncul. Piket menekan *Approve*.
+5. Buka kembali aplikasi **Siswa**, status tiket kini sudah "Selesai" dan QR code tersedia.
+6. Coba jalankan aplikasi di background dan buka kembali, TanStack Query akan otomatis melakukan sinkronisasi data (*refetch on focus*).

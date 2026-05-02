@@ -1,10 +1,12 @@
 import { HapticFeedback } from '../../src/utils/haptics';
 import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, SafeAreaView, Dimensions } from 'react-native';
 import { router as expoRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import api from '../../src/utils/api';
 import { useAuthStore } from '../../src/stores/authStore';
+import { useApproveTicket, useRejectTicket } from '../../src/hooks/useDispensasiQueries';
 import SoftCard from '../../src/components/SoftCard';
 import TicketCard from '../../src/components/TicketCard';
 import BouncyButton from '../../src/components/BouncyButton';
@@ -16,21 +18,23 @@ import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../../src/utils/theme';
 
 export default function WaliDashboard() {
   const { user, logout } = useAuthStore();
-  const [pendingTickets, setPendingTickets] = useState<any[]>([]);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
+
+  const approveMutation = useApproveTicket();
+  const rejectMutation = useRejectTicket();
+
+  const { data: pendingTickets = [], refetch: refetchPending } = useQuery({
+    queryKey: ['dispensasi-pending'],
+    queryFn: async () => {
+      const { data } = await api.get('/dispensasi/pending'); // Wali class should only see their students
+      return data;
+    }
+  });
 
   // Assume total students = 36 for UI demo if not provided by backend yet
   const totalStudents = 36;
   const absentStudents = pendingTickets.length;
   const presentStudents = Math.max(0, totalStudents - absentStudents);
-
-  const fetchPending = async () => {
-    try {
-      const res = await api.get('/dispensasi/pending'); // Wali class should only see their students
-      setPendingTickets(res.data);
-    } catch (e) {}
-  };
-
 
 
   const handleLogout = async () => {
@@ -43,8 +47,7 @@ export default function WaliDashboard() {
   const handleApprove = async (id: string) => {
     try {
       HapticFeedback.success();
-      await api.post(`/dispensasi/${id}/approve`);
-      setPendingTickets(prev => prev.filter(t => t.id !== id));
+      await approveMutation.mutateAsync(id);
       Alert.alert('Berhasil', 'Izin berhasil disetujui');
     } catch (e: any) { Alert.alert('Gagal', e.response?.data?.message || 'Terjadi kesalahan'); }
   };
@@ -59,8 +62,7 @@ export default function WaliDashboard() {
     setRejectingId(null);
     try {
       HapticFeedback.success();
-      await api.post(`/dispensasi/${id}/reject`, { catatan_penolakan: catatan });
-      setPendingTickets(prev => prev.filter(t => t.id !== id));
+      await rejectMutation.mutateAsync({ id, catatan });
       Alert.alert('Berhasil', 'Izin berhasil ditolak');
     } catch (e: any) {
       Alert.alert('Gagal', e.response?.data?.message || 'Terjadi kesalahan');

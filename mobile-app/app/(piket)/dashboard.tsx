@@ -1,11 +1,14 @@
 import { HapticFeedback } from '../../src/utils/haptics';
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { View, Text, TouchableOpacity, FlatList, StyleSheet, Alert, SafeAreaView, ScrollView } from 'react-native';
 import { router as expoRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import api from '../../src/utils/api';
 import { useAuthStore } from '../../src/stores/authStore';
+import { useApproveTicket, useRejectTicket } from '../../src/hooks/useDispensasiQueries';
+import { useTogglePiketStatus } from '../../src/hooks/usePiketQueries';
 import DailyLogCard from '../../src/components/DailyLogCard';
 import SoftCard from '../../src/components/SoftCard';
 import TicketCard from '../../src/components/TicketCard';
@@ -20,31 +23,47 @@ import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../../src/utils/theme';
 export default function PiketDashboard() {
   const { user, logout } = useAuthStore();
   const [isReady, setIsReady] = useState(false);
-  const [dailyLogs, setDailyLogs] = useState<any[]>([]);
-  const [dailyLogStats, setDailyLogStats] = useState<any>({ total: 0, scanned: 0 });
-  const [pendingTickets, setPendingTickets] = useState<any[]>([]);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
 
-  const fetchData = async () => {
-    try {
-      const [pendingRes, statusRes, logsRes] = await Promise.all([
-        api.get('/dispensasi/pending'),
-        api.get('/piket/status'),
-        api.get('/piket/daily-log')
-      ]);
-      setPendingTickets(pendingRes.data);
-      setIsReady(statusRes.data.is_ready);
-      setDailyLogs(logsRes.data.data);
-      setDailyLogStats({
-        total: logsRes.data.total,
-        scanned: logsRes.data.scanned_count
-      });
-    } catch (e) {
-      // Silently fail or handle error
+  const approveMutation = useApproveTicket();
+  const rejectMutation = useRejectTicket();
+  const toggleStatusMutation = useTogglePiketStatus();
+
+  const { data: pendingTickets = [], refetch: refetchPending } = useQuery({
+    queryKey: ['dispensasi-pending'],
+    queryFn: async () => {
+      const { data } = await api.get('/dispensasi/pending');
+      return data;
     }
+  });
+
+  const { data: statusData } = useQuery({
+    queryKey: ['piket-status'],
+    queryFn: async () => {
+      const { data } = await api.get('/piket/status');
+      return data;
+    }
+  });
+
+  const { data: logsData, refetch: refetchLogs } = useQuery({
+    queryKey: ['piket-daily-log'],
+    queryFn: async () => {
+      const { data } = await api.get('/piket/daily-log');
+      return data;
+    }
+  });
+
+  useEffect(() => {
+    if (statusData) {
+      setIsReady(statusData.is_ready);
+    }
+  }, [statusData]);
+
+  const dailyLogs = logsData?.data || [];
+  const dailyLogStats = {
+    total: logsData?.total || 0,
+    scanned: logsData?.scanned_count || 0
   };
-
-
 
   const handleLogout = async () => {
     try { await api.post('/logout'); } catch (e) {}
@@ -56,9 +75,7 @@ export default function PiketDashboard() {
   const handleApprove = async (id: string) => {
     try {
       HapticFeedback.success();
-      await api.post(`/dispensasi/${id}/approve`);
-      setPendingTickets(prev => prev.filter(t => t.id !== id));
-      fetchData();
+      await approveMutation.mutateAsync(id);
       Alert.alert('Berhasil', 'Izin berhasil disetujui');
     } catch (e: any) { Alert.alert('Gagal', e.response?.data?.message || 'Terjadi kesalahan'); }
   };
@@ -73,8 +90,7 @@ export default function PiketDashboard() {
     setRejectingId(null);
     try {
       HapticFeedback.success();
-      await api.post(`/dispensasi/${id}/reject`, { catatan_penolakan: catatan });
-      setPendingTickets(prev => prev.filter(t => t.id !== id));
+      await rejectMutation.mutateAsync({ id, catatan });
       Alert.alert('Berhasil', 'Izin berhasil ditolak');
     } catch (e: any) {
       Alert.alert('Gagal', e.response?.data?.message || 'Terjadi kesalahan');
@@ -118,10 +134,13 @@ export default function PiketDashboard() {
                   <MechanicalToggle
                     value={isReady}
                     onValueChange={async (val) => {
+                      HapticFeedback.light();
+                      setIsReady(val);
                       try {
-                        await api.post('/piket/status', { is_ready: val });
-                        setIsReady(val);
-                      } catch(e) {}
+                        await toggleStatusMutation.mutateAsync(val);
+                      } catch (e) {
+                        setIsReady(!val);
+                      }
                     }}
                   />
                 </View>

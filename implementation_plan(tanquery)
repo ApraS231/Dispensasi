@@ -1,0 +1,318 @@
+# Audit Alur Data Mobile-App: TanStack Query & Caching
+
+Analisis menyeluruh terhadap penggunaan TanStack React Query v5 di mobile-app SiDispen. Tujuannya adalah mengidentifikasi masalah data flow, memperbaiki inkonsistensi, dan memaksimalkan caching/invalidation agar UX menjadi responsif dan data selalu fresh.
+
+---
+
+## Temuan Utama (Ringkasan Audit)
+
+> [!CAUTION]
+> **6 dari 16 screen yang melakukan fetching data TIDAK pernah memanggil `fetchData()`!**
+> Fungsi `fetchData` didefinisikan tapi **tidak dipanggil** di `useEffect`, `useFocusEffect`, maupun dimanapun. Artinya screen tersebut menampilkan **list kosong selamanya**.
+
+> [!WARNING]
+> **Tidak ada `useMutation` sama sekali di seluruh codebase.**
+> Semua operasi mutasi (approve, reject, submit dispensasi, send chat, logout) dilakukan dengan `api.post()` langsung tanpa integrasi TanStack Query. Akibatnya tidak ada **cache invalidation** otomatis — data stale di screen lain setelah action.
+
+> [!WARNING]
+> **Tidak ada `refetchOnWindowFocus`, `staleTime`, atau `gcTime` yang dikonfigurasi.**
+> QueryClient dibuat tanpa opsi apapun: `const queryClient = new QueryClient()`. Default TanStack v5 = `staleTime: 0`, `gcTime: 5min`. Data selalu refetch tiap mount tapi tidak ada refetch saat kembali ke screen.
+
+---
+
+## Peta Alur Data Per Screen
+
+### Legenda Status
+| Icon | Arti |
+|------|------|
+| ✅ | Menggunakan `useQuery` dengan benar |
+| ⚠️ | Menggunakan `useQuery` tapi ada masalah |
+| 🔴 | Fetch manual (`api.get`) + `useState` — TanStack TIDAK dipakai |
+| 💀 | `fetchData()` didefinisikan tapi **TIDAK PERNAH DIPANGGIL** |
+
+---
+
+### 1. Siswa Flow
+
+| Screen | Endpoint | Pattern | Status |
+|--------|----------|---------|--------|
+| [dashboard.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(siswa)/dashboard.tsx) | `GET /dispensasi/me` | `useQuery` ✅ | queryKey: `['dispensasi-me']` — Benar |
+| [riwayat.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(siswa)/riwayat.tsx) | `GET /dispensasi/me` | `useQuery` ✅ | queryKey: `['dispensasi-me']` — **SHARED CACHE** dengan dashboard ✅ |
+| [pengajuan.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(siswa)/pengajuan.tsx) | `POST /dispensasi` | Raw `api.post()` 🔴 | **Tidak invalidate** `['dispensasi-me']` setelah submit |
+| [qr/[id].tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(siswa)/qr/[id].tsx) | `GET /dispensasi/{id}` | Raw `api.get()` + `useEffect` 🔴 | Tidak ada caching |
+
+### 2. Piket Flow
+
+| Screen | Endpoint | Pattern | Status |
+|--------|----------|---------|--------|
+| [dashboard.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(piket)/dashboard.tsx) | `GET /dispensasi/pending`, `GET /piket/status`, `GET /piket/daily-log` | Raw `api.get()` 🔴 | **`fetchData()` didefinisikan tapi TIDAK DIPANGGIL** 💀 |
+| [queue.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(piket)/queue.tsx) | `GET /dispensasi` | `useQuery` di-import tapi TIDAK dipakai 🔴 | **`fetchData()` TIDAK DIPANGGIL** 💀 |
+| [history.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(piket)/history.tsx) | `GET /dispensasi` | `useQuery` di-import tapi TIDAK dipakai 🔴 | **`fetchData()` TIDAK DIPANGGIL** 💀 |
+| [scan-qr.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(piket)/scan-qr.tsx) | `POST /piket/validate-qr` | Raw `api.post()` 🔴 | Tidak invalidate apapun |
+
+### 3. Wali Kelas Flow
+
+| Screen | Endpoint | Pattern | Status |
+|--------|----------|---------|--------|
+| [dashboard.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(wali)/dashboard.tsx) | `GET /dispensasi/pending` | Raw `api.get()` 🔴 | **`fetchPending()` TIDAK DIPANGGIL** 💀 |
+| [queue.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(wali)/queue.tsx) | `GET /dispensasi` | `useQuery` di-import tapi TIDAK dipakai 🔴 | **`fetchData()` TIDAK DIPANGGIL** 💀 |
+| [history.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(wali)/history.tsx) | `GET /dispensasi` | `useQuery` di-import tapi TIDAK dipakai 🔴 | **`fetchData()` TIDAK DIPANGGIL** 💀 |
+
+### 4. Orang Tua Flow
+
+| Screen | Endpoint | Pattern | Status |
+|--------|----------|---------|--------|
+| [dashboard.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(ortu)/dashboard.tsx) | `GET /monitoring/anak` | `useQuery` di-import tapi TIDAK dipakai 🔴 | **`fetchData()` TIDAK DIPANGGIL** — selalu kosong 💀 |
+| [riwayat.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(ortu)/riwayat.tsx) | `GET /monitoring/anak` | `useQuery` ✅ | queryKey: `['monitoring-anak']` — Benar |
+
+### 5. Shared Screens
+
+| Screen | Endpoint | Pattern | Status |
+|--------|----------|---------|--------|
+| [ticket/[id].tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/ticket/[id].tsx) | `GET /dispensasi/{id}`, `GET /dispensasi/{id}/chats` | Raw `api.get()` + `useEffect` 🔴 | Realtime chat via Supabase ✅, tapi ticket detail tidak cached |
+| [notifications.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/notifications.tsx) | `GET /notifications` | Raw `api.get()` + `useEffect` 🔴 | Tidak pakai TanStack |
+| [login.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/login.tsx) | `POST /login` | Raw `api.post()` 🔴 | OK — auth flow doesn't need caching |
+| [_layout.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/_layout.tsx) | `GET /user` | Raw `api.get()` + `useEffect` | Auth bootstrap — OK |
+
+---
+
+## Diagram Alur Data Saat Ini
+
+```mermaid
+graph TB
+    subgraph "State Management"
+        ZS["Zustand (authStore)"]
+        TQ["TanStack QueryClient"]
+    end
+
+    subgraph "Auth Layer"
+        A1["_layout.tsx<br/>GET /user → Zustand"]
+        A2["login.tsx<br/>POST /login → Zustand + SecureStore"]
+    end
+
+    subgraph "Siswa Screens"
+        S1["dashboard.tsx<br/>useQuery['dispensasi-me'] ✅"]
+        S2["riwayat.tsx<br/>useQuery['dispensasi-me'] ✅"]
+        S3["pengajuan.tsx<br/>POST raw → NO invalidation 🔴"]
+        S4["qr/id.tsx<br/>GET raw → NO cache 🔴"]
+    end
+
+    subgraph "Piket Screens"
+        P1["dashboard.tsx<br/>fetchData() NEVER CALLED 💀"]
+        P2["queue.tsx<br/>fetchData() NEVER CALLED 💀"]
+        P3["history.tsx<br/>fetchData() NEVER CALLED 💀"]
+        P4["scan-qr.tsx<br/>POST raw 🔴"]
+    end
+
+    subgraph "Wali Screens"
+        W1["dashboard.tsx<br/>fetchPending() NEVER CALLED 💀"]
+        W2["queue.tsx<br/>fetchData() NEVER CALLED 💀"]
+        W3["history.tsx<br/>fetchData() NEVER CALLED 💀"]
+    end
+
+    subgraph "Ortu Screens"
+        O1["dashboard.tsx<br/>fetchData() NEVER CALLED 💀"]
+        O2["riwayat.tsx<br/>useQuery['monitoring-anak'] ✅"]
+    end
+
+    subgraph "Shared"
+        T1["ticket/id.tsx<br/>GET raw + Supabase Realtime 🔴"]
+        N1["notifications.tsx<br/>GET raw + useEffect 🔴"]
+    end
+
+    S1 --->|shared cache| S2
+    S3 -.->|SHOULD invalidate| TQ
+    P4 -.->|SHOULD invalidate| TQ
+```
+
+---
+
+## Proposed Changes
+
+### Fase 1: Fix Data Yang Tidak Muncul (CRITICAL)
+
+> [!IMPORTANT]
+> Ini adalah fix **blocking** — tanpa ini, 6+ screen menampilkan data kosong.
+
+#### [MODIFY] Semua screen dengan `fetchData()` yang tidak dipanggil
+
+Konversi semua screen dari pattern `fetchData + useState` ke `useQuery`:
+
+**Piket Dashboard** — [dashboard.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(piket)/dashboard.tsx)
+```diff
+- const [pendingTickets, setPendingTickets] = useState<any[]>([]);
+- const [dailyLogs, setDailyLogs] = useState<any[]>([]);
+- const fetchData = async () => { ... };
++ const { data: pendingTickets = [] } = useQuery({
++   queryKey: ['dispensasi-pending'],
++   queryFn: () => api.get('/dispensasi/pending').then(r => r.data),
++ });
++ const { data: dailyLogData } = useQuery({
++   queryKey: ['piket-daily-log'],
++   queryFn: () => api.get('/piket/daily-log').then(r => r.data),
++ });
+```
+
+**Piket Queue** — [queue.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(piket)/queue.tsx)
+```diff
+- const [tickets, setTickets] = useState<any[]>([]);
+- const fetchData = async () => { ... };
++ const { data: rawTickets = [], isLoading: loading } = useQuery({
++   queryKey: ['dispensasi-all'],
++   queryFn: () => api.get('/dispensasi').then(r => r.data),
++ });
++ const tickets = rawTickets.filter(t => 
++   (t.status === 'pending' || t.status === 'approved_by_wali') && isToday(t.created_at)
++ );
+```
+
+Terapkan pola yang sama untuk:
+- **Piket History** — [history.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(piket)/history.tsx)
+- **Wali Dashboard** — [dashboard.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(wali)/dashboard.tsx)
+- **Wali Queue** — [queue.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(wali)/queue.tsx)
+- **Wali History** — [history.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(wali)/history.tsx)
+- **Ortu Dashboard** — [dashboard.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(ortu)/dashboard.tsx)
+
+---
+
+### Fase 2: Service Layer + Query Hooks
+
+> [!TIP]
+> Sentralisasi semua API call dan query config di `src/services/` agar konsisten dan DRY.
+
+#### [NEW] src/services/dispensasiService.ts
+```typescript
+import api from '../utils/api';
+
+export const dispensasiService = {
+  getMyTickets: () => api.get('/dispensasi/me').then(r => r.data),
+  getAll: () => api.get('/dispensasi').then(r => r.data),
+  getPending: () => api.get('/dispensasi/pending').then(r => r.data),
+  getById: (id: string) => api.get(`/dispensasi/${id}`).then(r => r.data),
+  store: (formData: FormData) => api.post('/dispensasi', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  approve: (id: string) => api.post(`/dispensasi/${id}/approve`),
+  reject: (id: string, catatan: string) => 
+    api.post(`/dispensasi/${id}/reject`, { catatan_penolakan: catatan }),
+  monitoringAnak: () => api.get('/monitoring/anak').then(r => r.data),
+};
+```
+
+#### [NEW] src/hooks/useDispensasiQueries.ts
+```typescript
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { dispensasiService } from '../services/dispensasiService';
+
+export const queryKeys = {
+  myTickets: ['dispensasi-me'] as const,
+  allTickets: ['dispensasi-all'] as const,
+  pendingTickets: ['dispensasi-pending'] as const,
+  ticketDetail: (id: string) => ['dispensasi', id] as const,
+  monitoringAnak: ['monitoring-anak'] as const,
+  dailyLog: ['piket-daily-log'] as const,
+  notifications: ['notifications'] as const,
+};
+
+export function useMyTickets() {
+  return useQuery({
+    queryKey: queryKeys.myTickets,
+    queryFn: dispensasiService.getMyTickets,
+  });
+}
+
+export function useApproveTicket() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => dispensasiService.approve(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.pendingTickets });
+      queryClient.invalidateQueries({ queryKey: queryKeys.allTickets });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dailyLog });
+    },
+  });
+}
+
+// ... more hooks per action
+```
+
+---
+
+### Fase 3: QueryClient Configuration
+
+#### [MODIFY] [_layout.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/_layout.tsx)
+
+```diff
+- const queryClient = new QueryClient();
++ import { focusManager } from '@tanstack/react-query';
++ import { AppState, Platform } from 'react-native';
++ 
++ // Auto refetch on app focus (React Native specific)
++ focusManager.setEventListener(handleFocus => {
++   const subscription = AppState.addEventListener('change', state => {
++     handleFocus(state === 'active');
++   });
++   return () => subscription.remove();
++ });
++ 
++ const queryClient = new QueryClient({
++   defaultOptions: {
++     queries: {
++       staleTime: 30 * 1000,       // 30 detik sebelum data dianggap stale
++       gcTime: 10 * 60 * 1000,      // 10 menit garbage collection
++       retry: 2,
++       refetchOnWindowFocus: true,   // Refetch saat app kembali ke foreground
++       refetchOnReconnect: true,
++     },
++   },
++ });
+```
+
+---
+
+### Fase 4: Mutation + Cache Invalidation
+
+Semua tindakan mutasi harus di-wrap dengan `useMutation` agar otomatis invalidate query terkait:
+
+| Action | Endpoint | Invalidate Keys |
+|--------|----------|-----------------|
+| Submit dispensasi | `POST /dispensasi` | `['dispensasi-me']` |
+| Approve ticket | `POST /dispensasi/{id}/approve` | `['dispensasi-pending']`, `['dispensasi-all']`, `['dispensasi', id]`, `['piket-daily-log']` |
+| Reject ticket | `POST /dispensasi/{id}/reject` | `['dispensasi-pending']`, `['dispensasi-all']`, `['dispensasi', id]` |
+| Validate QR | `POST /piket/validate-qr` | `['piket-daily-log']`, `['dispensasi-all']` |
+| Toggle piket status | `POST /piket/status` | `['piket-status']` |
+| Send chat | `POST /dispensasi/{id}/chats` | Handled by Supabase realtime ✅ |
+
+---
+
+## Open Questions
+
+> [!IMPORTANT]
+> **Q1: Apakah screen Piket, Wali, dan Ortu memang menampilkan data kosong saat ini?**
+> Dari kode, `fetchData()` didefinisikan tapi tidak pernah di-invoke (tidak ada `useEffect` yang memanggil, tidak ada `useFocusEffect`). Kemungkinan besar ini adalah regresi dari refactoring sebelumnya dimana `useEffect(() => { fetchData(); }, [])` dihapus saat migrasi parsial ke TanStack. Mohon konfirmasi apakah ini memang bug yang dialami.
+
+> [!IMPORTANT]
+> **Q2: Prioritas eksekusi — apakah mau langsung fix semua, atau fix Fase 1 (data kosong) dulu?**
+> - **Fase 1** saja: Hanya konversi 7 screen yang rusak ke `useQuery` → ~1 jam
+> - **Fase 1-4** lengkap: Refactor penuh dengan service layer, custom hooks, mutations, dan cache invalidation → ~3-4 jam
+
+> [!NOTE]
+> **Q3: Apakah ticket detail (`ticket/[id].tsx`) juga perlu di-cache via TanStack?**
+> Saat ini menggunakan `api.get` + `useEffect`. Karena chat sudah pakai Supabase Realtime, ada opsi:
+> - Cache ticket detail saja via `useQuery`, chat tetap manual + realtime ✅
+> - Atau biarkan fully manual karena ada realtime subscription
+
+---
+
+## Verification Plan
+
+### Automated Tests
+1. Jalankan `npx tsc --noEmit` untuk memastikan tidak ada TypeScript error setelah refactor
+2. Jalankan `npm test` untuk unit test authStore yang sudah ada
+
+### Manual Verification
+1. **Siswa flow**: Login → Dashboard menampilkan tiket → Submit pengajuan → Kembali ke dashboard, tiket baru muncul otomatis (cache invalidation)
+2. **Piket flow**: Login → Dashboard menampilkan pending tickets dan daily log → Approve ticket → Refetch otomatis
+3. **Wali flow**: Login → Dashboard menampilkan pending → Queue menampilkan tiket hari ini → History filter bekerja
+4. **Ortu flow**: Login → Dashboard menampilkan timeline anak → Riwayat menampilkan data
+5. **Cross-role**: Siswa submit → Wali approve → Piket approve → Data fresh di semua dashboard

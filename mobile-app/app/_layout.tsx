@@ -1,5 +1,6 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect } from 'react';
+import { AppState, Platform } from 'react-native';
 import { Slot } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SecureStore from 'expo-secure-store';
@@ -17,7 +18,24 @@ import { usePushNotifications } from '../src/hooks/usePushNotifications';
 
 SplashScreen.preventAutoHideAsync();
 
-const queryClient = new QueryClient();
+focusManager.setEventListener(handleFocus => {
+  const subscription = AppState.addEventListener('change', state => {
+    handleFocus(state === 'active');
+  });
+  return () => subscription.remove();
+});
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30 * 1000,       // 30 detik sebelum data dianggap stale
+      gcTime: 10 * 60 * 1000,      // 10 menit garbage collection
+      retry: 2,
+      refetchOnWindowFocus: true,   // Refetch saat app kembali ke foreground
+      refetchOnReconnect: true,
+    },
+  },
+});
 
 export default function RootLayout() {
   const { setUser, setToken, setLoading } = useAuthStore();

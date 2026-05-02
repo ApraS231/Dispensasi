@@ -1,11 +1,13 @@
 import { HapticFeedback } from '../../src/utils/haptics';
 import { useEffect, useState, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, SafeAreaView, Alert, KeyboardAvoidingView, Platform, TextInput, ScrollView } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import api from '../../src/utils/api';
 import { supabase } from '../../src/utils/supabaseClient';
 import { useAuthStore } from '../../src/stores/authStore';
+import { useApproveTicket, useRejectTicket } from '../../src/hooks/useDispensasiQueries';
 import TopAppBar from '../../src/components/TopAppBar';
 import SoftCard from '../../src/components/SoftCard';
 import AvatarInitials from '../../src/components/AvatarInitials';
@@ -28,8 +30,17 @@ interface ChatMessage {
 export default function TicketDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuthStore();
-  const [ticket, setTicket] = useState<any>(null);
-  const loading = false;
+  const { data: ticket, isLoading: loading, refetch: refetchTicket } = useQuery({
+    queryKey: ['dispensasi', id],
+    queryFn: async () => {
+      const { data } = await api.get(`/dispensasi/${id}`);
+      return data;
+    }
+  });
+
+  const approveMutation = useApproveTicket();
+  const rejectMutation = useRejectTicket();
+
   const [actionLoading, setActionLoading] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
   
@@ -41,13 +52,6 @@ export default function TicketDetailScreen() {
   // Pagination state
   const nextCursor = useRef<string | null>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-
-  const fetchTicket = async () => {
-    try {
-      const res = await api.get(`/dispensasi/${id}`);
-      setTicket(res.data);
-    } catch (e) {}
-  };
 
   const fetchHistory = async (isLoadMore = false) => {
     if (isLoadMore && (!nextCursor.current || isLoadingMore)) return;
@@ -73,7 +77,6 @@ export default function TicketDetailScreen() {
   };
 
   useEffect(() => {
-    fetchTicket();
     fetchHistory();
 
     const channel = supabase
@@ -116,10 +119,9 @@ export default function TicketDetailScreen() {
 
     setActionLoading(true);
     try {
-      await api.post(`/dispensasi/${id}/${action}`);
+      await approveMutation.mutateAsync(id);
       HapticFeedback.success();
       Alert.alert('Berhasil', 'Tiket telah diperbarui.');
-      fetchTicket();
     } catch (e: any) {
       Alert.alert('Gagal', e.response?.data?.message || 'Terjadi kesalahan.');
     } finally {
@@ -131,10 +133,9 @@ export default function TicketDetailScreen() {
     setIsRejecting(false);
     setActionLoading(true);
     try {
-      await api.post(`/dispensasi/${id}/reject`, { catatan_penolakan: catatan });
+      await rejectMutation.mutateAsync({ id, catatan });
       HapticFeedback.success();
       Alert.alert('Berhasil', 'Tiket ditolak.');
-      fetchTicket();
     } catch (e: any) {
       Alert.alert('Gagal', e.response?.data?.message || 'Terjadi kesalahan.');
     } finally {

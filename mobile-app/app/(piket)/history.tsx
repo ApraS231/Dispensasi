@@ -1,5 +1,5 @@
 import { HapticFeedback } from '../../src/utils/haptics';
-import { useEffect, useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
 import { router as expoRouter } from 'expo-router';
@@ -9,9 +9,14 @@ import TicketCard from '../../src/components/TicketCard';
 import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../../src/utils/theme';
 
 export default function PiketHistoryScreen() {
-  const [tickets, setTickets] = useState<any[]>([]);
-  const [filteredTickets, setFilteredTickets] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: allTickets = [], isLoading: loading } = useQuery({
+    queryKey: ['dispensasi-all'],
+    queryFn: async () => {
+      const { data } = await api.get('/dispensasi');
+      return data;
+    }
+  });
+
   const [searchQuery, setSearchQuery] = useState('');
 
   const [timeFilter, setTimeFilter] = useState('semua'); // 'semua', 'hari_ini', 'minggu_ini'
@@ -32,22 +37,8 @@ export default function PiketHistoryScreen() {
   };
 
 
-  const fetchData = async () => {
-    try {
-      const res = await api.get('/dispensasi');
-      const history = res.data.filter((t: any) => t.status === 'approved_final' || t.status === 'rejected');
-      setTickets(history);
-      setFilteredTickets(history);
-    } catch (e) {} finally {
-      setLoading(false);
-    }
-  };
-
-
-
-
-  useEffect(() => {
-    let result = tickets;
+  const filteredTickets = useMemo(() => {
+    let result = allTickets.filter((t: any) => t.status === 'approved_final' || t.status === 'rejected');
 
     // Text search filter
     if (searchQuery.trim()) {
@@ -76,8 +67,8 @@ export default function PiketHistoryScreen() {
       });
     }
 
-    setFilteredTickets(result);
-  }, [searchQuery, timeFilter, tickets]);
+    return result;
+  }, [allTickets, searchQuery, timeFilter]);
 
 
   return (

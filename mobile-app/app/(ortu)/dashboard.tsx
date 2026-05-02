@@ -13,16 +13,14 @@ import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../../src/utils/theme';
 
 export default function OrtuDashboard() {
   const { user, logout } = useAuthStore();
-  const [tickets, setTickets] = useState<any[]>([]);
   const children = (user as any)?.anak || [];
-
-  const fetchData = async () => {
-    try {
-      const res = await api.get('/monitoring/anak');
-      setTickets(res.data);
-    } catch (e) {}
-  };
-
+  const { data: tickets = [], isLoading: loading } = useQuery({
+    queryKey: ['monitoring-anak'],
+    queryFn: async () => {
+      const { data } = await api.get('/monitoring/anak');
+      return data;
+    }
+  });
 
 
   const handleLogout = async () => {

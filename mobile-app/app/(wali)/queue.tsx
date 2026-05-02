@@ -16,19 +16,16 @@ const isToday = (dateString: string) => {
   };
 
 export default function WaliQueueScreen() {
-  const [tickets, setTickets] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchData = async () => {
-    try {
-      const res = await api.get('/dispensasi');
-      // For Wali Kelas, active queue is specifically 'pending' status
-      const queue = res.data.filter((t: any) => t.status === 'pending' && isToday(t.created_at));
-      setTickets(queue);
-    } catch (e) {} finally {
-      setLoading(false);
+  const { data: allTickets = [], isLoading: loading } = useQuery({
+    queryKey: ['dispensasi-all'],
+    queryFn: async () => {
+      const { data } = await api.get('/dispensasi');
+      return data;
     }
-  };
+  });
+
+  // For Wali Kelas, active queue is specifically 'pending' status
+  const tickets = allTickets.filter((t: any) => t.status === 'pending' && isToday(t.created_at));
 
 
 
