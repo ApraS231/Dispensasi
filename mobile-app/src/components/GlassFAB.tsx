@@ -49,19 +49,21 @@ const styles = StyleSheet.create({
     right: 24,
     width: 56,
     height: 56,
-    borderRadius: SIZES.radiusButton,
-    backgroundColor: COLORS.primaryContainer,
-    borderWidth: 2,
-    borderColor: '#1A1A1A',
-    shadowColor: '#1A1A1A',
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 4,
+    borderRadius: SIZES.radiusFull, // Full circle for FAB
+    backgroundColor: 'rgba(255, 255, 255, 0.4)', // Glass
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.8)', // Glass edge
+    shadowColor: '#8D99AE',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
   },
   inner: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: COLORS.primaryContainer,
+    borderRadius: SIZES.radiusFull,
   }
 });

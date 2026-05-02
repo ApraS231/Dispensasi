@@ -72,9 +72,7 @@ const styles = StyleSheet.create({
     padding: SPACING.xl,
     width: '100%',
     ...SHADOWS.softCard,
-    borderWidth: 2,
-    borderColor: '#1A1A1A',
-  },
+      },
   title: {
     fontFamily: FONTS.headingSemi,
     fontSize: 18,
@@ -88,9 +86,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   input: {
-    borderWidth: 2,
-    borderColor: '#1A1A1A',
-    borderRadius: SIZES.radius,
+        borderRadius: SIZES.radius,
     padding: SPACING.md,
     fontFamily: FONTS.body,
     fontSize: 15,

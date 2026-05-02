@@ -39,10 +39,7 @@ export default function ChatBubble({ message, time, isMe, isPending, isFailed, o
           borderBottomRightRadius: isMe ? 0 : SIZES.radiusCard,
           borderBottomLeftRadius: isMe ? SIZES.radiusCard : 0,
           opacity: isPending ? 0.6 : 1,
-          borderWidth: 2,
-          borderColor: '#1A1A1A',
-          shadowColor: '#1A1A1A',
-          shadowOffset: { width: 3, height: 3 },
+                              shadowOffset: { width: 3, height: 3 },
           shadowOpacity: 1,
           shadowRadius: 0,
         }
@@ -100,9 +97,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#1A1A1A',
-  },
+      },
   contentContainer: {
     flex: 1,
   },

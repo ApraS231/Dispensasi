@@ -1,61 +1,61 @@
 import { StatusBar, Platform } from 'react-native';
 
 export const COLORS = {
-  // Neo-Brutalism Theme (Pleasant colors, high contrast borders)
-  bgWhite: '#FDFBF7', // Warm off-white
-  surface: '#FDFBF7',
-  surfaceDim: '#F0EFEB',
-  surfaceContainerLowest: '#FFFFFF',
-  surfaceContainerLow: '#F8F6F1',
-  surfaceContainer: '#FDFBF7',
-  surfaceContainerHigh: '#EAE8E2',
-  surfaceContainerHighest: '#DCD9D1',
+  // Skeuomorphism & Liquid Glass Theme
+  bgWhite: '#F0F4F8', // Slightly cool off-white for glass contrast
+  surface: 'rgba(255, 255, 255, 0.4)', // Translucent glass surface
+  surfaceDim: 'rgba(255, 255, 255, 0.2)',
+  surfaceContainerLowest: 'rgba(255, 255, 255, 0.8)',
+  surfaceContainerLow: 'rgba(255, 255, 255, 0.6)',
+  surfaceContainer: 'rgba(255, 255, 255, 0.5)',
+  surfaceContainerHigh: 'rgba(255, 255, 255, 0.7)',
+  surfaceContainerHighest: 'rgba(255, 255, 255, 0.9)',
   
-  primaryLight: '#FFB3B3',
-  primaryMuted: '#FF8A8A',
+  primaryLight: '#FFA1B2',
+  primaryMuted: '#FF87A0',
   
-  primary: '#FF6B6B', // Soft Red/Coral
-  onPrimary: '#000000',
-  primaryContainer: '#FFD93D', // Yellow/Gold
-  onPrimaryContainer: '#000000',
+  primary: '#FF4D6D', // Vibrant but soft red
+  onPrimary: '#FFFFFF',
+  primaryContainer: 'rgba(255, 77, 109, 0.15)', // Glassy primary
+  onPrimaryContainer: '#D90429',
   
-  secondary: '#4ECDC4', // Teal/Mint
-  onSecondary: '#000000',
-  secondaryContainer: '#95E1D3', // Soft Teal
-  onSecondaryContainer: '#000000',
+  secondary: '#00B4D8', // Bright blue
+  onSecondary: '#FFFFFF',
+  secondaryContainer: 'rgba(0, 180, 216, 0.15)',
+  onSecondaryContainer: '#0077B6',
   
-  tertiary: '#FFE66D', // Yellow
+  tertiary: '#FFD166', // Warm yellow
   onTertiary: '#000000',
-  tertiaryContainer: '#F7CA26',
-  onTertiaryContainer: '#000000',
+  tertiaryContainer: 'rgba(255, 209, 102, 0.2)',
+  onTertiaryContainer: '#D99000',
   
   // Semantic Colors
-  textPrimary: '#1A1A1A',
-  textSecondary: '#4A4A4A',
-  textMuted: '#7A7A7A',
-  outlineVariant: '#1A1A1A', // Thick black outlines everywhere
+  textPrimary: '#2B2D42',
+  textSecondary: '#8D99AE',
+  textMuted: '#A0AABF',
+  outlineVariant: 'rgba(255, 255, 255, 0.6)', // White highlight for glass edge
   
   // Status Colors
-  success: '#6BCB77',
-  successBg: '#E8F6EA',
-  warning: '#FFD93D',
-  warningBg: '#FFFBE6',
-  error: '#FF6B6B',
-  errorBg: '#FFEFEF',
-  info: '#4D96FF',
-  infoBg: '#EAF2FF',
+  success: '#06D6A0',
+  successBg: 'rgba(6, 214, 160, 0.15)',
+  warning: '#FFD166',
+  warningBg: 'rgba(255, 209, 102, 0.15)',
+  error: '#EF476F',
+  errorBg: 'rgba(239, 71, 111, 0.15)',
+  info: '#118AB2',
+  infoBg: 'rgba(17, 138, 178, 0.15)',
   
   // Inverse
-  inverseSurface: '#1A1A1A',
-  inverseOnSurface: '#FDFBF7',
+  inverseSurface: '#2B2D42',
+  inverseOnSurface: '#F0F4F8',
 };
 
 export const FONTS = {
   heading: 'Roboto-Bold',
-  headingSemi: 'Roboto-Bold', // Make semi-bold bold for brutalism
-  body: 'Roboto-Medium', // Make body slightly bolder
-  bodyMedium: 'Roboto-Bold',
-  labelCaps: 'Roboto-Bold', 
+  headingSemi: 'Roboto-Medium',
+  body: 'Roboto-Regular',
+  bodyMedium: 'Roboto-Medium',
+  labelCaps: 'Roboto-Medium',
   code: 'Roboto-Regular', 
 };
 
@@ -71,37 +71,35 @@ export const TYPOGRAPHY = {
 
 export const SHADOWS = {
   softCard: {
-    shadowColor: '#1A1A1A',
-    shadowOffset: { width: 4, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 4, // Might not look hard on android, but we'll use borders mostly
-    borderWidth: 2,
-    borderColor: '#1A1A1A',
+    shadowColor: '#8D99AE',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.8)', // Glass edge
   },
   elevation2: {
-    shadowColor: '#1A1A1A',
-    shadowOffset: { width: 3, height: 3 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 3,
-    borderWidth: 2,
-    borderColor: '#1A1A1A',
+    shadowColor: '#8D99AE',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
   },
   elevation3: {
-    shadowColor: '#1A1A1A',
-    shadowOffset: { width: 5, height: 5 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 5,
-    borderWidth: 3,
-    borderColor: '#1A1A1A',
+    shadowColor: '#8D99AE',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 8,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.7)',
   },
   bottomStrokePrimary: {
-    borderBottomWidth: 4,
-    borderBottomColor: '#1A1A1A',
-    borderRightWidth: 2,
-    borderRightColor: '#1A1A1A',
+    borderBottomWidth: 0, // removed hard strokes
+    borderRightWidth: 0,
   },
   bottomStrokeSecondary: {},
   bottomStrokeTertiary: {},
@@ -109,15 +107,15 @@ export const SHADOWS = {
 };
 
 export const SIZES = {
-  radiusSm: 0, // Sharp or very slightly rounded
-  radius: 4,
-  radiusMd: 6,
-  radiusLg: 8,
-  radiusXl: 12,
-  radiusCard: 8, // Neo-brutalism usually has some slight radius or completely sharp
-  radiusButton: 4, // Boxy buttons
-  radiusBadge: 4,
-  radiusFull: 9999, // keep for circles
+  radiusSm: 8,
+  radius: 12,
+  radiusMd: 16,
+  radiusLg: 24,
+  radiusXl: 32,
+  radiusCard: 24, // Rounded glass cards
+  radiusButton: 16, // Pill-like or very round buttons
+  radiusBadge: 12,
+  radiusFull: 9999,
 };
 
 export const SPACING = {

@@ -67,9 +67,7 @@ const styles = StyleSheet.create({
   cardInner: {
     padding: SPACING.md,
     borderLeftWidth: 6,
-    borderWidth: 2,
-    borderColor: '#1A1A1A',
-    borderLeftColor: COLORS.primary,
+        borderLeftColor: COLORS.primary,
   },
   headerRow: {
     flexDirection: 'row',
