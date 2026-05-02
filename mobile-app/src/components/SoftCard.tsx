@@ -26,7 +26,7 @@ export default function SoftCard({ children, style, onPress }: SoftCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: COLORS.surfaceContainerLowest,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
     borderRadius: SIZES.radiusCard,
     padding: SPACING.lg,
     ...SHADOWS.softCard,

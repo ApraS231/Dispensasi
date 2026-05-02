@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     padding: SPACING.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
     borderRadius: SIZES.radiusLg,
     marginBottom: SPACING.sm,
 
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     ...SHADOWS.softCard,
   },
   containerUnread: {
-    backgroundColor: COLORS.bgWhite,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
     borderColor: COLORS.success,
   },
   iconBox: {

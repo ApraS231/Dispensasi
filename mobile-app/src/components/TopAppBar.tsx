@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.xs,
     paddingTop: SPACING.statusBar + SPACING.sm,
     paddingBottom: SPACING.sm,
-    backgroundColor: COLORS.surfaceContainerLowest,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
         height: SPACING.statusBar + 64,
   },
   content: {

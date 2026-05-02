@@ -44,7 +44,7 @@ export default function DailyLogCard({ item }: DailyLogCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: COLORS.bgWhite,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
     borderRadius: SIZES.radius,
     padding: SPACING.md,
     marginBottom: SPACING.sm,

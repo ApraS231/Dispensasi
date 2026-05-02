@@ -69,7 +69,7 @@ export default function WaliQueueScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.surfaceContainerLowest },
+  container: { flex: 1, backgroundColor: 'transparent' },
   safeArea: { flex: 1 },
   mainContent: { flex: 1 },
   headerArea: { padding: SPACING.md, paddingBottom: 0 },
