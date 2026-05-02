@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, Animated, Dimensions, LayoutChangeEvent } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS, FONTS, SPACING, SIZES, SHADOWS } from '../utils/theme';
+import { COLORS, FONTS, SPACING, SIZES } from '../utils/theme';
 import { HapticFeedback } from './../utils/haptics';
+import { BlurView } from 'expo-blur';
 
 export interface TabItem {
   name: string;
@@ -46,7 +47,7 @@ export default function BottomTabBar({ tabs, activeTab, onTabPress }: BottomTabB
 
   return (
     <View style={styles.outerContainer}>
-      <View style={styles.container} onLayout={onLayout}>
+      <BlurView intensity={60} tint="light" style={styles.container} onLayout={onLayout}>
         <Animated.View
           style={[
             styles.slider,
@@ -55,7 +56,9 @@ export default function BottomTabBar({ tabs, activeTab, onTabPress }: BottomTabB
               transform: [{ translateX: slideAnim }],
             },
           ]}
-        />
+        >
+          <View style={styles.sliderHighlight} />
+        </Animated.View>
         {tabs.map((tab) => {
           const isActive = activeTab === tab.name;
           return (
@@ -69,7 +72,7 @@ export default function BottomTabBar({ tabs, activeTab, onTabPress }: BottomTabB
                 <MaterialCommunityIcons
                   name={isActive ? tab.activeIcon : tab.icon}
                   size={24}
-                  color={isActive ? COLORS.textPrimary : COLORS.textMuted}
+                  color={isActive ? COLORS.primary : COLORS.textMuted}
                 />
               </View>
               {isActive && (
@@ -80,7 +83,7 @@ export default function BottomTabBar({ tabs, activeTab, onTabPress }: BottomTabB
             </TouchableOpacity>
           );
         })}
-      </View>
+      </BlurView>
     </View>
   );
 }
@@ -118,37 +121,49 @@ const styles = StyleSheet.create({
     bottom: Platform.OS === 'ios' ? 32 : 24,
     left: SPACING.md,
     right: SPACING.md,
+    borderRadius: SIZES.radiusLg,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.7)',
+    shadowColor: '#001D39',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 10,
   },
   container: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: SIZES.radiusLg,
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingHorizontal: 8,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.8)',
-    shadowColor: '#8D99AE',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 8,
   },
   slider: {
     position: 'absolute',
-    top: 8,
-    bottom: 8,
+    top: 10,
+    bottom: 10,
     left: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
     borderRadius: SIZES.radiusLg,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.8)',
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+    overflow: 'hidden',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  sliderHighlight: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    height: 40,
+    height: 48,
     zIndex: 1,
   },
   iconWrapper: {
@@ -157,8 +172,9 @@ const styles = StyleSheet.create({
   },
   activeLabel: {
     fontFamily: FONTS.headingSemi,
-    fontSize: 10,
-    color: COLORS.textPrimary,
-    marginLeft: 4,
+    fontSize: 11,
+    color: COLORS.primary,
+    marginLeft: 6,
+    letterSpacing: 0.5,
   },
 });
