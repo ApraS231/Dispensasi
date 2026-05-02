@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
   },
   modalContainer: {
-    backgroundColor: COLORS.bgWhite,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
     borderRadius: SIZES.radiusXl,
     padding: SPACING.xl,
     width: '100%',
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
     minHeight: 100,
     textAlignVertical: 'top',
     marginBottom: SPACING.lg,
-    backgroundColor: COLORS.surfaceContainerLowest,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
   },
   actionRow: {
     flexDirection: 'row',
