@@ -43,7 +43,6 @@ export default function LoginScreen() {
         device_token: deviceToken
       });
 
-
       // Simpan Token di SecureStore
       await SecureStore.setItemAsync('userToken', response.data.token);
 
@@ -68,15 +67,22 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Background Logo */}
+      <Image
+        source={require('../assets/images/logo.png')}
+        style={styles.backgroundImage}
+        contentFit="contain"
+      />
+
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
           
           <View style={styles.headerContainer}>
-            <View style={styles.logoCircle}>
-              <Image source={require('../assets/images/logo.png')} style={styles.logoImg} resizeMode="contain" />
+            <View style={styles.badgeContainer}>
+              <Text style={styles.badgeText}>SiDispen</Text>
             </View>
-            <Text style={styles.title}>SiDispen</Text>
-            <Text style={styles.subtitle}>Halo! Yuk masuk ke akunmu.</Text>
+            <Text style={styles.title}>Selamat Datang!</Text>
+            <Text style={styles.subtitle}>Silakan masuk ke akunmu untuk melanjutkan.</Text>
           </View>
 
           <SoftCard style={styles.card}>
@@ -119,7 +125,8 @@ export default function LoginScreen() {
               title={loading ? 'Tunggu Sebentar...' : 'Ayo Mulai!'} 
               onPress={handleLogin} 
               loading={loading}
-              style={{ marginTop: SPACING.sm }}
+              style={{ marginTop: SPACING.md }}
+              variant="primary"
             />
             
             <Text style={styles.helpText}>Lupa Password?</Text>
@@ -131,25 +138,40 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.surfaceContainerLowest },
+  container: { flex: 1, backgroundColor: COLORS.bgWhite },
   safeArea: { flex: 1 },
   keyboardView: { flex: 1, justifyContent: 'center', padding: SPACING.xl },
-  headerContainer: { alignItems: 'center', marginBottom: SPACING.xxl },
-  logoCircle: {
-    width: 80, height: 80, borderRadius: SIZES.radiusButton, // Boxy logo
+  backgroundImage: {
+    position: 'absolute',
+    width: '150%',
+    height: '150%',
+    opacity: 0.05,
+    top: '-20%',
+    left: '-25%',
+    transform: [{ rotate: '-15deg' as any }]
+  },
+  headerContainer: { marginBottom: SPACING.xxl, alignItems: 'flex-start' },
+  badgeContainer: {
     backgroundColor: COLORS.primaryContainer,
-    justifyContent: 'center', alignItems: 'center',
-    marginBottom: SPACING.md,
-    borderWidth: 3,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    borderRadius: SIZES.radiusButton,
+    borderWidth: 2,
     borderColor: '#1A1A1A',
+    marginBottom: SPACING.md,
     shadowColor: '#1A1A1A',
-    shadowOffset: { width: 4, height: 4 },
+    shadowOffset: { width: 3, height: 3 },
     shadowOpacity: 1,
     shadowRadius: 0,
+    elevation: 3,
   },
-  logoImg: { width: 48, height: 48 },
-  title: { fontFamily: FONTS.heading, fontSize: 32, color: COLORS.textPrimary, marginBottom: 8 },
-  subtitle: { fontFamily: FONTS.bodyMedium, fontSize: 16, color: COLORS.textSecondary, textAlign: 'center' },
+  badgeText: {
+    fontFamily: FONTS.headingSemi,
+    fontSize: 16,
+    color: '#1A1A1A',
+  },
+  title: { fontFamily: FONTS.heading, fontSize: 36, color: COLORS.textPrimary, marginBottom: SPACING.sm },
+  subtitle: { fontFamily: FONTS.bodyMedium, fontSize: 16, color: COLORS.textSecondary, lineHeight: 24 },
   card: { padding: SPACING.lg },
   inputWrapper: {
     flexDirection: 'row', alignItems: 'center',
@@ -169,6 +191,7 @@ const styles = StyleSheet.create({
   inputWrapperFocused: {
     backgroundColor: COLORS.surfaceContainerLow,
     shadowOffset: { width: 5, height: 5 },
+    transform: [{ translateX: -2 }, { translateY: -2 }],
   },
   inputIcon: { fontSize: 18, marginRight: SPACING.sm, opacity: 0.5, color: COLORS.textPrimary, fontFamily: FONTS.headingSemi },
   input: { flex: 1, fontFamily: FONTS.bodyMedium, fontSize: 16, color: COLORS.textPrimary },
