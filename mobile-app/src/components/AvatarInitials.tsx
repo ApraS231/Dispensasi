@@ -40,10 +40,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: COLORS.secondaryContainer,
-    borderWidth: 2,
-    borderColor: '#1A1A1A',
-    shadowColor: '#1A1A1A',
-    shadowOffset: { width: 2, height: 2 },
+            shadowOffset: { width: 2, height: 2 },
     shadowOpacity: 1,
     shadowRadius: 0,
     borderRadius: 4, // Boxy brutalist avatar

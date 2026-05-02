@@ -70,9 +70,9 @@ export default function BouncyButton({
         };
       case 'outlined':
         return { 
-          bg: COLORS.bgWhite,
+          bg: 'rgba(255, 255, 255, 0.4)',
           text: COLORS.textPrimary,
-          border: COLORS.outlineVariant
+          border: 'rgba(255, 255, 255, 0.8)'
         };
       case 'danger':
         return { 
@@ -102,10 +102,11 @@ export default function BouncyButton({
     >
       <Animated.View style={[
         styles.container,
+        SHADOWS.elevation2,
         { 
           backgroundColor: disabled ? COLORS.surfaceContainerHigh : styleConfig.bg,
-          /* removed */
-          ...SHADOWS.softCard
+          borderColor: styleConfig.border,
+          borderWidth: 1.5,
         },
         { transform: [{ scale: scaleAnim }] }
       ]}>
