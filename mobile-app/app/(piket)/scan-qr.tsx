@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Button, Dimensions, TouchableOpacity, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Alert } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import api from '../../src/utils/api';
 import { useValidateQR } from '../../src/hooks/usePiketQueries';
-import { COLORS, FONTS, SPACING, SIZES, SHADOWS } from '../../src/utils/theme';
+import { COLORS, FONTS, SPACING, SIZES, GLASS } from '../../src/utils/theme';
+import { commonStyles } from '../../src/utils/commonStyles';
+import { BlurView } from 'expo-blur';
+import { ICONS } from '../../src/utils/icons';
 
 const { width } = Dimensions.get('window');
 
@@ -14,9 +16,7 @@ export default function QRScannerScreen() {
   const [scanned, setScanned] = useState(false);
   const validateMutation = useValidateQR();
 
-  if (!permission) {
-    return <View />;
-  }
+  if (!permission) return <View style={commonStyles.container} />;
 
   if (!permission.granted) {
     return (
@@ -29,9 +29,8 @@ export default function QRScannerScreen() {
     );
   }
 
-  const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
+  const handleBarCodeScanned = async ({ data }: { data: string }) => {
     setScanned(true);
-
     try {
       const res = await validateMutation.mutateAsync(data);
       Alert.alert("✅ BERHASIL", res.message, [
@@ -45,11 +44,13 @@ export default function QRScannerScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={commonStyles.container}>
       <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <MaterialCommunityIcons name="arrow-left" size={24} color={COLORS.bgWhite} />
-            <Text style={styles.backText}>Kembali</Text>
+          <TouchableOpacity onPress={() => router.back()}>
+            <BlurView intensity={GLASS.blurIntensity} tint="dark" style={styles.backBtn}>
+              <MaterialCommunityIcons name={ICONS.back} size={24} color={COLORS.bgWhite} />
+              <Text style={styles.backText}>Kembali</Text>
+            </BlurView>
           </TouchableOpacity>
       </View>
 
@@ -62,7 +63,9 @@ export default function QRScannerScreen() {
         }}
       >
         <View style={styles.overlay}>
-            <Text style={styles.instructionText}>Arahkan kamera ke QR Code di HP Siswa</Text>
+            <BlurView intensity={GLASS.blurIntensity + 20} tint="dark" style={styles.instructionContainer}>
+              <Text style={styles.instructionText}>Arahkan kamera ke QR Code di HP Siswa</Text>
+            </BlurView>
 
             <View style={styles.scanAreaWrapper}>
                 <View style={styles.cornerTL} />
@@ -78,16 +81,12 @@ export default function QRScannerScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.surfaceContainerLowest,
-  },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: SPACING.xl,
-    backgroundColor: COLORS.surfaceContainerLowest,
+    backgroundColor: COLORS.bgWhite,
   },
   permissionText: {
     fontFamily: FONTS.body,
@@ -115,8 +114,11 @@ const styles = StyleSheet.create({
       flexDirection: 'row',
       alignItems: 'center',
       padding: 8,
-      backgroundColor: 'rgba(0,0,0,0.5)',
+      paddingHorizontal: 12,
       borderRadius: 20,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.2)',
   },
   backText: {
       color: COLORS.bgWhite,
@@ -127,15 +129,22 @@ const styles = StyleSheet.create({
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: 'rgba(0,0,0,0.6)',
+      backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  instructionContainer: {
+    marginBottom: SPACING.xl,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    borderRadius: SIZES.radiusLg,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   instructionText: {
       color: COLORS.bgWhite,
       fontFamily: FONTS.headingSemi,
-      fontSize: 16,
-      marginBottom: SPACING.xl,
+      fontSize: 14,
       textAlign: 'center',
-      paddingHorizontal: SPACING.xl,
   },
   scanAreaWrapper: {
       width: width * 0.7,

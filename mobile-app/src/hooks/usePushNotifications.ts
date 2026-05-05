@@ -85,9 +85,19 @@ export const usePushNotifications = () => {
 
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data;
-      if (data?.ticket_id) {
-        router.push(`/ticket/${data.ticket_id}`);
-      }
+      
+      setTimeout(() => {
+        if (data?.ticket_id) {
+          router.push(`/ticket/${data.ticket_id}`);
+        } else if (data?.type === 'parent_link') {
+          router.push('/(siswa)/parent-requests');
+        } else if (data?.type === 'parent_link_response') {
+          router.push('/(ortu)/kelola-anak');
+        } else {
+          // Fallback to notifications list if no specific route found
+          router.push('/notifications');
+        }
+      }, 500); // Delay for cold starts
     });
 
     return () => {

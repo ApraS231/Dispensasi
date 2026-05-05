@@ -6,8 +6,14 @@ import * as ImagePicker from 'expo-image-picker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
-import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../../src/utils/theme';
+import { COLORS, FONTS, SIZES, SPACING, SHADOWS, GLASS } from '../../src/utils/theme';
 import { useSubmitDispensasi } from '../../src/hooks/useDispensasiQueries';
+import LiquidBackground from '../../src/components/LiquidBackground';
+import { BlurView } from 'expo-blur';
+import BouncyButton from '../../src/components/BouncyButton';
+import SkeuCard from '../../src/components/SkeuCard';
+
+import TopAppBar from '../../src/components/TopAppBar';
 
 export default function PengajuanScreen() {
   const submitMutation = useSubmitDispensasi();
@@ -102,32 +108,34 @@ export default function PengajuanScreen() {
 
   return (
     <View style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        
-        {/* Header Navigation */}
-        <View style={styles.headerBar}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+      <LiquidBackground />
+      
+      <TopAppBar 
+        title="Form Pengajuan" 
+        onBack={() => router.back()} 
+        rightComponent={
+          <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
             <MaterialCommunityIcons name="close" size={24} color={COLORS.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Form Pengajuan</Text>
-          <View style={{ width: 40 }} />
-        </View>
+        }
+      />
 
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          
-          {/* Info Banner */}
-          <View style={styles.infoBanner}>
-            <MaterialCommunityIcons name="lightbulb-on-outline" size={24} color={COLORS.warning} style={{ marginRight: SPACING.sm }} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.infoTitle}>Informasi Pengajuan</Text>
-              <Text style={styles.infoText}>Dispensasi wajib disetujui oleh Wali Kelas sebelum dilanjutkan ke Guru Piket untuk mendapatkan QR Code.</Text>
-            </View>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={{ height: 88 + SPACING.statusBar }} />
+        
+        {/* Info Banner */}
+        <BlurView intensity={GLASS.blurIntensity + 10} tint={GLASS.tintColor} style={styles.infoBanner}>
+          <MaterialCommunityIcons name="information" size={20} color={COLORS.primary} style={{ marginRight: SPACING.sm }} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.infoTitle}>Alur Pengajuan</Text>
+            <Text style={styles.infoText}>Dispensasi wajib disetujui oleh Wali Kelas sebelum Anda bisa meminta QR Code ke Guru Piket.</Text>
           </View>
+        </BlurView>
 
-          <View style={styles.glassCard}>
+          <SkeuCard isGlass style={styles.glassCard}>
             
             <Text style={styles.label}>Jenis Izin</Text>
-            <View style={styles.pickerContainer}>
+            <View style={[styles.pickerContainer, SHADOWS.inset]}>
               <Picker
                 selectedValue={jenisIzin}
                 onValueChange={(itemValue) => setJenisIzin(itemValue)}
@@ -141,7 +149,7 @@ export default function PengajuanScreen() {
 
             <Text style={styles.label}>Tanggal Izin</Text>
             {Platform.OS === 'android' ? (
-              <TouchableOpacity style={styles.dateInput} onPress={() => setShowDatePicker(true)}>
+              <TouchableOpacity style={[styles.dateInput, SHADOWS.inset]} onPress={() => setShowDatePicker(true)}>
                 <Text style={styles.dateText}>{formatDate(tanggal)}</Text>
                 <MaterialCommunityIcons name="calendar-month-outline" size={20} color={COLORS.textSecondary} />
               </TouchableOpacity>
@@ -162,7 +170,7 @@ export default function PengajuanScreen() {
               <View style={styles.timeCol}>
                 <Text style={styles.label}>Dari Jam</Text>
                 {Platform.OS === 'android' ? (
-                  <TouchableOpacity style={styles.dateInput} onPress={() => setShowMulaiPicker(true)}>
+                  <TouchableOpacity style={[styles.dateInput, SHADOWS.inset]} onPress={() => setShowMulaiPicker(true)}>
                     <Text style={styles.dateText}>{formatTime(waktuMulai)}</Text>
                   </TouchableOpacity>
                 ) : null}
@@ -182,7 +190,7 @@ export default function PengajuanScreen() {
               <View style={styles.timeCol}>
                 <Text style={styles.label}>Sampai Jam</Text>
                 {Platform.OS === 'android' ? (
-                  <TouchableOpacity style={styles.dateInput} onPress={() => setShowSelesaiPicker(true)}>
+                  <TouchableOpacity style={[styles.dateInput, SHADOWS.inset]} onPress={() => setShowSelesaiPicker(true)}>
                     <Text style={styles.dateText}>{formatTime(waktuSelesai)}</Text>
                   </TouchableOpacity>
                 ) : null}
@@ -202,7 +210,7 @@ export default function PengajuanScreen() {
 
             <Text style={styles.label}>Alasan</Text>
             <TextInput 
-              style={styles.textarea} 
+              style={[styles.textarea, SHADOWS.inset]} 
               placeholder="Tuliskan alasan lengkap Anda..." 
               placeholderTextColor={COLORS.textMuted}
               value={alasan} 
@@ -214,7 +222,7 @@ export default function PengajuanScreen() {
 
             <Text style={styles.label}>Lampiran Bukti (Opsional)</Text>
             <TouchableOpacity 
-              style={[styles.uploadArea, lampiran && styles.uploadAreaSuccess]} 
+              style={[styles.uploadArea, lampiran && styles.uploadAreaSuccess, SHADOWS.inset]} 
               onPress={handlePickImage}
               activeOpacity={0.7}
             >
@@ -231,80 +239,59 @@ export default function PengajuanScreen() {
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.submitBtn, loading && { opacity: 0.7 }]}
+            <BouncyButton
+              title={loading ? 'Mengirim...' : 'Kirim Pengajuan ➔'}
               onPress={handleSubmit}
-              disabled={loading}
-            >
-              <Text style={styles.submitBtnText}>{loading ? 'Mengirim...' : 'Kirim Pengajuan ➔'}</Text>
-            </TouchableOpacity>
+              loading={loading}
+              style={styles.submitBtn}
+            />
 
-          </View>
+          </SkeuCard>
         </ScrollView>
-      </SafeAreaView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'transparent' },
-  safeArea: { flex: 1 },
-  headerBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  container: { flex: 1, backgroundColor: COLORS.bgWhite },
+  closeBtn: {
+    width: 40,
+    height: 40,
     alignItems: 'center',
-    paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.statusBar + SPACING.sm,
-    paddingBottom: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.surfaceContainerHigh,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  backIcon: { fontSize: 18, color: COLORS.textPrimary },
-  headerTitle: {
-    fontFamily: FONTS.heading,
-    fontSize: 20,
-    color: COLORS.primary,
+    justifyContent: 'center',
   },
   scrollContent: { paddingHorizontal: SPACING.md, paddingBottom: 100 },
   
   infoBanner: {
     flexDirection: 'row',
-    backgroundColor: COLORS.warningBg,
+    backgroundColor: COLORS.glassSurface,
     padding: SPACING.md,
     borderRadius: SIZES.radiusLg,
     marginBottom: SPACING.lg,
-    ...SHADOWS.softCard,
+    overflow: 'hidden',
+    ...SHADOWS.glassPanel,
   },
-  infoTitle: { fontFamily: FONTS.headingSemi, fontSize: 14, color: COLORS.warning, marginBottom: 2 },
-  infoText: { fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.warning, lineHeight: 18 },
+  infoTitle: { fontFamily: FONTS.headingSemi, fontSize: 14, color: COLORS.primary, marginBottom: 2 },
+  infoText: { fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.textSecondary, lineHeight: 18 },
 
   glassCard: {
-    backgroundColor: 'transparent',
-    borderRadius: SIZES.radiusCard,
     padding: SPACING.lg,
-    ...SHADOWS.softCard,
+    marginBottom: SPACING.md,
   },
 
   label: { 
     fontFamily: FONTS.headingSemi, 
     fontSize: 14, 
-    color: COLORS.textPrimary, 
+    color: COLORS.textSecondary, 
     marginBottom: SPACING.sm, 
     marginTop: SPACING.md 
   },
   pickerContainer: {
     backgroundColor: COLORS.surfaceContainerLow,
-    borderRadius: SIZES.radiusButton,
-
+    borderRadius: SIZES.radiusMd,
     overflow: 'hidden',
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
+    borderWidth: 1,
+    borderColor: COLORS.glassHighlight,
   },
   picker: {
     height: 50,
@@ -315,18 +302,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: COLORS.surfaceContainerLow,
-
-    borderRadius: SIZES.radiusButton,
+    borderRadius: SIZES.radiusMd,
     paddingHorizontal: SPACING.md,
-    height: 50,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
+    height: 52,
+    borderWidth: 1,
+    borderColor: COLORS.glassHighlight,
   },
   dateText: {
-    fontFamily: FONTS.body,
-    fontSize: 16,
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 15,
     color: COLORS.textPrimary,
   },
 
@@ -341,33 +325,31 @@ const styles = StyleSheet.create({
 
   textarea: { 
     backgroundColor: COLORS.surfaceContainerLow, 
-    borderRadius: SIZES.radiusButton,
-
+    borderRadius: SIZES.radiusMd,
     padding: SPACING.md, 
     fontSize: 15, 
     fontFamily: FONTS.body,
     color: COLORS.textPrimary,
-    minHeight: 120,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
+    minHeight: 100,
+    borderWidth: 1,
+    borderColor: COLORS.glassHighlight,
   },
   
   uploadArea: {
-
-    borderStyle: 'dashed',
-    borderRadius: SIZES.radiusButton,
-    backgroundColor: COLORS.surfaceContainerLowest,
+    borderRadius: SIZES.radiusMd,
+    backgroundColor: COLORS.surfaceContainerLow,
     padding: SPACING.xl,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: COLORS.textMuted,
   },
   uploadAreaSuccess: {
-    borderColor: COLORS.success,
-    backgroundColor: COLORS.surfaceContainerHighest,
-    borderStyle: 'solid',
+    backgroundColor: COLORS.glassSurface,
     padding: SPACING.md,
+    borderStyle: 'solid',
+    borderColor: COLORS.primary,
   },
   uploadText: {
     fontFamily: FONTS.headingSemi,
@@ -383,24 +365,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   lampiranImg: {
-    width: 100,
-    height: 100,
-    borderRadius: SIZES.radius,
+    width: 120,
+    height: 120,
+    borderRadius: SIZES.radiusMd,
+    borderWidth: 2,
+    borderColor: COLORS.bgWhite,
   },
 
   submitBtn: {
     marginTop: SPACING.xl,
-    backgroundColor: COLORS.primary,
-    height: 56,
-    borderRadius: SIZES.radiusLg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...SHADOWS.softCard,
   },
-  submitBtnText: {
-    fontFamily: FONTS.headingSemi,
-    color: COLORS.onPrimary,
-    fontSize: 16,
-    letterSpacing: 0.5,
-  }
 });

@@ -11,12 +11,17 @@ export default function SiswaLayout() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
-        <Stack.Screen name="dashboard" />
+      <Stack screenOptions={{ 
+        headerShown: false, 
+        animation: 'simple_push',
+        contentStyle: { backgroundColor: 'transparent' } 
+      }}>
+        <Stack.Screen name="dashboard" options={{ animation: 'fade' }} />
         <Stack.Screen name="riwayat" />
         <Stack.Screen name="profile" />
+        <Stack.Screen name="parent-requests" />
         <Stack.Screen name="pengajuan" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="qr/[id]" />
+        <Stack.Screen name="qr/[id]" options={{ animation: 'fade' }} />
       </Stack>
       
       {!hideTabBar && (

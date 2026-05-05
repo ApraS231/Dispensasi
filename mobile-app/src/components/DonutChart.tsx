@@ -1,7 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import Svg, { Circle, G } from 'react-native-svg';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedProps, 
+  withTiming, 
+  Easing,
+  interpolate,
+  useDerivedValue
+} from 'react-native-reanimated';
 import { COLORS, FONTS } from '../utils/theme';
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 interface DonutChartProps {
   total: number;
@@ -9,23 +19,59 @@ interface DonutChartProps {
   absent: number;
   size?: number;
   strokeWidth?: number;
+  delay?: number;
 }
 
-export default function DonutChart({ total, present, absent, size = 160, strokeWidth = 20 }: DonutChartProps) {
+export default function DonutChart({ 
+  total, 
+  present, 
+  absent, 
+  size = 160, 
+  strokeWidth = 20,
+  delay = 500
+}: DonutChartProps) {
   const center = size / 2;
   const radius = center - strokeWidth / 2;
   const circumference = 2 * Math.PI * radius;
 
-  // Calculate percentages
-  const presentPercent = total > 0 ? (present / total) : 0;
+  const progress = useSharedValue(0);
+
+  useEffect(() => {
+    progress.value = 0;
+    const timeout = setTimeout(() => {
+      progress.value = withTiming(total > 0 ? present / total : 0, {
+        duration: 1500,
+        easing: Easing.bezier(0.4, 0, 0.2, 1),
+      });
+    }, delay);
+    return () => clearTimeout(timeout);
+  }, [present, total]);
+
+  const animatedProps = useAnimatedProps(() => {
+    return {
+      strokeDashoffset: circumference - (progress.value * circumference),
+    };
+  });
+
+  // Animated percentage text
+  const [displayText, setDisplayText] = React.useState('0%');
   
-  // Calculate dash offsets
-  const presentOffset = circumference - (presentPercent * circumference);
+  // Update display text periodically to sync with animation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const currentPercent = Math.round(progress.value * 100);
+      setDisplayText(`${currentPercent}%`);
+      if (progress.value === (total > 0 ? present / total : 0)) {
+        clearInterval(interval);
+      }
+    }, 32);
+    return () => clearInterval(interval);
+  }, [present, total]);
 
   return (
     <View style={[styles.container, { width: size, height: size }]}>
       <Svg width={size} height={size} style={styles.svg}>
-        {/* Background Circle (Absent/Pending) */}
+        {/* Background Circle */}
         <Circle
           cx={center}
           cy={center}
@@ -33,31 +79,32 @@ export default function DonutChart({ total, present, absent, size = 160, strokeW
           stroke={COLORS.surfaceContainerHighest}
           strokeWidth={strokeWidth}
           fill="none"
+          opacity={0.3}
         />
         
         {/* Present/Approved Circle */}
         <G rotation="-90" origin={`${center}, ${center}`}>
-          <Circle
+          <AnimatedCircle
             cx={center}
             cy={center}
             r={radius}
             stroke={COLORS.primary}
             strokeWidth={strokeWidth}
             strokeDasharray={circumference}
-            strokeDashoffset={presentOffset}
+            animatedProps={animatedProps}
             strokeLinecap="round"
             fill="none"
           />
         </G>
       </Svg>
 
-      {/* Center Text (Inner Cutout) */}
+      {/* Center Text */}
       <View style={[styles.innerCircle, { 
         width: size - (strokeWidth * 2), 
         height: size - (strokeWidth * 2),
         borderRadius: size / 2 
       }]}>
-        <Text style={styles.centerValue}>{Math.round(presentPercent * 100)}%</Text>
+        <Text style={styles.centerValue}>{displayText}</Text>
         <Text style={styles.centerLabel}>Hadir</Text>
       </View>
     </View>

@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../utils/theme';
+import { COLORS, FONTS, SIZES, SPACING, SHADOWS, GLASS } from '../utils/theme';
+import { BlurView } from 'expo-blur';
 
 interface NotificationBannerProps {
   title: string;
@@ -33,11 +34,11 @@ export default function NotificationBanner({
   const styleConfig = getStyleByType();
 
   const content = (
-    <View style={[
+    <BlurView intensity={GLASS.blurIntensity} tint={GLASS.tintColor} style={[
       styles.container, 
       !isRead && styles.containerUnread
     ]}>
-      <View style={[styles.iconBox, { backgroundColor: styleConfig.bg }]}>
+      <View style={[styles.iconBox, SHADOWS.inset, { backgroundColor: styleConfig.bg }]}>
         <MaterialCommunityIcons name={styleConfig.icon as any} size={24} color={styleConfig.color} />
       </View>
       
@@ -49,35 +50,44 @@ export default function NotificationBanner({
         <Text style={styles.message} numberOfLines={2}>{message}</Text>
       </View>
 
-      {!isRead && <View style={styles.unreadDot} />}
-    </View>
+      {!isRead && (
+        <View style={styles.unreadDotContainer}>
+          <View style={styles.unreadDotGlow} />
+          <View style={styles.unreadDot} />
+        </View>
+      )}
+    </BlurView>
   );
 
   if (onPress) {
     return (
-      <TouchableOpacity activeOpacity={0.7} onPress={onPress}>
+      <TouchableOpacity activeOpacity={0.7} onPress={onPress} style={styles.shadowWrapper}>
         {content}
       </TouchableOpacity>
     );
   }
 
-  return content;
+  return <View style={styles.shadowWrapper}>{content}</View>;
 }
 
 const styles = StyleSheet.create({
+  shadowWrapper: {
+    marginBottom: SPACING.sm,
+    borderRadius: SIZES.radiusLg,
+    ...SHADOWS.glassPanel,
+  },
   container: {
     flexDirection: 'row',
     padding: SPACING.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
     borderRadius: SIZES.radiusLg,
-    marginBottom: SPACING.sm,
-
     alignItems: 'center',
-    ...SHADOWS.softCard,
+    borderWidth: 1,
+    borderColor: COLORS.glassHighlight,
+    overflow: 'hidden',
   },
   containerUnread: {
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
-    borderColor: COLORS.success,
+    borderColor: COLORS.primaryLight,
+    backgroundColor: COLORS.surfaceContainerHighest,
   },
   iconBox: {
     width: 40,
@@ -86,9 +96,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: SPACING.md,
-  },
-  icon: {
-    fontSize: 18,
   },
   content: {
     flex: 1,
@@ -120,13 +127,25 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     lineHeight: 18,
   },
+  unreadDotContainer: {
+    marginLeft: SPACING.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   unreadDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: COLORS.success,
-    marginLeft: SPACING.sm,
-    ...SHADOWS.softCard,
-    shadowColor: COLORS.success,
+    backgroundColor: COLORS.primary,
+    zIndex: 2,
+  },
+  unreadDotGlow: {
+    position: 'absolute',
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: COLORS.primary,
+    opacity: 0.3,
+    zIndex: 1,
   }
 });

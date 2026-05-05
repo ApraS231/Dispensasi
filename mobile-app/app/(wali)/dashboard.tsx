@@ -1,24 +1,32 @@
 import { HapticFeedback } from '../../src/utils/haptics';
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, SafeAreaView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Alert, SafeAreaView } from 'react-native';
 import { router as expoRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import api from '../../src/utils/api';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useApproveTicket, useRejectTicket } from '../../src/hooks/useDispensasiQueries';
-import SoftCard from '../../src/components/SoftCard';
+import SkeuCard from '../../src/components/SkeuCard';
 import TicketCard from '../../src/components/TicketCard';
 import BouncyButton from '../../src/components/BouncyButton';
 import RejectModal from '../../src/components/RejectModal';
 import TopAppBar from '../../src/components/TopAppBar';
 import AvatarInitials from '../../src/components/AvatarInitials';
 import DonutChart from '../../src/components/DonutChart';
-import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../../src/utils/theme';
+import LiquidBackground from '../../src/components/LiquidBackground';
+import AnimatedEntrance from '../../src/components/AnimatedEntrance';
+import RefreshableFlatList from '../../src/components/RefreshableFlatList';
+import LogoutButton from '../../src/components/LogoutButton';
+import { COLORS, FONTS, SIZES, SPACING, SHADOWS, GLASS } from '../../src/utils/theme';
+import { commonStyles } from '../../src/utils/commonStyles';
+import { BlurView } from 'expo-blur';
+import { useSharedValue } from 'react-native-reanimated';
 
 export default function WaliDashboard() {
   const { user, logout } = useAuthStore();
   const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const scrollY = useSharedValue(0);
 
   const approveMutation = useApproveTicket();
   const rejectMutation = useRejectTicket();
@@ -26,16 +34,14 @@ export default function WaliDashboard() {
   const { data: pendingTickets = [], refetch: refetchPending } = useQuery({
     queryKey: ['dispensasi-pending'],
     queryFn: async () => {
-      const { data } = await api.get('/dispensasi/pending'); // Wali class should only see their students
+      const { data } = await api.get('/dispensasi/pending');
       return data;
     }
   });
 
-  // Assume total students = 36 for UI demo if not provided by backend yet
   const totalStudents = 36;
   const absentStudents = pendingTickets.length;
   const presentStudents = Math.max(0, totalStudents - absentStudents);
-
 
   const handleLogout = async () => {
     try { await api.post('/logout'); } catch (e) {}
@@ -71,82 +77,101 @@ export default function WaliDashboard() {
 
   const todayDate = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refetchPending();
+    setRefreshing(false);
+  };
+
+  const renderHeader = () => (
+    <View style={commonStyles.mainContent}>
+      <View style={{ height: 88 + SPACING.statusBar }} />
+      
+      <AnimatedEntrance delay={300} direction="down">
+        <View style={commonStyles.headerContainer}>
+          <SkeuCard style={styles.headerCard} isGlass>
+            <View style={styles.headerTop}>
+              <View>
+                <Text style={styles.greeting}>Kehadiran Kelas Anda</Text>
+                <Text style={styles.dateText}>{todayDate}</Text>
+              </View>
+              <LogoutButton onPress={handleLogout} />
+            </View>
+
+            <View style={styles.chartContainer}>
+              <View style={styles.chartColLeft}>
+                <DonutChart 
+                  total={totalStudents} 
+                  present={presentStudents} 
+                  absent={absentStudents} 
+                  size={120} 
+                  strokeWidth={14} 
+                />
+              </View>
+              
+              <View style={styles.chartColRight}>
+                <View style={[styles.legendItem, SHADOWS.inset]}>
+                  <View style={[styles.legendColor, { backgroundColor: COLORS.primary }]} />
+                  <View>
+                    <Text style={styles.legendTitle}>Hadir</Text>
+                    <Text style={styles.legendValue}>{presentStudents} Siswa</Text>
+                  </View>
+                </View>
+                
+                <View style={[styles.legendItem, SHADOWS.inset]}>
+                  <View style={[styles.legendColor, { backgroundColor: COLORS.textMuted }]} />
+                  <View>
+                    <Text style={styles.legendTitle}>Izin/Sakit</Text>
+                    <Text style={styles.legendValue}>{absentStudents} Siswa</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </SkeuCard>
+        </View>
+      </AnimatedEntrance>
+
+      <View style={commonStyles.contentContainer}>
+        <AnimatedEntrance delay={600} direction="up">
+          <View style={commonStyles.sectionHeader}>
+            <Text style={commonStyles.sectionTitle}>Menunggu Persetujuan</Text>
+          </View>
+        </AnimatedEntrance>
+      </View>
+    </View>
+  );
+
   return (
-    <View style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
+    <View style={commonStyles.container}>
+      <LiquidBackground />
+      <SafeAreaView style={commonStyles.safeArea}>
         
         <TopAppBar 
           showAvatar={true} 
           avatarLabel={user?.name?.charAt(0)?.toUpperCase() || 'W'} 
           showNotification={true} 
+          scrollY={scrollY}
         />
 
-        <View style={styles.mainContent}>
-          {/* Header Card */}
-          <View style={styles.headerContainer}>
-            <SoftCard style={styles.headerCard}>
-              <View style={styles.headerTop}>
-                <View>
-                  <Text style={styles.greeting}>Kehadiran Kelas Anda</Text>
-                  <Text style={styles.dateText}>{todayDate}</Text>
-                </View>
-                <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
-                  <Text style={styles.logoutText}>Keluar</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.chartContainer}>
-                <View style={styles.chartColLeft}>
-                  <DonutChart 
-                    total={totalStudents} 
-                    present={presentStudents} 
-                    absent={absentStudents} 
-                    size={130} 
-                    strokeWidth={16} 
-                  />
-                </View>
-                
-                <View style={styles.chartColRight}>
-                  <View style={styles.legendItem}>
-                    <View style={[styles.legendColor, { backgroundColor: COLORS.primary }]} />
-                    <View>
-                      <Text style={styles.legendTitle}>Hadir</Text>
-                      <Text style={styles.legendValue}>{presentStudents} Siswa</Text>
-                    </View>
-                  </View>
-                  <View style={styles.legendItem}>
-                    <View style={[styles.legendColor, { backgroundColor: COLORS.surfaceContainerHigh }]} />
-                    <View>
-                      <Text style={styles.legendTitle}>Izin/Sakit</Text>
-                      <Text style={[styles.legendValue, { color: COLORS.textSecondary }]}>{absentStudents} Siswa</Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-            </SoftCard>
-          </View>
-
-          {/* Content Area */}
-          <View style={styles.contentContainer}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Menunggu Verifikasi Anda</Text>
-            </View>
-            
-            <FlatList
-              data={pendingTickets}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.listContent}
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item }) => (
-                <View style={styles.ticketWrapper}>
+        <RefreshableFlatList
+          data={pendingTickets}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={commonStyles.listContent}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          scrollY={scrollY}
+          ListHeaderComponent={renderHeader}
+          renderItem={({ item, index }) => (
+            <View style={{ paddingHorizontal: SPACING.md }}>
+              <AnimatedEntrance delay={800 + (index * 100)} direction="up" offset={20}>
+                <SkeuCard isGlass style={styles.ticketWrapper}>
                   <View style={styles.ticketHeaderRow}>
                     <AvatarInitials name={item.siswa?.name || 'Siswa'} size={40} fontSize={16} />
                     <View style={styles.ticketMeta}>
                       <Text style={styles.ticketName}>{item.siswa?.name || 'Siswa'}</Text>
                       <Text style={styles.ticketClass}>{item.kelas?.nama_kelas || 'Kelas'}</Text>
                     </View>
-                    
-                    {/* LED Dot */}
                     <View style={styles.ledDot} />
                   </View>
                   
@@ -168,14 +193,12 @@ export default function WaliDashboard() {
                       style={styles.actionBtn}
                     />
                   </View>
-                </View>
-              )}
-              ListEmptyComponent={<Text style={styles.emptyText}>Tidak ada tiket pending.</Text>}
-            />
-          </View>
-        </View>
-
-        
+                </SkeuCard>
+              </AnimatedEntrance>
+            </View>
+          )}
+          ListEmptyComponent={<Text style={commonStyles.emptyText}>Tidak ada tiket pending.</Text>}
+        />
       </SafeAreaView>
 
       <RejectModal
@@ -188,38 +211,22 @@ export default function WaliDashboard() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'transparent' },
-  safeArea: { flex: 1 },
-  mainContent: { flex: 1 },
-  headerContainer: {
-    padding: SPACING.md,
-    zIndex: 10,
-  },
   headerCard: {
     padding: SPACING.lg,
-    backgroundColor: COLORS.tertiaryContainer, // Gold/Amber background
   },
   headerTop: { 
     flexDirection: 'row', 
     justifyContent: 'space-between', 
     alignItems: 'flex-start', 
-    marginBottom: SPACING.lg 
+    marginBottom: SPACING.md 
   },
-  greeting: { fontFamily: FONTS.headingSemi, fontSize: 18, color: COLORS.textPrimary },
-  dateText: { fontFamily: FONTS.bodyMedium, fontSize: 13, color: COLORS.textSecondary, marginTop: 4 },
-  logoutBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: COLORS.errorBg,
-    borderRadius: SIZES.radius,
-  },
-  logoutText: { fontFamily: FONTS.headingSemi, color: COLORS.error, fontSize: 12 },
-  
+  greeting: { fontFamily: FONTS.bodyMedium, fontSize: 14, color: COLORS.textSecondary },
+  dateText: { fontFamily: FONTS.heading, fontSize: 18, color: COLORS.textPrimary, marginTop: 2 },
   chartContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: SPACING.sm,
+    marginTop: SPACING.sm,
   },
   chartColLeft: {
     flex: 1,
@@ -228,58 +235,36 @@ const styles = StyleSheet.create({
   chartColRight: {
     flex: 1,
     justifyContent: 'center',
-    paddingLeft: SPACING.md,
-    gap: SPACING.md,
+    gap: SPACING.sm,
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'transparent',
+    backgroundColor: COLORS.glassSurface,
     padding: SPACING.sm,
-    borderRadius: SIZES.radiusButton,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
+    borderRadius: SIZES.radiusMd,
+    borderWidth: 1,
+    borderColor: COLORS.glassHighlight,
   },
   legendColor: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     marginRight: SPACING.sm,
   },
   legendTitle: {
-    fontFamily: FONTS.bodyMedium,
-    fontSize: 11,
+    fontFamily: FONTS.labelCaps,
+    fontSize: 9,
     color: COLORS.textMuted,
   },
   legendValue: {
     fontFamily: FONTS.headingSemi,
-    fontSize: 14,
-    color: COLORS.primary,
+    fontSize: 12,
+    color: COLORS.textPrimary,
   },
-  
-  contentContainer: {
-    flex: 1,
-    paddingHorizontal: SPACING.md,
-  },
-  sectionHeader: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginBottom: SPACING.md 
-  },
-  sectionTitle: { fontFamily: FONTS.headingSemi, fontSize: 18, color: COLORS.textPrimary },
-  
-  listContent: { paddingBottom: 100 },
   ticketWrapper: {
-    marginBottom: SPACING.xl,
-    backgroundColor: COLORS.surfaceContainerHighest,
-    borderRadius: SIZES.radiusXl,
+    marginBottom: SPACING.lg,
     padding: SPACING.md,
-
-    ...SHADOWS.softCard,
   },
   ticketHeaderRow: {
     flexDirection: 'row',
@@ -312,15 +297,14 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
-  
   actionRow: {
     flexDirection: 'row',
     gap: SPACING.sm,
-    marginTop: SPACING.xs,
+    marginTop: SPACING.md,
   },
   actionBtn: {
     flex: 1,
     height: 48,
   },
-  emptyText: { fontFamily: FONTS.body, textAlign: 'center', color: COLORS.textMuted, marginTop: SPACING.xl, fontSize: 14 },
 });
+

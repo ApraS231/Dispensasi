@@ -1,19 +1,29 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
 import { router as expoRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import api from '../../src/utils/api';
 import { useAuthStore } from '../../src/stores/authStore';
-import SoftCard from '../../src/components/SoftCard';
+import SkeuCard from '../../src/components/SkeuCard';
 import TicketCard from '../../src/components/TicketCard';
 import GlassFAB from '../../src/components/GlassFAB';
 import TopAppBar from '../../src/components/TopAppBar';
-import { COLORS, FONTS, SIZES, SPACING } from '../../src/utils/theme';
+import LiquidBackground from '../../src/components/LiquidBackground';
+import AnimatedEntrance from '../../src/components/AnimatedEntrance';
+import AnimatedCounter from '../../src/components/AnimatedCounter';
+import RefreshableFlatList from '../../src/components/RefreshableFlatList';
+import LogoutButton from '../../src/components/LogoutButton';
+import { COLORS, FONTS, SIZES, SPACING, SHADOWS, GLASS } from '../../src/utils/theme';
+import { commonStyles } from '../../src/utils/commonStyles';
+import { BlurView } from 'expo-blur';
+import { useSharedValue } from 'react-native-reanimated';
 
 export default function SiswaDashboard() {
   const { user, logout } = useAuthStore();
-  const { data: ticketsData, isLoading } = useQuery({
+  const scrollY = useSharedValue(0);
+
+  const { data: ticketsData, isLoading, refetch } = useQuery({
     queryKey: ['dispensasi-me'],
     queryFn: async () => {
       const { data } = await api.get('/dispensasi/me');
@@ -30,91 +40,131 @@ export default function SiswaDashboard() {
     expoRouter.replace('/login');
   };
 
-  return (
-    <View style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        
-        <TopAppBar 
-          showAvatar={true} 
-          avatarLabel={user?.name?.charAt(0)?.toUpperCase() || 'S'} 
-          showNotification={true} 
-        />
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
 
-        <View style={styles.mainContent}>
-          {/* Header Card */}
-          <View style={styles.headerContainer}>
-            <SoftCard style={styles.headerCard}>
-              <View style={styles.headerRow}>
-                <View>
-                  <Text style={styles.greeting}>Halo,</Text>
-                  <Text style={styles.name}>{user?.name ?? 'Siswa'}!</Text>
-                  <Text style={styles.kelasBadge}>Kelas {(user as any)?.kelas?.nama_kelas || 'X'}</Text>
-                </View>
-                <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
-                  <Text style={styles.logoutText}>Keluar</Text>
-                </TouchableOpacity>
-              </View>
-              
-              <View style={styles.statsContainer}>
-                <View style={styles.badgeContainer}>
-                  <Text style={styles.badgeText}>{tickets.length}</Text>
-                  <Text style={styles.badgeLabel}>Izin Bulan Ini</Text>
+  const renderHeader = () => (
+    <View style={styles.headerWrapper}>
+      {/* Spacer for Absolute TopAppBar */}
+      <View style={{ height: 88 + SPACING.statusBar }} />
+      
+      {/* Header Card */}
+      <AnimatedEntrance delay={300} direction="down">
+        <View style={styles.topCardContainer}>
+          <SkeuCard style={styles.headerCard} isGlass>
+            <View style={styles.headerRow}>
+              <View style={styles.userInfo}>
+                <Text style={styles.greeting}>Halo,</Text>
+                <Text style={styles.name} numberOfLines={1}>{user?.name ?? 'Siswa'}!</Text>
+                <View style={styles.kelasBadge}>
+                  <Text style={styles.kelasBadgeText}>Kelas {(user as any)?.kelas?.nama_kelas || 'X'}</Text>
                 </View>
               </View>
-            </SoftCard>
-          </View>
-
-          {/* List Area */}
-          <View style={styles.listContainer}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Riwayat Izin Terbaru</Text>
-              <TouchableOpacity>
-                <Text style={styles.seeAllText}>Lihat Semua</Text>
-              </TouchableOpacity>
+              <LogoutButton onPress={handleLogout} />
             </View>
             
-            <FlatList
-              data={tickets.slice(0, 5)} // only show 5 recent
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.listContent}
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item }) => (
+            <View style={styles.statsContainer}>
+              <BlurView intensity={GLASS.blurIntensity + 20} tint={GLASS.tintColor} style={[styles.badgeContainer, SHADOWS.inset]}>
+                <AnimatedCounter 
+                  value={tickets.length} 
+                  style={styles.badgeText} 
+                  delay={1000}
+                />
+                <Text style={styles.badgeLabel}>Izin Bulan Ini</Text>
+              </BlurView>
+            </View>
+          </SkeuCard>
+        </View>
+      </AnimatedEntrance>
+ 
+      {/* List Area Header */}
+      <View style={styles.sectionHeaderContainer}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.historyTitle}>Riwayat Izin Terbaru</Text>
+          <TouchableOpacity 
+            onPress={() => expoRouter.push('/(siswa)/riwayat')}
+            activeOpacity={0.6}
+            style={styles.seeAllButton}
+          >
+            <Text style={styles.seeAllText}>Lihat Semua</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+
+  return (
+    <View style={commonStyles.container}>
+      <LiquidBackground />
+      
+      <TopAppBar 
+        showAvatar={true} 
+        avatarLabel={user?.name?.charAt(0)?.toUpperCase() || 'S'} 
+        showNotification={true} 
+        scrollY={scrollY}
+      />
+
+      <View style={{ flex: 1, width: '100%' }}>
+        <RefreshableFlatList
+          data={tickets.slice(0, 5)} 
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={[commonStyles.listContent, { width: '100%' }]}
+          showsVerticalScrollIndicator={false}
+          persistentScrollbar={false}
+          overScrollMode="never"
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          scrollY={scrollY}
+          ListHeaderComponent={renderHeader}
+          renderItem={({ item, index }) => (
+            <View style={{ paddingHorizontal: SPACING.md, width: '100%' }}>
+              <AnimatedEntrance delay={800 + (index * 100)} direction="up" offset={20}>
                 <TicketCard 
                   item={item} 
                   onPress={() => expoRouter.push(`/ticket/${item.id}`)} 
                 />
-              )}
-              ListEmptyComponent={<Text style={styles.emptyText}>Belum ada pengajuan izin.</Text>}
-            />
-          </View>
-        </View>
+              </AnimatedEntrance>
+            </View>
+          )}
+          ListEmptyComponent={<Text style={commonStyles.emptyText}>Belum ada pengajuan izin.</Text>}
+        />
+      </View>
 
-        <GlassFAB onPress={() => expoRouter.push('/(siswa)/pengajuan')} />
-
-      </SafeAreaView>
+      <GlassFAB 
+        onPress={() => expoRouter.push('/(siswa)/pengajuan')} 
+        style={styles.fabPosition}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'transparent' },
-  safeArea: { flex: 1 },
-  mainContent: {
-    flex: 1,
+  headerWrapper: {
+    paddingBottom: SPACING.sm,
   },
-  headerContainer: {
+  topCardContainer: {
     padding: SPACING.md,
-    zIndex: 10,
+  },
+  fabPosition: {
+    bottom: 110,
+    right: 24,
   },
   headerCard: {
     paddingVertical: SPACING.lg,
     paddingHorizontal: SPACING.md,
-    backgroundColor: COLORS.primaryContainer, // Vibrant yellow
   },
   headerRow: { 
     flexDirection: 'row', 
     justifyContent: 'space-between', 
     alignItems: 'flex-start' 
+  },
+  userInfo: {
+    flex: 1,
+    marginRight: SPACING.sm,
   },
   greeting: { 
     fontFamily: FONTS.bodyMedium, 
@@ -128,35 +178,21 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   kelasBadge: {
-    fontFamily: FONTS.labelCaps,
-    fontSize: 11,
-    color: COLORS.bgWhite,
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.surfaceContainerLow,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    borderRadius: SIZES.radiusSm,
+    borderWidth: 1,
+    borderColor: COLORS.glassHighlight,
     marginTop: SPACING.xs,
-    letterSpacing: 0.5,
     alignSelf: 'flex-start',
+    overflow: 'hidden',
   },
-  logoutBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: COLORS.error,
-    borderRadius: SIZES.radiusButton,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-  },
-  logoutText: { 
-    fontFamily: FONTS.headingSemi, 
-    color: COLORS.inverseOnSurface,
-    fontSize: 12 
+  kelasBadgeText: {
+    fontFamily: FONTS.labelCaps,
+    fontSize: 11,
+    color: COLORS.primary,
+    letterSpacing: 0.5,
   },
   statsContainer: {
     marginTop: SPACING.lg,
@@ -165,16 +201,10 @@ const styles = StyleSheet.create({
   badgeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'transparent',
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderRadius: SIZES.radiusButton,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 3, height: 3 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
+    overflow: 'hidden',
   },
   badgeText: { 
     fontFamily: FONTS.heading, 
@@ -187,35 +217,33 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.textPrimary,
   },
-  
-  listContainer: {
-    flex: 1,
+  sectionHeaderContainer: {
     paddingHorizontal: SPACING.md,
+    marginTop: SPACING.md,
+    marginBottom: SPACING.sm,
   },
-  sectionHeader: {
+  sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginBottom: SPACING.md,
+    alignItems: 'center',
   },
-  sectionTitle: { 
-    fontFamily: FONTS.headingSemi, 
-    fontSize: 18, 
-    color: COLORS.textPrimary 
+  historyTitle: {
+    fontFamily: FONTS.headingSemi,
+    fontSize: 18,
+    color: COLORS.textPrimary,
+  },
+  seeAllButton: {
+    backgroundColor: COLORS.surfaceContainerLow,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: SIZES.radiusSm,
+    borderWidth: 1,
+    borderColor: COLORS.glassHighlight,
   },
   seeAllText: {
     fontFamily: FONTS.headingSemi,
-    fontSize: 13,
-    color: COLORS.textPrimary,
-  },
-  listContent: { 
-    paddingBottom: 100 
-  },
-  emptyText: { 
-    fontFamily: FONTS.body, 
-    textAlign: 'center', 
-    color: COLORS.textMuted, 
-    marginTop: SPACING.xl, 
-    fontSize: 14 
+    fontSize: 12,
+    color: COLORS.primary,
   },
 });
+

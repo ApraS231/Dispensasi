@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, Animated, Dimensions, LayoutChangeEvent } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS, FONTS, SPACING, SIZES } from '../utils/theme';
+import { COLORS, FONTS, SPACING, SIZES, SHADOWS, GLASS } from '../utils/theme';
 import { HapticFeedback } from './../utils/haptics';
 import { BlurView } from 'expo-blur';
 
@@ -47,7 +47,9 @@ export default function BottomTabBar({ tabs, activeTab, onTabPress }: BottomTabB
 
   return (
     <View style={styles.outerContainer}>
-      <BlurView intensity={60} tint="light" style={styles.container} onLayout={onLayout}>
+      <BlurView intensity={GLASS.blurIntensity + 30} tint={GLASS.tintColor} style={styles.container} onLayout={onLayout}>
+        <View style={styles.grooveBackground} />
+        
         <Animated.View
           style={[
             styles.slider,
@@ -59,6 +61,7 @@ export default function BottomTabBar({ tabs, activeTab, onTabPress }: BottomTabB
         >
           <View style={styles.sliderHighlight} />
         </Animated.View>
+        
         {tabs.map((tab) => {
           const isActive = activeTab === tab.name;
           return (
@@ -91,7 +94,6 @@ export default function BottomTabBar({ tabs, activeTab, onTabPress }: BottomTabB
 export const SISWA_TABS: TabItem[] = [
   { name: 'dashboard', label: 'HOME', icon: 'home-outline', activeIcon: 'home' },
   { name: 'riwayat', label: 'HISTORY', icon: 'clock-outline', activeIcon: 'clock' },
-  { name: 'pengajuan', label: 'PERMIT', icon: 'file-document-outline', activeIcon: 'file-document' },
   { name: 'profile', label: 'PROFILE', icon: 'account-outline', activeIcon: 'account' },
 ];
 
@@ -117,46 +119,47 @@ export const ORTU_TABS: TabItem[] = [
 
 const styles = StyleSheet.create({
   outerContainer: {
+    ...SHADOWS.skeuShadow,
     position: 'absolute',
     bottom: Platform.OS === 'ios' ? 32 : 24,
     left: SPACING.md,
     right: SPACING.md,
-    borderRadius: SIZES.radiusLg,
+    borderRadius: SIZES.radiusGlassPanel,
     overflow: 'hidden',
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.7)',
-    shadowColor: '#001D39',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 10,
+    borderColor: COLORS.glassHighlight,
   },
   container: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: SIZES.radiusLg,
+    backgroundColor: COLORS.surfaceContainer,
+    borderRadius: SIZES.radiusGlassPanel,
     paddingVertical: 10,
     paddingHorizontal: 8,
   },
+  grooveBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.02)',
+    borderRadius: SIZES.radiusGlassPanel,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+  },
   slider: {
+    ...SHADOWS.raised,
     position: 'absolute',
     top: 10,
     bottom: 10,
     left: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
-    borderRadius: SIZES.radiusLg,
+    backgroundColor: COLORS.glassSurface,
+    borderRadius: SIZES.radiusToggle,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.9)',
+    borderColor: COLORS.glassHighlight,
     overflow: 'hidden',
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
   },
   sliderHighlight: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: COLORS.innerGlow,
+    borderTopWidth: 1,
+    borderTopColor: '#FFFFFF',
   },
   tab: {
     flex: 1,

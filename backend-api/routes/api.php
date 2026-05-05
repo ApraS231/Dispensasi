@@ -11,6 +11,9 @@ use App\Http\Controllers\Api\Master\UserController;
 use App\Http\Controllers\Api\Master\KelasController;
 use App\Http\Controllers\Api\Master\SiswaProfileController;
 use App\Http\Controllers\Api\Master\PiketScheduleController;
+use App\Http\Controllers\Api\ParentLinkController;
+use App\Http\Controllers\Api\WaliKelasController;
+
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -34,6 +37,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:siswa')->group(function () {
         Route::post('/dispensasi', [DispensasiController::class, 'store']);
         Route::get('/dispensasi/me', [DispensasiController::class, 'myTickets']);
+        Route::get('/siswa/parent-requests', [ParentLinkController::class, 'pendingRequests']);
+        Route::post('/siswa/parent-requests/{id}/respond', [ParentLinkController::class, 'respondRequest']);
     });
 
     // GURU PIKET
@@ -51,9 +56,21 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/dispensasi/{id}/reject', [DispensasiController::class, 'reject']);
     });
 
+    // WALI KELAS ONLY
+    Route::middleware('role:wali_kelas')->group(function () {
+        Route::get('/wali/siswa', [WaliKelasController::class, 'getSiswaKelas']);
+    });
+
     // ORANG TUA
     Route::middleware('role:orang_tua')->group(function () {
         Route::get('/monitoring/anak', [DispensasiController::class, 'monitoringAnak']);
+        Route::get('/ortu/children', [DispensasiController::class, 'getChildren']);
+        Route::get('/ortu/recent-tickets', [DispensasiController::class, 'monitoringAnak']);
+        Route::get('/ortu/search-siswa', [ParentLinkController::class, 'searchSiswa']);
+        Route::get('/ortu/kelas', [ParentLinkController::class, 'getKelas']);
+        Route::post('/ortu/link-request', [ParentLinkController::class, 'sendRequest']);
+        Route::get('/ortu/link-requests', [ParentLinkController::class, 'myRequests']);
+        Route::delete('/ortu/link-request/{id}', [ParentLinkController::class, 'cancelRequest']);
     });
 
     // TICKET CHATS & NOTIFICATIONS (All Authenticated Users)

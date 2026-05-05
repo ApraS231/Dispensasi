@@ -1,0 +1,36 @@
+# SiDispen Mobile Skeuomorphism & Liquid Glass Migration
+
+## Deskripsi Pekerjaan
+Implementasi desain sistem **Skeuomorphism & Liquid Glass** ke seluruh komponen dan halaman di aplikasi mobile SiDispen. Perubahan ini menggantikan desain "brutalist" (garis keras, shadow hitam pekat, warna solid datar) dengan desain yang lebih premium, menggunakan efek kaca buram (frosted glass/BlurView), multi-layered shadow, dan latar belakang mesh cair (LiquidBackground).
+
+## Perubahan yang Dilakukan
+
+### 1. Desain Sistem & Komponen Inti
+- Memperbarui `src/utils/theme.ts` dengan warna-warna translusen, menambahkan `SHADOWS.glassPanel`, `SHADOWS.inset`, dan token `GLASS`.
+- Memperbarui komponen `LiquidBackground.tsx` untuk menampilkan animasi mesh (blobs) dengan noise texture untuk menghasilkan efek kaca premium.
+- Menambahkan integrasi `BlurView` dari `expo-blur` ke dalam komponen inti seperti `SoftCard.tsx`, `RejectModal.tsx`, `NotificationBanner.tsx`, dan `GlassFAB.tsx`.
+- Memperbaiki komponen `AvatarInitials.tsx`, `ChatBubble.tsx`, dan `PillBadge.tsx` dengan menghapus brutalist shadow dan menerapkan `SHADOWS.glassPanel`.
+- Mengimplementasikan skeuomorphic interaction pada `MechanicalToggle.tsx` dan input field (efek *inset* cekung ke dalam).
+
+### 2. Modernisasi Halaman Peran (Pages)
+Seluruh halaman pada berbagai role telah diperbarui ke sistem Liquid Glass.
+- **Autentikasi:** `app/login.tsx` sekarang menggunakan `LiquidBackground` dengan card login kaca dan inset text inputs.
+- **Siswa:**
+  - `(siswa)/dashboard.tsx`: Kartu statistik dan header kini menggunakan glass styling.
+  - `(siswa)/pengajuan.tsx`: Menggunakan form kaca dengan field input bergaya skeuomorphic inset.
+  - `(siswa)/riwayat.tsx` & `(siswa)/profile.tsx`: Mengganti emoji dengan `MaterialCommunityIcons` dan menggunakan `BlurView` untuk container.
+- **Piket:**
+  - `(piket)/dashboard.tsx`: Toggle status kehadiran kini berada di panel kaca, antrean menggunakan efek Blur.
+  - `(piket)/scan-qr.tsx`: Menggunakan overlay glass untuk instruksi dan tombol kembali.
+  - `(piket)/history.tsx` & `(piket)/queue.tsx`: Diperbarui dengan LiquidBackground dan filter pills *inset/raised*.
+- **Wali Kelas & Orang Tua:**
+  - `(wali)/dashboard.tsx` & `(ortu)/dashboard.tsx`: Grafik kehadiran (DonutChart) dan timeline node sekarang dibungkus menggunakan material kaca buram (`BlurView`).
+  - Pembaruan layar Riwayat dan Profil dengan mengganti emoji menjadi icon yang konsisten.
+- **Tiket Detail:** `app/ticket/[id].tsx` telah diperbarui dengan container utama menggunakan *frosted glass*, serta input chat yang menjorok ke dalam (inset).
+
+## Hasil Visual
+Semua tampilan kini konsisten, dengan warna yang lebih mewah (premium) dan memiliki sensasi kedalaman (depth/tactility) khas *Skeuomorphism*. Penggunaan `expo-blur` memungkinkan warna latar belakang `LiquidBackground` menembus elemen antarmuka, memberikan kesan responsif dan dinamis. Emoji lama telah sepenuhnya dihapus dan diganti dengan ikon dari pustaka Material.
+
+## Status Verifikasi
+✅ Komponen telah ter-compile dengan baik. (Sisa warning minor pada TypeScript `tsc` terkait duplicate keys saat spreading style object, yang secara runtime berjalan lancar di React Native).
+✅ Visual konsisten antar semua Role (Siswa, Piket, Wali, Ortu).

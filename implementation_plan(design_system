@@ -1,0 +1,394 @@
+# Skeuomorphism + Liquid Glass Design System untuk SiDispen Mobile
+
+Mengimplementasikan design system baru yang menggabungkan **Skeuomorphism** (kedalaman, tekstur, material nyata) dan **Liquid Glass** (transparan, blur, efek cahaya dinamis) secara konsisten di seluruh aplikasi mobile SiDispen.
+
+## 🧹 Audit: Sisa-sisa Desain Lama yang Harus Dibersihkan
+
+> [!WARNING]
+> Ditemukan **dua sistem desain lama** yang saling bertumpuk (overlap) di seluruh codebase. Berikut rincian temuan yang perlu dibersihkan sebelum implementasi tema baru.
+
+### 1. Sisa "Brutalist" Hard Shadow Pattern (dari iterasi sebelumnya)
+
+Pola `shadowOffset: { width: N, height: N }, shadowOpacity: 1, shadowRadius: 0` — ini adalah efek hard-drop-shadow khas **Brutalism** yang seharusnya sudah tidak digunakan, namun masih tersebar di banyak file:
+
+| File | Baris | Deskripsi |
+|------|-------|-----------|
+| [TopAppBar.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/TopAppBar.tsx#L141-L155) | L141-155 | `iconBtn` dan `avatarBtn` — hard shadow width:2, opacity:1 |
+| [ChatBubble.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/ChatBubble.tsx#L42-L44) | L42-44 | `bubbleWrapper` — inline hard shadow width:3 |
+| [AvatarInitials.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/AvatarInitials.tsx#L43-L46) | L43-46 | Container — hard shadow + `borderRadius: 4` ("Boxy brutalist avatar") |
+| [login.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/login.tsx#L159-L194) | L159-194 | `badgeContainer`, `inputWrapper`, `inputWrapperFocused` — hard shadows + komentar "Brutalist thick border" |
+| [siswa/dashboard.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(siswa)/dashboard.tsx#L138-L177) | L138-177 | `kelasBadge`, `logoutBtn`, `badgeContainer` — hard shadow pattern |
+| [siswa/riwayat.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(siswa)/riwayat.tsx#L160-L201) | L160-201 | `summaryCard`, `searchBar`, `filterPill` — hard shadows + transparent borders |
+| [siswa/pengajuan.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(siswa)/pengajuan.tsx#L299-L355) | L299-355 | `pickerContainer`, `dateInput`, `textarea` — hard shadows |
+| [piket/dashboard.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(piket)/dashboard.tsx#L249-L331) | L249-331 | `statCard`, `toggleContainer`, `scanBtn` — hard shadows |
+| [piket/queue.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(piket)/queue.tsx#L104-L119) | L104-119 | `cardInner`, `reasonBox` — hard shadow + borderWidth:2 transparent |
+| [piket/history.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(piket)/history.tsx#L136-L150) | L136-150 | `searchBar`, `filterPill` — inline hard shadow |
+| [wali/dashboard.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(wali)/dashboard.tsx#L234-L245) | L234-245 | `legendItem` — hard shadow |
+| [wali/history.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(wali)/history.tsx#L136-L148) | L136-148 | `searchBar`, `filterPill` — hard shadow |
+| [ortu/dashboard.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(ortu)/dashboard.tsx#L163-L253) | L163-253 | `logoutBtn`, `childAction`, `typeBadge` — hard shadow |
+| [ortu/riwayat.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(ortu)/riwayat.tsx#L161-L202) | L161-202 | `summaryCard`, `searchBar`, `filterPill` — hard shadows |
+
+### 2. Sisa Style Definitions yang Tidak Terpakai (Dead Code)
+
+| File | Item | Deskripsi |
+|------|------|-----------|
+| [TopAppBar.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/TopAppBar.tsx#L90-L109) | `logoBox`, `logoText` | Style digunakan untuk layout logo lama, tidak lagi di-render |
+| [theme.ts](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/utils/theme.ts#L101-L107) | `bottomStrokePrimary/Secondary/Tertiary/Error` | Shadow objects kosong atau borderWidth:0, artefak dari migrasi M3 |
+| [pengajuan.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(siswa)/pengajuan.tsx#L266) | `backIcon` style | Style didefinisikan tapi tidak digunakan |
+
+### 3. Inkonsistensi Desain Antar Halaman
+
+| Masalah | Lokasi |
+|---------|--------|
+| Background `searchSection` = `COLORS.surfaceContainerLowest` (opaque) padahal seharusnya transparan mengikuti liquid glass | siswa/riwayat.tsx L158, ortu/riwayat.tsx L159 |
+| `backgroundColor: 'transparent'` pada glassCard dan searchBar — kehilangan identitas visual karena transparent tanpa blur | pengajuan.tsx L286, riwayat.tsx L180, piket/history.tsx L139 |
+| Emoji icons (🔍, ✕, 📭, ➔) bukan `MaterialCommunityIcons` — inkonsisten dengan rest of app | notifications.tsx L121, riwayat.tsx L97/L107, profile.tsx L30, history.tsx L83 |
+| `borderRadius: 4` ("Boxy brutalist") pada AvatarInitials — kontra dengan liquid glass aesthetic | AvatarInitials.tsx L46 |
+
+---
+
+## Proposed Changes
+
+### Fase 1: Cleanup Sisa Desain Lama
+
+Membersihkan semua sisa-sisa desain brutalist/lama sebelum menerapkan tema baru.
+
+---
+
+#### [MODIFY] [theme.ts](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/utils/theme.ts)
+
+**Perubahan:**
+- Memperbarui `COLORS` dengan palet skeuomorphism+liquid glass yang lebih kaya:
+  - Menambahkan `glassSurface`, `glassHighlight`, `glassBorder` — warna khusus efek kaca
+  - Menambahkan `depthShadow` — warna shadow realistis (bukan primary warna)
+  - Menambahkan `innerGlow`, `ambientLight` — efek cahaya dalam
+- Memperbarui `SHADOWS` agar realistis:
+  - `softCard` → multi-layer shadow (ambient + key light) seperti floating card
+  - `glassPanel` → shadow lembut + white glass border highlight
+  - `raised` → efek tombol yang "naik" (skeuomorphic pressed/raised state)
+  - `inset` → efek inner shadow untuk input fields dan recessed areas
+  - Menghapus `bottomStrokePrimary/Secondary/Tertiary/Error` yang kosong
+- Menambahkan `GLASS` config object:
+  - `blurIntensity` — default blur intensity untuk BlurView
+  - `tintColor` — glass tint color
+  - `opacity` — default glass overlay opacity
+- Memperbarui `SIZES`:
+  - Menambahkan `radiusGlassPanel: 28` — radius untuk glass containers
+  - Menambahkan `radiusToggle: 24` — toggle pill shape
+
+---
+
+#### [MODIFY] [LiquidBackground.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/LiquidBackground.tsx)
+
+**Perubahan:**
+- Meningkatkan jumlah blob menjadi 5 dengan warna gradient yang lebih kaya
+- Menambahkan layer `noise texture` via overlay opacity pattern untuk skeuomorphism
+- Mengoptimalkan performa dengan `shouldRasterizeIOS` dan `renderToHardwareTextureAndroid`
+- Menambahkan subtle "refraction" effect — saat blob melewati area tertentu, overlay opacity berubah
+
+---
+
+#### [MODIFY] [SoftCard.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/SoftCard.tsx)
+
+**Perubahan:**
+- Menggunakan `BlurView` sebagai inner layer untuk efek frosted glass nyata
+- Menambahkan inner highlight gradient (top edge glow)
+- Shadow menjadi multi-layer: ambient (spread, low opacity) + directional (offset, medium opacity)
+- Border menjadi gradient-like dengan `rgba(255,255,255,0.6)` top edge, `rgba(255,255,255,0.2)` bottom
+
+---
+
+#### [MODIFY] [TopAppBar.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/TopAppBar.tsx)
+
+**Perubahan:**
+- Menghapus hard shadow (shadowRadius:0, shadowOpacity:1) dari `iconBtn` dan `avatarBtn`
+- Menggunakan `BlurView` sebagai background container
+- Menambahkan efek frosted glass separator di bottom edge
+- Menghapus dead code: `logoBox`, `logoText` styles
+
+---
+
+#### [MODIFY] [BottomTabBar.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/BottomTabBar.tsx)
+
+**Perubahan:**
+- Meningkatkan blur intensity dan menambahkan inner glass highlight
+- Slider indicator mendapat efek glow animasi saat pindah tab
+- Menambahkan subtle skeuomorphic "groove" pada inactive area
+
+---
+
+#### [MODIFY] [BouncyButton.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/BouncyButton.tsx)
+
+**Perubahan:**
+- Primary variant: gradient background (dari terang ke gelap) + inner highlight edge
+- Menambahkan `pressedShadow` (inset shadow) saat ditekan — efek tombol fisik
+- Outlined variant: glass background dengan blur
+- Menggunakan multi-layer realistic shadow bukan flat SHADOWS.elevation2
+
+---
+
+#### [MODIFY] [GlassFAB.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/GlassFAB.tsx)
+
+**Perubahan:**
+- Menambahkan `BlurView` inner layer
+- Menambahkan pulse glow animation pada idle state
+- Shadow diperkuat untuk efek "floating" yang lebih jelas
+
+---
+
+#### [MODIFY] [AvatarInitials.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/AvatarInitials.tsx)
+
+**Perubahan:**
+- Mengubah `borderRadius: 4` (boxy) menjadi circular (`size/2`)
+- Menghapus hard shadow (shadowOpacity:1, shadowRadius:0)
+- Menambahkan ring highlight effect (2px glass border)
+- Menambahkan gradient background dari secondaryContainer
+
+---
+
+#### [MODIFY] [ChatBubble.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/ChatBubble.tsx)
+
+**Perubahan:**
+- Menghapus inline hard shadow (shadowOffset:3, shadowOpacity:1, shadowRadius:0)
+- Bubble "mine" mendapat glass effect + light border
+- Bubble "other" mendapat subtle frosted background
+- Menambahkan soft realistic shadow
+
+---
+
+#### [MODIFY] [MechanicalToggle.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/MechanicalToggle.tsx)
+
+**Perubahan:**
+- Track mendapat inset shadow (recessed groove) — skeuomorphic slot
+- Knob mendapat embossed look: inner highlight + cast shadow
+- Glass material effect pada track background
+- Menghapus borderColor transparent
+
+---
+
+#### [MODIFY] [DailyLogCard.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/DailyLogCard.tsx)
+
+**Perubahan:**
+- Card background menjadi glass material (BlurView + rgba overlay)
+- Badge mendapat glass pill effect
+- Border menjadi glass highlight
+
+---
+
+#### [MODIFY] [NotificationBanner.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/NotificationBanner.tsx)
+
+**Perubahan:**
+- Container menjadi glass panel
+- Icon box mendapat skeuomorphic inset effect
+- Unread dot mendapat glow animation
+
+---
+
+#### [MODIFY] [RejectModal.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/RejectModal.tsx)
+
+**Perubahan:**
+- Modal container menggunakan BlurView background (frosted glass)
+- Input field mendapat inset shadow (skeuomorphic field)
+- Overlay backdrop mendapat blur effect
+
+---
+
+#### [MODIFY] [PillBadge.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/PillBadge.tsx)
+
+**Perubahan:**
+- Badge mendapat glass highlight border
+- Menambahkan subtle inner glow matching badge color
+
+---
+
+### Fase 2: Cleanup dan Update Semua Pages
+
+Membersihkan hard shadow brutalist dari setiap page dan menggunakan tokens dari theme.ts yang baru.
+
+---
+
+#### [MODIFY] [login.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/login.tsx)
+
+**Perubahan:**
+- Menghapus semua inline hard shadow patterns (6 instances)
+- Menghapus komentar "Brutalist thick border"
+- Input fields mendapat inset shadow (recessed) dari `SHADOWS.inset`
+- Badge container mendapat glass treatment
+- Input focus state menjadi glow border bukan translate transform
+
+---
+
+#### [MODIFY] [notifications.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/notifications.tsx)
+
+**Perubahan:**
+- Emoji icon 📭 → MaterialCommunityIcons `mailbox-open-outline`
+- Back button (← text) → MaterialCommunityIcons `arrow-left`
+- Header mendapat glass panel background
+
+---
+
+#### [MODIFY] [profile-settings.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/profile-settings.tsx)
+
+**Perubahan:**
+- Back button (← text) → MaterialCommunityIcons icon
+- Input fields mendapat inset shadow style
+- Glass panel treatment pada cards
+
+---
+
+#### [MODIFY] [siswa/dashboard.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(siswa)/dashboard.tsx)
+
+**Perubahan:**
+- Menghapus inline hard shadows dari `kelasBadge`, `logoutBtn`, `badgeContainer` (6 properties)
+- Menggunakan `SHADOWS.glassPanel` dari theme
+- `logoutBtn` mendapat glass + subtle shadow
+- `kelasBadge` mendapat glass pill styling
+
+---
+
+#### [MODIFY] [siswa/pengajuan.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(siswa)/pengajuan.tsx)
+
+**Perubahan:**
+- Menghapus hard shadow dari `pickerContainer`, `dateInput`, `textarea` (9 properties)
+- Menghapus `backIcon` dead style
+- Form fields mendapat `SHADOWS.inset`
+- `glassCard` mendapat glass panel styling (bukan transparent kosong)
+
+---
+
+#### [MODIFY] [siswa/riwayat.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(siswa)/riwayat.tsx)
+
+**Perubahan:**
+- Menghapus hard shadow dari `summaryCard`, `searchBar` (6 properties)
+- `searchSection` background menjadi transparent (bukan surfaceContainerLowest)
+- Filter pills mendapat glass treatment
+- Emoji 🔍 → MaterialCommunityIcons `magnify`
+
+---
+
+#### [MODIFY] [siswa/profile.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(siswa)/profile.tsx)
+
+**Perubahan:**
+- Emoji icons (P, K, H, ➔) → MaterialCommunityIcons proper icons
+- Option chevron mendapat proper icon
+- Glass treatment pada menu cards
+
+---
+
+#### [MODIFY] [piket/dashboard.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(piket)/dashboard.tsx)
+
+**Perubahan:**
+- Menghapus hard shadow dari `statCard`, `toggleContainer`, `scanBtn` (9 properties)
+- Glass treatment pada stat cards
+- Toggle container mendapat inset styling
+- Scan button mendapat raised skeuomorphic look
+
+---
+
+#### [MODIFY] [piket/queue.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(piket)/queue.tsx)
+
+**Perubahan:**
+- Menghapus hard shadow dari `cardInner` (3 properties)
+- `reasonBox` borderWidth:2 transparent → glass inset field
+
+---
+
+#### [MODIFY] [piket/history.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(piket)/history.tsx)
+
+**Perubahan:**
+- Menghapus inline hard shadow dari `searchBar` (1 line)
+- Filter pills mendapat glass treatment
+
+---
+
+#### [MODIFY] [piket/profile.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(piket)/profile.tsx)
+
+**Perubahan:**
+- Emoji icons → MaterialCommunityIcons
+
+---
+
+#### [MODIFY] [wali/dashboard.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(wali)/dashboard.tsx)
+
+**Perubahan:**
+- Menghapus hard shadow dari `legendItem` (3 properties)
+- Glass treatment pada legend items
+- LED dot mendapat enhanced glow
+
+---
+
+#### [MODIFY] [wali/history.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(wali)/history.tsx)
+
+**Perubahan:**
+- Menghapus inline hard shadow dari `searchBar`
+- Glass filter pills
+
+---
+
+#### [MODIFY] [ortu/dashboard.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(ortu)/dashboard.tsx)
+
+**Perubahan:**
+- Menghapus hard shadow dari `logoutBtn`, `childAction`, `typeBadge` (6 properties)
+- Glass treatment pada child cards
+- Timeline cards mendapat glass panel
+
+---
+
+#### [MODIFY] [ortu/riwayat.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(ortu)/riwayat.tsx)
+
+**Perubahan:**
+- Menghapus hard shadow dari `summaryCard`, `searchBar` (6 properties)
+- Glass filter pills
+- Emoji → MaterialCommunityIcons
+
+---
+
+#### [MODIFY] [ticket/[id].tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/ticket/[id].tsx)
+
+**Perubahan:**
+- Card mendapat glass panel treatment
+- Input container mendapat frosted glass
+- Send button mendapat raised style
+
+---
+
+## Ringkasan Skala Perubahan
+
+| Kategori | Jumlah File | Estimasi Properti yang Berubah |
+|----------|-------------|-------------------------------|
+| **Cleanup hard shadow** | 18 files | ~70 style properties |
+| **Emoji → Icon** | 6 files | ~12 instances |
+| **Dead code removal** | 3 files | ~15 lines |
+| **Glass treatment (BlurView)** | 12 components | ~45 style blocks |
+| **Theme tokens** | 1 file | ~30 new/updated values |
+| **Total** | **~30 files** | **~170 changes** |
+
+## Design Vision: Skeuomorphism + Liquid Glass
+
+### Prinsip Desain
+
+1. **Glass Material** — Semua card, panel, dan container menggunakan frosted glass (BlurView + translucent bg + glass border highlight)
+2. **Physical Depth** — Shadow multi-layer realistis (ambient + directional) menggantikan flat/hard shadows
+3. **Tactile Elements** — Buttons terasa "bisa ditekan" (raised state + inset pressed state), inputs terasa "terpahat" (inset shadow)
+4. **Light Interaction** — Glass borders yang menyala di edge atas, subtle inner glow yang berubah saat interact
+5. **Liquid Movement** — Background blobs tetap bergerak, tab transitions smooth, button feedback bouncy
+
+### Palet Tetap Biru
+
+Palet warna tetap menggunakan blue palette yang sudah ada (`#0A4174`, `#49769F`, `#7BBDE8`, `#BDD8E9`) dengan penambahan glass-specific tokens.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- `npx tsc --noEmit` — memastikan tidak ada TypeScript error setelah perubahan
+- Run existing jest tests: `npm test`
+
+### Manual Verification
+- Test setiap role (siswa, piket, wali, ortu) di Expo Go:
+  - Cek bahwa semua hard shadow sudah tidak ada
+  - Cek bahwa glass blur effect terlihat di device
+  - Cek bahwa button press feedback skeuomorphic terasa
+  - Cek bahwa semua emoji sudah diganti MaterialCommunityIcons
+  - Cek performa (smooth scrolling, no jank dari BlurView berlebihan)

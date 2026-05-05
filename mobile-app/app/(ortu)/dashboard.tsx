@@ -1,27 +1,43 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
 import { router as expoRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import { useQuery } from '@tanstack/react-query';
+import { BlurView } from 'expo-blur';
 import api from '../../src/utils/api';
 import { useAuthStore } from '../../src/stores/authStore';
-import SoftCard from '../../src/components/SoftCard';
-import TimelineNode from '../../src/components/TimelineNode';
-import TopAppBar from '../../src/components/TopAppBar';
+import SkeuCard from '../../src/components/SkeuCard';
 import AvatarInitials from '../../src/components/AvatarInitials';
-import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../../src/utils/theme';
+import TopAppBar from '../../src/components/TopAppBar';
+import LiquidBackground from '../../src/components/LiquidBackground';
+import AnimatedEntrance from '../../src/components/AnimatedEntrance';
+import RefreshableFlatList from '../../src/components/RefreshableFlatList';
+import LogoutButton from '../../src/components/LogoutButton';
+import TimelineNode from '../../src/components/TimelineNode';
+import { COLORS, FONTS, SIZES, SPACING, SHADOWS, GLASS } from '../../src/utils/theme';
+import { commonStyles } from '../../src/utils/commonStyles';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSharedValue } from 'react-native-reanimated';
 
 export default function OrtuDashboard() {
   const { user, logout } = useAuthStore();
-  const children = (user as any)?.anak || [];
-  const { data: tickets = [], isLoading: loading } = useQuery({
-    queryKey: ['monitoring-anak'],
+  const scrollY = useSharedValue(0);
+
+  const { data: children, isLoading: isLoadingChildren } = useQuery({
+    queryKey: ['ortu-children'],
     queryFn: async () => {
-      const { data } = await api.get('/monitoring/anak');
+      const { data } = await api.get('/ortu/children');
       return data;
     }
   });
 
+  const { data: tickets = [], isLoading: isLoadingTickets, refetch } = useQuery({
+    queryKey: ['ortu-recent-tickets'],
+    queryFn: async () => {
+      const { data } = await api.get('/ortu/recent-tickets');
+      return data;
+    }
+  });
 
   const handleLogout = async () => {
     try { await api.post('/logout'); } catch (e) {}
@@ -30,68 +46,82 @@ export default function OrtuDashboard() {
     expoRouter.replace('/login');
   };
 
-  const child = tickets.length > 0 && tickets[0].siswa ? tickets[0].siswa : null;
-  const childClass = tickets.length > 0 && tickets[0].kelas ? tickets[0].kelas.nama_kelas : 'Siswa';
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
+
+  const renderHeader = () => (
+    <View style={commonStyles.mainContent}>
+      <View style={{ height: 88 + SPACING.statusBar }} />
+      
+      <View style={commonStyles.headerContainer}>
+        {children?.map((child: any, index: number) => (
+          <AnimatedEntrance key={child.id} delay={300 + (index * 100)} direction="down">
+            <TouchableOpacity onPress={() => expoRouter.push(`/(ortu)/child/${child.id}`)}>
+              <SkeuCard isGlass style={styles.childCard}>
+                <View style={styles.childHeaderRow}>
+                  <AvatarInitials name={child.name} size={48} fontSize={20} />
+                  <View style={styles.childMeta}>
+                    <Text style={styles.childName}>{child.name}</Text>
+                    <Text style={styles.childClass}>NIS: {child.nis || '-'}</Text>
+                  </View>
+                  <View style={styles.childAction}>
+                    <Text style={styles.childActionText}>Profil <MaterialCommunityIcons name="arrow-right" size={12} color={COLORS.textPrimary} /></Text>
+                  </View>
+                </View>
+              </SkeuCard>
+            </TouchableOpacity>
+          </AnimatedEntrance>
+        ))}
+      </View>
+
+      {/* Timeline Content */}
+      <View style={styles.contentContainer}>
+        <AnimatedEntrance delay={600} direction="up">
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Izin Terbaru</Text>
+            <TouchableOpacity onPress={() => expoRouter.push('/(ortu)/riwayat')}>
+              <Text style={styles.seeAllText}>Riwayat Lengkap</Text>
+            </TouchableOpacity>
+          </View>
+        </AnimatedEntrance>
+      </View>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
+      <LiquidBackground />
       <SafeAreaView style={styles.safeArea}>
         
         <TopAppBar 
           showAvatar={true} 
           avatarLabel={user?.name?.charAt(0)?.toUpperCase() || 'O'} 
           showNotification={true} 
+          scrollY={scrollY}
         />
 
-        <View style={styles.mainContent}>
-          {/* Header Area */}
-          <View style={styles.headerContainer}>
-            <View style={styles.greetingRow}>
-              <View>
-                <Text style={styles.greeting}>Pantau Aktivitas Anak</Text>
-                <Text style={styles.name}>{user?.name ?? 'Orang Tua'}</Text>
-              </View>
-              <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
-                <Text style={styles.logoutText}>Keluar</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Child Profile Card */}
-            {children.map((child: any) => (
-              <SoftCard style={styles.childCard} key={child.id}>
-                <View style={styles.childHeaderRow}><AvatarInitials name={child.name} size={48} fontSize={20} />
-                <View style={styles.childMeta}>
-                  <Text style={styles.childName}>{child.name}</Text>
-                  <Text style={styles.childClass}>NIS: {child.nis || '-'}</Text>
-                </View>
-                <View style={styles.childAction}>
-                  <Text style={styles.childActionText}>Profil ➔</Text>
-                </View></View>
-              </SoftCard>
-            ))}
-          </View>
-
-          {/* Timeline Content */}
-          <View style={styles.contentContainer}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Izin Terbaru</Text>
-              <TouchableOpacity onPress={() => expoRouter.push('/(ortu)/riwayat')}>
-                <Text style={styles.seeAllText}>Riwayat Lengkap</Text>
-              </TouchableOpacity>
-            </View>
-
-            <FlatList
-              data={tickets.slice(0, 3)} // Show only 3 recent on dashboard
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.listContent}
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item }) => {
-                const date = new Date(item.created_at).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
-                const isApprovedByWali = item.status === 'approved_by_wali' || item.status === 'approved_final';
-                const isApprovedFinal = item.status === 'approved_final';
-                const isRejected = item.status === 'rejected';
-                
-                return (
+        <RefreshableFlatList
+          data={tickets.slice(0, 3)} // Show only 3 recent on dashboard
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          scrollY={scrollY}
+          ListHeaderComponent={renderHeader}
+          renderItem={({ item, index }) => {
+            const date = new Date(item.created_at).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
+            const isApprovedByWali = item.status === 'approved_by_wali' || item.status === 'approved_final';
+            const isApprovedFinal = item.status === 'approved_final';
+            const isRejected = item.status === 'rejected';
+            
+            return (
+              <View style={{ paddingHorizontal: SPACING.md }}>
+                <AnimatedEntrance delay={800 + (index * 200)} direction="up" offset={20}>
                   <TouchableOpacity 
                     style={styles.ticketWrapper} 
                     activeOpacity={0.8}
@@ -104,7 +134,7 @@ export default function OrtuDashboard() {
                       </View>
                     </View>
                     
-                    <SoftCard style={styles.timelineCard}>
+                    <BlurView intensity={GLASS.blurIntensity} tint={GLASS.tintColor} style={styles.timelineCard}>
                       <View>
                         <TimelineNode 
                           title="Pengajuan Dibuat" 
@@ -129,23 +159,22 @@ export default function OrtuDashboard() {
                           isLast
                         />
                       </View>
-                    </SoftCard>
+                    </BlurView>
                   </TouchableOpacity>
-                );
-              }}
-              ListEmptyComponent={<Text style={styles.emptyText}>Anak Anda belum memiliki catatan izin.</Text>}
-            />
-          </View>
-        </View>
-
-        
+                </AnimatedEntrance>
+              </View>
+            );
+          }}
+          ListEmptyComponent={<Text style={styles.emptyText}>Anak Anda belum memiliki catatan izin.</Text>}
+        />
       </SafeAreaView>
+
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'transparent' },
+  container: { flex: 1, backgroundColor: COLORS.bgWhite },
   safeArea: { flex: 1 },
   mainContent: { flex: 1 },
   headerContainer: {
@@ -163,22 +192,24 @@ const styles = StyleSheet.create({
   logoutBtn: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: COLORS.error,
     borderRadius: SIZES.radiusButton,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
+    borderWidth: 1,
+    borderColor: COLORS.error,
+    overflow: 'hidden',
+    backgroundColor: COLORS.errorBg,
   },
-  logoutText: { fontFamily: FONTS.headingSemi, color: COLORS.inverseOnSurface, fontSize: 12 },
+  logoutText: { fontFamily: FONTS.headingSemi, color: COLORS.error, fontSize: 12 },
   
   childCard: {
+    ...SHADOWS.glassPanel,
     flexDirection: 'row',
     alignItems: 'center',
     padding: SPACING.md,
-    backgroundColor: COLORS.secondaryContainer, // Teal/Mint
+    borderRadius: SIZES.radiusCard,
+    borderWidth: 1,
+    borderColor: COLORS.glassHighlight,
+    overflow: 'hidden',
+    marginBottom: SPACING.sm,
   },
   childHeaderRow: {
     flexDirection: 'row',
@@ -201,12 +232,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   childAction: {
-    backgroundColor: 'transparent',
     paddingHorizontal: SPACING.sm,
     paddingVertical: 4,
     borderRadius: SIZES.radiusButton,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    borderWidth: 1,
+    borderColor: COLORS.glassHighlight,
   },
   childActionText: {
     fontFamily: FONTS.headingSemi,
@@ -245,21 +275,27 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   typeBadge: {
-    backgroundColor: COLORS.primaryContainer,
+    backgroundColor: COLORS.surfaceContainerLow,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: SIZES.radiusButton,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    borderWidth: 1,
+    borderColor: COLORS.primaryLight,
   },
   typeBadgeText: {
     fontFamily: FONTS.labelCaps,
     fontSize: 10,
-    color: COLORS.textPrimary,
+    color: COLORS.primary,
   },
   timelineCard: {
+    ...SHADOWS.glassPanel,
     padding: SPACING.md,
     paddingTop: SPACING.lg,
+    borderRadius: SIZES.radiusCard,
+    borderWidth: 1,
+    borderColor: COLORS.glassHighlight,
+    overflow: 'hidden',
   },
   emptyText: { fontFamily: FONTS.body, textAlign: 'center', color: COLORS.textMuted, marginTop: SPACING.xl, fontSize: 14 },
 });
+

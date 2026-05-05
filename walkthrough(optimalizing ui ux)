@@ -1,0 +1,39 @@
+# UI/UX Enhancement Walkthrough
+
+This document summarizes the interactive and visual improvements made to the SiDispen mobile application.
+
+## 1. Entrance & Transition Animations
+We implemented a staggered entrance system to make the app feel "alive" as it loads.
+- **`AnimatedEntrance.tsx`**: A reusable component that handles fade, scale, and slide transitions.
+- **Dashboards**: Applied to all role-based dashboards (Siswa, Piket, Wali, Ortu) for headers, cards, and list items.
+- **Login Screen**: Staggered reveal of the login form elements.
+
+## 2. Typewriter Effect
+The welcome message on the login screen now features a typewriter animation.
+- **File**: [login.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/login.tsx)
+- **Effect**: "Selamat Datang!" types out character by character upon entry.
+
+## 3. Animated Statistics
+Counters and charts now animate their values instead of showing them statically.
+- **`AnimatedCounter.tsx`**: Used for numeric statistics (e.g., total tickets, counts).
+- **`DonutChart.tsx`**: Added a "drawing" SVG animation for the attendance ring in the Wali dashboard.
+
+## 4. Gesture-Based Interactions
+Improved the "feel" of interactions using native gesture handlers.
+- **Bottom Sheet Migration**: [RejectModal.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/RejectModal.tsx) now uses `@gorhom/bottom-sheet`, providing a liquid, swipeable interaction for rejecting tickets.
+- **Gesture Root**: Configured `GestureHandlerRootView` globally in [\_layout.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/_layout.tsx).
+
+## 5. Micro-Animations
+Subtle visual cues to guide the user's attention.
+- **Pulse Effects**: Added to the [TopAppBar](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/TopAppBar.tsx) notification dot and [PillBadge](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/PillBadge.tsx) for active statuses.
+- **Haptic Feedback**: Integrated light haptics into toggles and buttons.
+
+## 6. Shimmer Loading States (Optional)
+Prepared `ShimmerPlaceholder.tsx` for future use in data-heavy screens to maintain the glass-morphism aesthetic during network requests.
+
+---
+
+### Key Components Added
+- [AnimatedEntrance.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/AnimatedEntrance.tsx)
+- [AnimatedCounter.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/AnimatedCounter.tsx)
+- [ShimmerPlaceholder.tsx](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/components/ShimmerPlaceholder.tsx)

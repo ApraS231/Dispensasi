@@ -1,17 +1,24 @@
 import { HapticFeedback } from '../../src/utils/haptics';
-import React, { useRef } from 'react';
+import React, { useState } from 'react';
 import { 
   Text, 
   StyleSheet, 
-  Animated, 
   Pressable, 
   ViewStyle, 
   TextStyle, 
-  ActivityIndicator 
+  ActivityIndicator,
+  View
 } from 'react-native';
-import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../utils/theme';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSpring,
+  withSequence,
+  withTiming
+} from 'react-native-reanimated';
+import { COLORS, FONTS, SIZES, SPACING, SHADOWS, GLASS } from '../utils/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { ICONS } from '../utils/icons';
+import { BlurView } from 'expo-blur';
 
 interface BouncyButtonProps {
   title: string;
@@ -35,30 +42,33 @@ export default function BouncyButton({
   icon
 }: BouncyButtonProps) {
   
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(1);
+  const [isPressed, setIsPressed] = useState(false);
 
   const handlePressIn = () => {
     if (disabled || loading) return;
     HapticFeedback.light();
+    setIsPressed(true);
     
-    Animated.spring(scaleAnim, {
-      toValue: 0.95,
-      useNativeDriver: true,
-      speed: 20,
-      bounciness: 5,
-    }).start();
+    scale.value = withSpring(0.92, { damping: 12, stiffness: 400 });
+    opacity.value = withTiming(0.85, { duration: 100 });
   };
 
   const handlePressOut = () => {
     if (disabled || loading) return;
+    setIsPressed(false);
     
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      speed: 15,
-      bounciness: 10,
-    }).start();
+    scale.value = withSpring(1, { damping: 10, stiffness: 300, mass: 0.8 });
+    opacity.value = withTiming(1, { duration: 150 });
   };
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }],
+      opacity: opacity.value,
+    };
+  });
 
   const getVariantStyles = () => {
     switch (variant) {
@@ -66,31 +76,61 @@ export default function BouncyButton({
         return { 
           bg: COLORS.secondaryContainer, 
           text: COLORS.onSecondaryContainer, 
-          border: COLORS.outlineVariant
+          border: COLORS.glassBorder,
+          useGlass: true
         };
       case 'outlined':
         return { 
-          bg: 'rgba(255, 255, 255, 0.4)',
+          bg: COLORS.glassSurface,
           text: COLORS.textPrimary,
-          border: 'rgba(255, 255, 255, 0.8)'
+          border: COLORS.glassHighlight,
+          useGlass: true
         };
       case 'danger':
         return { 
           bg: COLORS.error, 
           text: COLORS.onPrimary,
-          border: COLORS.outlineVariant
+          border: COLORS.glassBorder,
+          useGlass: false
         };
       case 'primary':
       default:
         return { 
           bg: COLORS.primary, 
           text: COLORS.onPrimary, 
-          border: COLORS.outlineVariant
+          border: COLORS.glassBorder,
+          useGlass: false
         };
     }
   };
 
   const styleConfig = getVariantStyles();
+
+  const InnerContent = () => (
+    <>
+      {loading ? (
+        <ActivityIndicator color={disabled ? COLORS.textMuted : styleConfig.text} />
+      ) : (
+        <>
+          {icon && (
+            <MaterialCommunityIcons 
+              name={icon} 
+              size={20} 
+              color={disabled ? COLORS.textMuted : styleConfig.text} 
+              style={styles.icon} 
+            />
+          )}
+          <Text style={[
+            styles.text, 
+            { color: disabled ? COLORS.textMuted : styleConfig.text }, 
+            textStyle
+          ]}>
+            {title}
+          </Text>
+        </>
+      )}
+    </>
+  );
 
   return (
     <Pressable
@@ -102,35 +142,22 @@ export default function BouncyButton({
     >
       <Animated.View style={[
         styles.container,
-        SHADOWS.elevation2,
         { 
           backgroundColor: disabled ? COLORS.surfaceContainerHigh : styleConfig.bg,
           borderColor: styleConfig.border,
           borderWidth: 1.5,
         },
-        { transform: [{ scale: scaleAnim }] }
+        SHADOWS.raised,
+        animatedStyle
       ]}>
-        {loading ? (
-          <ActivityIndicator color={disabled ? COLORS.textMuted : styleConfig.text} />
-        ) : (
-          <>
-            {icon && (
-              <MaterialCommunityIcons 
-                name={icon} 
-                size={20} 
-                color={disabled ? COLORS.textMuted : styleConfig.text} 
-                style={styles.icon} 
-              />
-            )}
-            <Text style={[
-              styles.text, 
-              { color: disabled ? COLORS.textMuted : styleConfig.text }, 
-              textStyle
-            ]}>
-              {title}
-            </Text>
-          </>
-        )}
+        {styleConfig.useGlass ? (
+          <BlurView 
+            intensity={GLASS.blurIntensity} 
+            tint={GLASS.tintColor}
+            style={StyleSheet.absoluteFill}
+          />
+        ) : null}
+        <InnerContent />
       </Animated.View>
     </Pressable>
   );
@@ -145,6 +172,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     borderRadius: SIZES.radiusButton,
     minHeight: 48,
+    overflow: 'hidden', // Important for BlurView
   },
   text: {
     fontFamily: FONTS.headingSemi,

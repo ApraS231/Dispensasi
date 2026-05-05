@@ -1,0 +1,251 @@
+# Fitur: Menghubungkan Akun Orang Tua & Anak (Parent-Child Linking)
+
+Fitur ini memungkinkan orang tua mencari dan mengajukan permintaan hubungkan akun ke siswa. Siswa kemudian dapat mengkonfirmasi atau menolak permintaan tersebut dari dashboard mereka. Setelah dikonfirmasi, kolom `orang_tua_id` pada `siswa_profiles` akan terisi otomatis.
+
+## Keputusan Desain (Disetujui User)
+
+- ✅ **Tanpa Admin**: Alur langsung antara orang tua dan siswa, tanpa perantara admin.
+- ✅ **Pencarian**: Orang tua memilih **kelas** terlebih dahulu, lalu mencari **nama** siswa di kelas tersebut. Tidak perlu NIS.
+- ✅ **Batas 2 Anak**: Maksimal 2 anak per akun orang tua.
+- ✅ **Permanen**: Setelah terhubung, hubungan tidak bisa diputuskan.
+
+---
+
+## Proposed Changes
+
+### 1. Database — Migration Baru
+
+#### [NEW] `create_parent_link_requests_table.php`
+
+Tabel baru untuk menyimpan permintaan penghubungan yang belum dikonfirmasi.
+
+```php
+Schema::create('parent_link_requests', function (Blueprint $table) {
+    $table->uuid('id')->primary();
+    $table->foreignUuid('parent_id')->constrained('users')->onDelete('cascade');
+    $table->foreignUuid('siswa_id')->constrained('users')->onDelete('cascade');
+    $table->enum('status', ['pending', 'accepted', 'rejected'])->default('pending');
+    $table->timestamps();
+
+    // Satu orang tua hanya bisa mengirim 1 request aktif ke 1 siswa
+    $table->unique(['parent_id', 'siswa_id']);
+});
+```
+
+---
+
+### 2. Backend — Model
+
+#### [NEW] `app/Models/ParentLinkRequest.php`
+
+Model Eloquent baru dengan relasi ke `User` (parent & siswa).
+
+```php
+class ParentLinkRequest extends Model
+{
+    use HasUuids;
+    protected $guarded = [];
+
+    public function parent() {
+        return $this->belongsTo(User::class, 'parent_id');
+    }
+
+    public function siswa() {
+        return $this->belongsTo(User::class, 'siswa_id');
+    }
+}
+```
+
+---
+
+### 3. Backend — Controller
+
+#### [NEW] `app/Http/Controllers/Api/ParentLinkController.php`
+
+Controller baru dengan 5 method utama:
+
+| Method | Endpoint | Role | Deskripsi |
+|---|---|---|---|
+| `searchSiswa` | `GET /ortu/search-siswa?q=` | `orang_tua` | Cari siswa berdasarkan nama (max 10 hasil, data terbatas) |
+| `sendRequest` | `POST /ortu/link-request` | `orang_tua` | Kirim permintaan ke siswa |
+| `myRequests` | `GET /ortu/link-requests` | `orang_tua` | Daftar permintaan yang dikirim orang tua |
+| `pendingRequests` | `GET /siswa/parent-requests` | `siswa` | Daftar permintaan masuk untuk siswa |
+| `respondRequest` | `POST /siswa/parent-requests/{id}/respond` | `siswa` | Terima (`accept`) atau tolak (`reject`) |
+
+**Logika `respondRequest`:**
+- Jika `accept`: Update `siswa_profiles.orang_tua_id` = `request.parent_id`, update status request menjadi `accepted`, kirim push notification ke orang tua.
+- Jika `reject`: Update status request menjadi `rejected`, kirim push notification ke orang tua.
+
+**Logika `searchSiswa`:**
+- Cari user dengan `role = 'siswa'` yang namanya mengandung query string.
+- Hanya kembalikan `id`, `name`, `kelas.nama_kelas` (tanpa data sensitif).
+- Exclude siswa yang sudah memiliki `orang_tua_id` (sudah dihubungkan).
+- Limit 10 hasil.
+
+---
+
+### 4. Backend — Routes
+
+#### [MODIFY] [api.php](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/routes/api.php)
+
+Menambahkan route baru di dalam group `orang_tua` dan `siswa`:
+
+```diff
+    // ORANG TUA
+    Route::middleware('role:orang_tua')->group(function () {
+        Route::get('/monitoring/anak', ...);
+        Route::get('/ortu/children', ...);
+        Route::get('/ortu/recent-tickets', ...);
++       Route::get('/ortu/search-siswa', [ParentLinkController::class, 'searchSiswa']);
++       Route::post('/ortu/link-request', [ParentLinkController::class, 'sendRequest']);
++       Route::get('/ortu/link-requests', [ParentLinkController::class, 'myRequests']);
++       Route::delete('/ortu/link-request/{id}', [ParentLinkController::class, 'cancelRequest']);
+    });
+
+    // SISWA
+    Route::middleware('role:siswa')->group(function () {
+        Route::post('/dispensasi', ...);
+        Route::get('/dispensasi/me', ...);
++       Route::get('/siswa/parent-requests', [ParentLinkController::class, 'pendingRequests']);
++       Route::post('/siswa/parent-requests/{id}/respond', [ParentLinkController::class, 'respondRequest']);
+    });
+```
+
+---
+
+### 5. Mobile — Halaman Orang Tua: Kelola Anak
+
+#### [NEW] `app/(ortu)/kelola-anak.tsx`
+
+Halaman utama untuk orang tua mengelola profil anak mereka. Terdiri dari 3 bagian utama:
+
+**Section A — Anak yang Sudah Terhubung**
+- Menampilkan daftar anak yang sudah terkonfirmasi (dari endpoint `/ortu/children`).
+- Setiap item menampilkan Avatar, Nama, Kelas, dan NIS.
+- Menggunakan komponen `SkeuCard isGlass` yang sudah ada.
+
+**Section B — Permintaan Tertunda**
+- Menampilkan daftar permintaan yang masih `pending` (dari `/ortu/link-requests`).
+- Setiap item menampilkan nama siswa dan tombol "Batalkan".
+- Badge status animasi `PillBadge` dengan warna kuning.
+
+**Section C — Pencarian Siswa Baru**
+- Menggunakan komponen `SearchBar` yang sudah ada.
+- Hasil pencarian ditampilkan sebagai daftar kartu kecil.
+- Setiap hasil memiliki tombol "Hubungkan" (`BouncyButton` variant `tonal`).
+- Setelah ditekan, muncul konfirmasi `Alert`, lalu request dikirim ke backend.
+
+**Navigasi**: Diakses dari menu "Profil Anak" pada halaman `(ortu)/profile.tsx`.
+
+---
+
+### 6. Mobile — Halaman Siswa: Permintaan Orang Tua
+
+#### [NEW] `app/(siswa)/parent-requests.tsx`
+
+Halaman untuk siswa melihat dan merespons permintaan link dari orang tua.
+
+**Tampilan:**
+- Menggunakan `TopAppBar` dengan judul "Permintaan Orang Tua".
+- Daftar permintaan masuk dengan `FlatList`.
+- Setiap item menampilkan:
+  - Avatar & nama orang tua yang mengajukan.
+  - Dua tombol: ✅ "Terima" (variant `primary`) dan ❌ "Tolak" (variant `danger`).
+- Jika kosong, tampilkan ilustrasi "Tidak ada permintaan".
+
+**Navigasi**: Diakses dari menu baru pada halaman `(siswa)/profile.tsx`.
+
+---
+
+### 7. Mobile — Modifikasi Halaman Profil
+
+#### [MODIFY] [profile.tsx (ortu)](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(ortu)/profile.tsx)
+
+Menghubungkan menu "Profil Anak" ke halaman baru `kelola-anak`:
+
+```diff
+  <OptionMenuItem 
+    icon="account-child-outline" 
+    label="Profil Anak" 
+-   onPress={() => {}} 
++   onPress={() => expoRouter.push('/(ortu)/kelola-anak')} 
+  />
+```
+
+#### [MODIFY] [profile.tsx (siswa)](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(siswa)/profile.tsx)
+
+Menambahkan menu baru "Permintaan Orang Tua" dengan badge penghitung:
+
+```diff
+  items: (
+    <>
+      <OptionMenuItem icon="account-cog-outline" label="Pengaturan Akun" ... />
++     <OptionMenuItem icon="account-heart-outline" label="Permintaan Orang Tua" onPress={() => expoRouter.push('/(siswa)/parent-requests')} />
+      <OptionMenuItem icon="bell-outline" label="Notifikasi" ... />
+    </>
+  )
+```
+
+#### [MODIFY] [_layout.tsx (ortu)](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(ortu)/_layout.tsx)
+
+Menambahkan `Stack.Screen` baru:
+
+```diff
+  <Stack.Screen name="dashboard" />
+  <Stack.Screen name="riwayat" />
+  <Stack.Screen name="profile" />
++ <Stack.Screen name="kelola-anak" />
+```
+
+---
+
+### 8. Push Notifications
+
+Ketika siswa menerima permintaan link baru, orang tua mengirim request → backend mengirim push notification ke siswa:
+- **Title**: "Permintaan Orang Tua"
+- **Body**: "{nama_ortu} ingin menghubungkan akun sebagai wali Anda."
+- **Data**: `{ type: 'parent_link', request_id: '...' }`
+
+Ketika siswa menerima/menolak, backend mengirim push notification ke orang tua:
+- **Accept Title**: "Permintaan Diterima ✅"
+- **Accept Body**: "{nama_siswa} telah mengkonfirmasi Anda sebagai wali."
+- **Reject Title**: "Permintaan Ditolak"
+- **Reject Body**: "{nama_siswa} menolak permintaan hubungan akun."
+
+---
+
+## Ringkasan File yang Terlibat
+
+| Action | File | Deskripsi |
+|---|---|---|
+| **NEW** | `database/migrations/..._create_parent_link_requests_table.php` | Migration tabel baru |
+| **NEW** | `app/Models/ParentLinkRequest.php` | Model Eloquent |
+| **NEW** | `app/Http/Controllers/Api/ParentLinkController.php` | Controller 5 method |
+| **MODIFY** | `routes/api.php` | Tambah 6 route baru |
+| **NEW** | `mobile-app/app/(ortu)/kelola-anak.tsx` | Halaman kelola anak |
+| **NEW** | `mobile-app/app/(siswa)/parent-requests.tsx` | Halaman permintaan dari ortu |
+| **MODIFY** | `mobile-app/app/(ortu)/profile.tsx` | Link ke kelola-anak |
+| **MODIFY** | `mobile-app/app/(ortu)/_layout.tsx` | Register screen baru |
+| **MODIFY** | `mobile-app/app/(siswa)/profile.tsx` | Tambah menu parent-requests |
+
+---
+
+## Verification Plan
+
+### Automated Tests
+
+```bash
+# Backend: Verifikasi migration & route
+php artisan migrate
+php artisan route:list | findstr "link\|parent"
+
+# Mobile: TypeScript check
+npx tsc --noEmit
+```
+
+### Manual Verification
+
+1. **Alur Orang Tua**: Login sebagai `orang_tua` → Profil → Profil Anak → Cari nama siswa → Tekan "Hubungkan" → Verifikasi request tersimpan di DB.
+2. **Alur Siswa**: Login sebagai `siswa` → Profil → Permintaan Orang Tua → Terima/Tolak → Verifikasi `orang_tua_id` pada `siswa_profiles` terupdate.
+3. **Notifikasi**: Verifikasi push notification terkirim ke kedua pihak.
+4. **Edge Cases**: Coba kirim request duplikat, coba hubungkan siswa yang sudah punya ortu.

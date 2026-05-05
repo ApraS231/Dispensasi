@@ -11,8 +11,12 @@ export default function PiketLayout() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
-        <Stack.Screen name="dashboard" />
+      <Stack screenOptions={{ 
+        headerShown: false, 
+        animation: 'simple_push',
+        contentStyle: { backgroundColor: 'transparent' } 
+      }}>
+        <Stack.Screen name="dashboard" options={{ animation: 'fade' }} />
         <Stack.Screen name="queue" />
         <Stack.Screen name="history" />
         <Stack.Screen name="profile" />

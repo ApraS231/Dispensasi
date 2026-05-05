@@ -14,6 +14,7 @@ export default function OrtuLayout() {
         <Stack.Screen name="dashboard" />
         <Stack.Screen name="riwayat" />
         <Stack.Screen name="profile" />
+        <Stack.Screen name="kelola-anak" />
       </Stack>
       
       <BottomTabBar 

@@ -1,7 +1,13 @@
-import React, { useState } from 'react';
-import { Modal, View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
-import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../utils/theme';
+import React, { useMemo, useCallback, useRef, useEffect } from 'react';
+import { View, Text, TextInput, StyleSheet, Keyboard } from 'react-native';
+import BottomSheet, { 
+  BottomSheetView, 
+  BottomSheetBackdrop,
+  BottomSheetTextInput 
+} from '@gorhom/bottom-sheet';
+import { COLORS, FONTS, SIZES, SPACING, SHADOWS, GLASS } from '../utils/theme';
 import BouncyButton from './BouncyButton';
+import { BlurView } from 'expo-blur';
 
 interface RejectModalProps {
   visible: boolean;
@@ -10,72 +16,110 @@ interface RejectModalProps {
 }
 
 export default function RejectModal({ visible, onClose, onSubmit }: RejectModalProps) {
-  const [reason, setReason] = useState('');
+  const [reason, setReason] = React.useState('');
+  const bottomSheetRef = useRef<BottomSheet>(null);
+
+  // Snap points: 50%
+  const snapPoints = useMemo(() => ['50%', '85%'], []);
+
+  useEffect(() => {
+    if (visible) {
+      bottomSheetRef.current?.snapToIndex(0);
+    } else {
+      bottomSheetRef.current?.close();
+    }
+  }, [visible]);
+
+  const handleSheetChanges = useCallback((index: number) => {
+    if (index === -1) {
+      onClose();
+      setReason('');
+    }
+  }, [onClose]);
 
   const handleSubmit = () => {
     if (!reason.trim()) return;
     onSubmit(reason);
     setReason('');
+    bottomSheetRef.current?.close();
   };
 
+  const renderBackdrop = useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop
+        {...props}
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        opacity={0.5}
+      />
+    ),
+    []
+  );
+
+  if (!visible) return null;
+
   return (
-    <Modal visible={visible} transparent animationType="fade">
-      <KeyboardAvoidingView
-        style={styles.overlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <View style={styles.modalContainer}>
-          <Text style={styles.title}>Alasan Penolakan</Text>
-          <Text style={styles.subtitle}>Masukkan catatan penolakan yang akan dikirim ke siswa:</Text>
+    <BottomSheet
+      ref={bottomSheetRef}
+      index={-1}
+      snapPoints={snapPoints}
+      onChange={handleSheetChanges}
+      enablePanDownToClose
+      backdropComponent={renderBackdrop}
+      backgroundStyle={styles.sheetBackground}
+      handleIndicatorStyle={styles.indicator}
+      keyboardBehavior="extend"
+    >
+      <BottomSheetView style={styles.contentContainer}>
+        <Text style={styles.title}>Alasan Penolakan</Text>
+        <Text style={styles.subtitle}>Masukkan catatan penolakan untuk siswa:</Text>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Alasan penolakan..."
-            placeholderTextColor={COLORS.textMuted}
-            value={reason}
-            onChangeText={setReason}
-            multiline
-            autoFocus
+        <BottomSheetTextInput
+          style={[styles.input, SHADOWS.inset]}
+          placeholder="Contoh: Dokumen tidak lengkap, Alasan tidak jelas..."
+          placeholderTextColor={COLORS.textMuted}
+          value={reason}
+          onChangeText={setReason}
+          multiline
+          autoFocus
+        />
+
+        <View style={styles.actionRow}>
+          <BouncyButton
+            title="Batal"
+            variant="tonal"
+            onPress={() => bottomSheetRef.current?.close()}
+            style={styles.btn}
           />
-
-          <View style={styles.actionRow}>
-            <BouncyButton
-              title="Batal"
-              variant="tonal"
-              onPress={() => { setReason(''); onClose(); }}
-              style={styles.btn}
-            />
-            <BouncyButton
-              title="Kirim Penolakan"
-              variant="danger"
-              onPress={handleSubmit}
-              style={styles.btn}
-            />
-          </View>
+          <BouncyButton
+            title="Kirim Penolakan"
+            variant="danger"
+            onPress={handleSubmit}
+            style={styles.btn}
+          />
         </View>
-      </KeyboardAvoidingView>
-    </Modal>
+      </BottomSheetView>
+    </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: SPACING.lg,
+  sheetBackground: {
+    backgroundColor: COLORS.bgWhite,
+    borderTopLeftRadius: SIZES.radiusXl,
+    borderTopRightRadius: SIZES.radiusXl,
   },
-  modalContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
-    borderRadius: SIZES.radiusXl,
+  indicator: {
+    backgroundColor: COLORS.glassHighlight,
+    width: 40,
+  },
+  contentContainer: {
+    flex: 1,
     padding: SPACING.xl,
-    width: '100%',
-    ...SHADOWS.softCard,
-      },
+  },
   title: {
     fontFamily: FONTS.headingSemi,
-    fontSize: 18,
+    fontSize: 20,
     color: COLORS.textPrimary,
     marginBottom: SPACING.xs,
   },
@@ -83,18 +127,18 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bodyMedium,
     fontSize: 14,
     color: COLORS.textSecondary,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.lg,
   },
   input: {
-        borderRadius: SIZES.radius,
+    backgroundColor: COLORS.surfaceContainerLow,
+    borderRadius: SIZES.radiusMd,
     padding: SPACING.md,
     fontFamily: FONTS.body,
-    fontSize: 15,
+    fontSize: 16,
     color: COLORS.textPrimary,
-    minHeight: 100,
+    minHeight: 120,
     textAlignVertical: 'top',
-    marginBottom: SPACING.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    marginBottom: SPACING.xl,
   },
   actionRow: {
     flexDirection: 'row',

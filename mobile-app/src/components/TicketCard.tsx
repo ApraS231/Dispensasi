@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import SoftCard from './SoftCard';
+import SkeuCard from './SkeuCard';
 import PillBadge from './PillBadge';
 import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../utils/theme';
 import { ICONS } from '../utils/icons';
@@ -17,41 +17,53 @@ export default function TicketCard({ item, onPress, showName }: TicketCardProps)
   const formattedDate = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
   const formattedTime = dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
+  const getAccentColor = () => {
+    switch (item.status) {
+      case 'approved_final':
+        return COLORS.success;
+      case 'rejected':
+        return COLORS.error;
+      case 'pending':
+      case 'waiting_piket':
+      case 'approved_by_wali':
+        return COLORS.warning;
+      default:
+        return COLORS.primary;
+    }
+  };
+
   const content = (
-    <SoftCard style={styles.cardInner}>
+    <SkeuCard accentColor={getAccentColor()} style={styles.cardInner} isGlass>
       <View style={styles.headerRow}>
         <View style={styles.headerItem}>
-          <MaterialCommunityIcons name={ICONS.calendar} size={14} color={COLORS.textSecondary} style={styles.icon} />
-          <Text style={styles.dateText}>{formattedDate}</Text>
+          <MaterialCommunityIcons name={ICONS.calendar} size={14} color={COLORS.textSecondary} />
+          <Text style={styles.headerText}>{formattedDate}</Text>
         </View>
         <View style={styles.headerItem}>
-          <MaterialCommunityIcons name={ICONS.clock} size={14} color={COLORS.textSecondary} style={styles.icon} />
-          <Text style={styles.timeText}>{formattedTime}</Text>
+          <MaterialCommunityIcons name={ICONS.clock} size={14} color={COLORS.textSecondary} />
+          <Text style={styles.headerText}>{formattedTime}</Text>
         </View>
       </View>
 
-      <View style={styles.contentRow}>
-        <View style={styles.leftCol}>
+      <View style={styles.mainContent}>
+        <View style={styles.infoCol}>
           {showName && item.siswa && (
             <Text style={styles.studentName}>{item.siswa.name}</Text>
           )}
           <Text style={styles.typeText}>{item.jenis_izin?.replace(/_/g, ' ')}</Text>
-          <Text style={styles.reasonText} numberOfLines={2}>{item.alasan}</Text>
+          <View style={styles.reasonContainer}>
+            <MaterialCommunityIcons name="format-quote-open" size={10} color={COLORS.primaryLight} style={{ marginRight: 4 }} />
+            <Text style={styles.reasonText} numberOfLines={2}>{item.alasan}</Text>
+          </View>
         </View>
-        <View style={styles.rightCol}>
-          <PillBadge status={item.status} />
-        </View>
+        <PillBadge status={item.status} />
       </View>
-    </SoftCard>
+    </SkeuCard>
   );
 
   if (onPress) {
     return (
-      <TouchableOpacity 
-        onPress={onPress} 
-        style={styles.wrapper}
-        activeOpacity={0.8}
-      >
+      <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.wrapper}>
         {content}
       </TouchableOpacity>
     );
@@ -66,42 +78,30 @@ const styles = StyleSheet.create({
   },
   cardInner: {
     padding: SPACING.md,
-    borderLeftWidth: 6,
-        borderLeftColor: COLORS.primary,
   },
   headerRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: SPACING.xs,
+    marginBottom: SPACING.sm,
+    gap: 16,
   },
   headerItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
   },
-  icon: {
-    marginRight: 4,
-  },
-  dateText: {
+  headerText: {
     fontFamily: FONTS.bodyMedium,
     fontSize: 12,
     color: COLORS.textSecondary,
   },
-  timeText: {
-    fontFamily: FONTS.bodyMedium,
-    fontSize: 12,
-    color: COLORS.textSecondary,
-  },
-  contentRow: {
+  mainContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-end',
   },
-  leftCol: {
+  infoCol: {
     flex: 1,
     marginRight: SPACING.sm,
-  },
-  rightCol: {
-    justifyContent: 'center',
   },
   studentName: {
     fontFamily: FONTS.headingSemi,
@@ -110,15 +110,25 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   typeText: {
-    fontFamily: FONTS.headingSemi,
-    fontSize: 15,
+    fontFamily: FONTS.heading,
+    fontSize: 17,
     color: COLORS.primary,
     textTransform: 'capitalize',
     marginBottom: 4,
   },
+  reasonContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(0,0,0,0.02)',
+    padding: 6,
+    borderRadius: 6,
+    marginTop: 2,
+  },
   reasonText: {
     fontFamily: FONTS.body,
-    fontSize: 13,
+    fontSize: 12,
     color: COLORS.textSecondary,
+    lineHeight: 16,
+    flex: 1,
   }
 });

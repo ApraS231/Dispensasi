@@ -4,7 +4,12 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, Activ
 import { router } from 'expo-router';
 import api from '../src/utils/api';
 import NotificationBanner from '../src/components/NotificationBanner';
-import { COLORS, FONTS, SPACING, SIZES } from '../src/utils/theme';
+import { COLORS, FONTS, SPACING, SIZES, GLASS } from '../src/utils/theme';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ICONS } from '../src/utils/icons';
+import LiquidBackground from '../src/components/LiquidBackground';
+import { BlurView } from 'expo-blur';
+import TopAppBar from '../src/components/TopAppBar';
 
 export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -58,12 +63,13 @@ export default function NotificationsScreen() {
     }
 
     // Deep link based on type
-    if (item.reference_id) {
-        if (item.tipe === 'chat') {
-            router.push(`/chat/${item.reference_id}`);
-        } else {
-            router.push(`/ticket/${item.reference_id}`);
-        }
+    if (item.tipe === 'parent_link') {
+        router.push('/(siswa)/parent-requests');
+    } else if (item.tipe === 'parent_link_response') {
+        router.push('/(ortu)/kelola-anak');
+    } else if (item.reference_id) {
+        // Semua tipe terkait tiket (chat, approved, rejected, new)
+        router.push(`/ticket/${item.reference_id}`);
     }
   };
 
@@ -76,23 +82,24 @@ export default function NotificationsScreen() {
 
   return (
     <View style={styles.container}>
+      <LiquidBackground />
       <SafeAreaView style={styles.safeArea}>
         
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Notifikasi</Text>
-          {notifications.some(n => !n.is_read) ? (
-            <TouchableOpacity onPress={markAllAsRead}>
-              <Text style={styles.readAllText}>Baca Semua</Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={{ width: 64 }} />
-          )}
-        </View>
+        <TopAppBar 
+          title="Notifikasi" 
+          onBack={() => router.back()} 
+          showNotification={false}
+          rightComponent={
+            notifications.some(n => !n.is_read) ? (
+              <TouchableOpacity onPress={markAllAsRead}>
+                <Text style={styles.readAllText}>Baca Semua</Text>
+              </TouchableOpacity>
+            ) : null
+          }
+        />
 
         <View style={styles.content}>
+          <View style={{ height: 88 + SPACING.statusBar }} />
           {loading ? (
             <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: SPACING.xl }} />
           ) : (
@@ -118,7 +125,7 @@ export default function NotificationsScreen() {
               }}
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyIcon}>📭</Text>
+                  <MaterialCommunityIcons name="mailbox-open-outline" size={64} color={COLORS.textMuted} style={{ marginBottom: SPACING.md, opacity: 0.5 }} />
                   <Text style={styles.emptyText}>Belum ada notifikasi saat ini.</Text>
                 </View>
               }
@@ -132,25 +139,8 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'transparent' },
+  container: { flex: 1, backgroundColor: COLORS.bgWhite },
   safeArea: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.statusBar + SPACING.sm,
-    paddingBottom: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.surfaceContainer,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant,
-  },
-  backIcon: { fontSize: 18, color: COLORS.textPrimary, fontWeight: 'bold' },
   headerTitle: {
     fontFamily: FONTS.heading,
     fontSize: 18,
@@ -174,11 +164,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: SPACING.xxl * 2,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: SPACING.md,
-    opacity: 0.5,
   },
   emptyText: {
     fontFamily: FONTS.body,

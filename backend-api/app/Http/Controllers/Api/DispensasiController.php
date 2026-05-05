@@ -93,92 +93,99 @@ class DispensasiController extends Controller
 
     public function approve(Request $request, $id)
     {
-        $tiket = DispensasiTicket::findOrFail($id);
-        $user = $request->user();
+        try {
+            $tiket = DispensasiTicket::with(['siswa', 'waliKelas', 'guruPiket'])->findOrFail($id);
+            $user = $request->user();
 
-        if ($user->role === 'wali_kelas' && $tiket->wali_kelas_id === $user->id) {
+            \Illuminate\Support\Facades\Log::info("User {$user->id} ({$user->role}) attempting to approve ticket {$id}");
 
-            // Logika Auto-Assignment Guru Piket
-            $now = now();
-            $hariIni = $now->dayOfWeekIso; // 1 (Senin) - 7 (Minggu)
-            $jamIni = $now->format('H:i:s');
+            if ($user->role === 'wali_kelas' && $tiket->wali_kelas_id === $user->id) {
 
-            $activeSchedule = PiketSchedule::where('hari_dalam_minggu', $hariIni)
-                ->where('jam_mulai', '<=', $jamIni)
-                ->where('jam_selesai', '>=', $jamIni)
-                ->where('is_active', true)
-                ->first();
+                // Logika Auto-Assignment Guru Piket
+                $now = now();
+                $hariIni = $now->dayOfWeekIso; // 1 (Senin) - 7 (Minggu)
+                $jamIni = $now->format('H:i:s');
 
-            if (!$activeSchedule) {
-                return response()->json(['message' => 'Tidak ada Guru Piket yang bertugas saat ini.'], 404);
-            }
+                $activeSchedule = PiketSchedule::where('hari', $hariIni)
+                    ->where('jam_mulai', '<=', $jamIni)
+                    ->where('jam_selesai', '>=', $jamIni)
+                    ->first();
 
-            $tiket->update([
-                'status' => 'waiting_piket',
-                'guru_piket_id' => $activeSchedule->guru_id
-            ]);
+                if (!$activeSchedule) {
+                    return response()->json(['message' => 'Persetujuan gagal: Tidak ada Guru Piket yang bertugas (jadwal piket) saat ini.'], 422);
+                }
 
-            // Notify Guru Piket
-            $guruPiket = User::find($activeSchedule->guru_id);
-            if ($guruPiket) {
-                ExpoPushService::send(
-                    $guruPiket->device_token ?? [],
-                    '⏳ Butuh Persetujuan Final',
-                    "Ada tiket dispensasi baru yang perlu persetujuan Anda.",
-                    ['ticket_id' => $tiket->id, 'type' => 'ticket_forwarded'],
-                    [$guruPiket->id]
-                );
-            }
+                $tiket->update([
+                    'status' => 'waiting_piket',
+                    'guru_piket_id' => $activeSchedule->guru_id
+                ]);
 
-            // Notify Siswa (Wali Approve)
-            if ($tiket->siswa) {
-                ExpoPushService::send(
-                    $tiket->siswa->device_token ?? [],
-                    '📋 Update Status Izin',
-                    "Izin Anda disetujui Wali Kelas, menunggu validasi Guru Piket.",
-                    ['ticket_id' => $tiket->id, 'type' => 'ticket_approved'],
-                    [$tiket->siswa->id]
-                );
-            }
-
-
-        } else if ($user->role === 'guru_piket' && $tiket->guru_piket_id === $user->id) {
-            $tiket->update([
-                'status' => 'approved_final',
-                'qr_token' => (string) Str::uuid(),
-                'expires_at' => now()->addHours(12)
-            ]);
-
-            // Notify Siswa (Final Approve)
-            if ($tiket->siswa) {
-                ExpoPushService::send(
-                    $tiket->siswa->device_token ?? [],
-                    '✅ Izin Disetujui!',
-                    "QR Code terbit. Silakan menuju meja piket.",
-                    ['ticket_id' => $tiket->id, 'type' => 'ticket_approved'],
-                    [$tiket->siswa->id]
-                );
-            }
-
-            // Notify Orang Tua (Final Approve)
-            $profil = SiswaProfile::where('user_id', $tiket->siswa_id)->first();
-            if ($profil && $profil->orang_tua_id) {
-                $ortu = User::find($profil->orang_tua_id);
-                if ($ortu) {
+                // Notify Guru Piket
+                $guruPiket = User::find($activeSchedule->guru_id);
+                if ($guruPiket && $guruPiket->device_token) {
                     ExpoPushService::send(
-                        $ortu->device_token ?? [],
-                        '✅ Izin Diverifikasi',
-                        "Izin sekolah {$tiket->siswa->name} telah diverifikasi oleh sekolah.",
-                        ['ticket_id' => $tiket->id, 'type' => 'ticket_approved'],
-                        [$ortu->id]
+                        $guruPiket->device_token,
+                        '⏳ Butuh Persetujuan Final',
+                        "Ada tiket dispensasi baru yang perlu persetujuan Anda.",
+                        ['ticket_id' => $tiket->id, 'type' => 'ticket_forwarded'],
+                        [$guruPiket->id]
                     );
                 }
-            }
-        } else {
-            return response()->json(['message' => 'Anda tidak berhak menyetujui tiket ini'], 403);
-        }
 
-        return response()->json(['message' => 'Tiket disetujui', 'data' => $tiket]);
+                // Notify Siswa (Wali Approve)
+                if ($tiket->siswa && $tiket->siswa->device_token) {
+                    ExpoPushService::send(
+                        $tiket->siswa->device_token,
+                        '📋 Update Status Izin',
+                        "Izin Anda disetujui Wali Kelas, menunggu validasi Guru Piket.",
+                        ['ticket_id' => $tiket->id, 'type' => 'ticket_approved'],
+                        [$tiket->siswa->id]
+                    );
+                }
+
+                return response()->json(['message' => 'Tiket disetujui Wali Kelas', 'data' => $tiket]);
+
+            } else if ($user->role === 'guru_piket' && $tiket->guru_piket_id === $user->id) {
+                $tiket->update([
+                    'status' => 'approved_final',
+                    'qr_token' => (string) Str::uuid(),
+                    'expires_at' => now()->addHours(12)
+                ]);
+
+                // Notify Siswa (Final Approve)
+                if ($tiket->siswa && $tiket->siswa->device_token) {
+                    ExpoPushService::send(
+                        $tiket->siswa->device_token,
+                        '✅ Izin Disetujui!',
+                        "QR Code terbit. Silakan menuju meja piket.",
+                        ['ticket_id' => $tiket->id, 'type' => 'ticket_approved'],
+                        [$tiket->siswa->id]
+                    );
+                }
+
+                // Notify Orang Tua (Final Approve)
+                $profil = SiswaProfile::where('user_id', $tiket->siswa_id)->first();
+                if ($profil && $profil->orang_tua_id) {
+                    $ortu = User::find($profil->orang_tua_id);
+                    if ($ortu && $ortu->device_token) {
+                        ExpoPushService::send(
+                            $ortu->device_token,
+                            '✅ Izin Diverifikasi',
+                            "Izin sekolah {$tiket->siswa->name} telah diverifikasi oleh sekolah.",
+                            ['ticket_id' => $tiket->id, 'type' => 'ticket_approved'],
+                            [$ortu->id]
+                        );
+                    }
+                }
+
+                return response()->json(['message' => 'Tiket disetujui Guru Piket', 'data' => $tiket]);
+            } else {
+                return response()->json(['message' => 'Anda tidak memiliki hak akses untuk menyetujui tiket ini.'], 403);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Approval error: " . $e->getMessage());
+            return response()->json(['message' => 'Internal Server Error: ' . $e->getMessage()], 500);
+        }
     }
     
     public function reject(Request $request, $id)
@@ -236,11 +243,27 @@ class DispensasiController extends Controller
     public function monitoringAnak(Request $request)
     {
         $user = $request->user();
-        if ($user->role !== 'orang_tua') return response()->json(['message' => 'Forbidden'], 403);
         
         $anakIds = SiswaProfile::where('orang_tua_id', $user->id)->pluck('user_id');
-        $tickets = DispensasiTicket::whereIn('siswa_id', $anakIds)->with('siswa')->latest()->get();
+        $tickets = DispensasiTicket::whereIn('siswa_id', $anakIds)->with(['siswa.profile.kelas'])->latest()->get();
         return response()->json($tickets);
+    }
+
+    public function getChildren(Request $request)
+    {
+        $user = $request->user();
+        $children = SiswaProfile::where('orang_tua_id', $user->id)
+            ->with(['user', 'kelas'])
+            ->get()
+            ->map(function ($profile) {
+                return [
+                    'id' => $profile->user_id,
+                    'name' => $profile->user->name,
+                    'nis' => $profile->nis,
+                    'kelas' => $profile->kelas->nama_kelas ?? '-',
+                ];
+            });
+        return response()->json($children);
     }
 
     public function pending(Request $request)

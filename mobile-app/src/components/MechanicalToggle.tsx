@@ -1,7 +1,7 @@
 import { HapticFeedback } from '../../src/utils/haptics';
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableWithoutFeedback, Animated } from 'react-native';
-import { COLORS, FONTS, SHADOWS } from '../utils/theme';
+import { COLORS, FONTS, SHADOWS, SIZES } from '../utils/theme';
 
 interface MechanicalToggleProps {
   value: boolean;
@@ -28,7 +28,7 @@ export default function MechanicalToggle({ value, onValueChange, labelOff = 'OFF
 
   const backgroundColor = animatedValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [COLORS.surfaceContainerHighest, COLORS.primary]
+    outputRange: [COLORS.surfaceContainerHighest, COLORS.primaryLight]
   });
 
   const translateX = animatedValue.interpolate({
@@ -43,9 +43,8 @@ export default function MechanicalToggle({ value, onValueChange, labelOff = 'OFF
 
   return (
     <TouchableWithoutFeedback onPress={handlePress}>
-      <Animated.View style={[styles.container, { backgroundColor }]}>
-        {!value && <View style={styles.innerShadow} />}
-        <Animated.View style={[styles.glow, { opacity: shadowOpacity, shadowColor: COLORS.primary, borderColor: COLORS.primary }]} />
+      <Animated.View style={[styles.container, SHADOWS.inset, { backgroundColor }]}>
+        <Animated.View style={[styles.glow, { opacity: shadowOpacity, shadowColor: COLORS.primaryLight, borderColor: COLORS.primaryLight }]} />
         <View style={styles.labels}>
           <Text style={styles.label}>{labelOn}</Text>
           <Text style={styles.label}>{labelOff}</Text>
@@ -60,26 +59,17 @@ const styles = StyleSheet.create({
   container: {
     width: 100,
     height: 48,
-    borderRadius: 24,
+    borderRadius: SIZES.radiusToggle,
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
     overflow: 'hidden',
-  },
-  innerShadow: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant,
   },
   glow: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: 24,
+    borderRadius: SIZES.radiusToggle,
     shadowOffset: { width: 0, height: 0 },
     shadowRadius: 10,
     elevation: 5,
     borderWidth: 2,
-    borderColor: 'transparent',
   },
   labels: {
     ...StyleSheet.absoluteFillObject,
@@ -91,14 +81,14 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: FONTS.headingSemi,
     fontSize: 12,
-    color: '#1F2937',
+    color: COLORS.textPrimary,
   },
   knob: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.bgWhite,
     position: 'absolute',
-    ...SHADOWS.softCard,
+    ...SHADOWS.raised,
   }
 });

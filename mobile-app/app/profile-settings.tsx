@@ -3,30 +3,57 @@ import { Image } from 'expo-image';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { HapticFeedback } from '../src/utils/haptics';
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '../src/stores/authStore';
 import api from '../src/utils/api';
-import SoftCard from '../src/components/SoftCard';
+import SkeuCard from '../src/components/SkeuCard';
 import BouncyButton from '../src/components/BouncyButton';
 import AvatarInitials from '../src/components/AvatarInitials';
-import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../src/utils/theme';
+import { COLORS, FONTS, SIZES, SPACING, SHADOWS, GLASS } from '../src/utils/theme';
+import LiquidBackground from '../src/components/LiquidBackground';
+import { BlurView } from 'expo-blur';
+import { useMutation } from '@tanstack/react-query';
 
 export default function ProfileSettingsScreen() {
-  const { user } = useAuthStore();
+  const { user, setUser } = useAuthStore();
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
-  const [oldPassword, setOldPassword] = useState('');
+  const [photoUri, setPhotoUri] = useState<string | null>(user?.profile_photo_url || null);
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [loading, setLoading] = useState(false);
 
-  const [photoUri, setPhotoUri] = useState<string | null>((user as any)?.profile_photo_url || null);
-  const { setUser } = useAuthStore();
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const { data: response } = await api.post('/profile/update', data);
+      return response;
+    },
+    onSuccess: (data) => {
+      setUser(data.user);
+      Alert.alert('Berhasil', 'Profil berhasil diperbarui');
+    },
+    onError: (error: any) => {
+      Alert.alert('Gagal', error.response?.data?.message || 'Terjadi kesalahan');
+    }
+  });
 
-
+  const updatePasswordMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const { data: response } = await api.post('/profile/update-password', data);
+      return response;
+    },
+    onSuccess: () => {
+      Alert.alert('Berhasil', 'Password berhasil diperbarui');
+      setCurrentPassword('');
+      setNewPassword('');
+    },
+    onError: (error: any) => {
+      Alert.alert('Gagal', error.response?.data?.message || 'Terjadi kesalahan');
+    }
+  });
 
   const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
+    const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
@@ -38,75 +65,48 @@ export default function ProfileSettingsScreen() {
     }
   };
 
-  const handleSave = async () => {
+  const handleUpdateProfile = () => {
+    HapticFeedback.light();
+    updateProfileMutation.mutate({ name, email, profile_photo: photoUri });
+  };
+
+  const handleUpdatePassword = () => {
     HapticFeedback.medium();
-    setLoading(true);
-    try {
-      
-      const formData = new FormData();
-      if (name !== user?.name) formData.append('name', name);
-      if (email !== user?.email) formData.append('email', email);
-      if (oldPassword && newPassword) {
-        formData.append('oldPassword', oldPassword);
-        formData.append('newPassword', newPassword);
-      }
-
-      if (photoUri && photoUri !== (user as any)?.profile_photo_url) {
-        const filename = photoUri.split('/').pop() || 'photo.jpg';
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : `image`;
-
-        formData.append('profile_photo', {
-          uri: photoUri,
-          name: filename,
-          type
-        } as any);
-      }
-
-      const response = await api.post('/user/profile', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-
-      setUser(response.data.user);
-
-      
-      HapticFeedback.success();
-      Alert.alert('Berhasil', 'Pengaturan profil telah diperbarui.', [
-        { text: 'OK', onPress: () => router.back() }
-      ]);
-    } catch (error: any) {
-      HapticFeedback.error();
-      Alert.alert('Gagal', error.response?.data?.message || 'Gagal menyimpan pengaturan.');
-    } finally {
-      setLoading(false);
+    if (!currentPassword || !newPassword) {
+      Alert.alert('Peringatan', 'Harap isi semua field password');
+      return;
     }
+    updatePasswordMutation.mutate({ current_password: currentPassword, new_password: newPassword });
   };
 
   return (
     <View style={styles.container}>
+      <LiquidBackground />
       <SafeAreaView style={styles.safeArea}>
         
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backIcon}>←</Text>
+        {/* Header Navigation */}
+        <View style={styles.headerBar}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <BlurView intensity={GLASS.blurIntensity} tint={GLASS.tintColor} style={styles.backBtn}>
+              <MaterialCommunityIcons name="chevron-left" size={28} color={COLORS.textPrimary} />
+            </BlurView>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Pengaturan Akun</Text>
+          <Text style={styles.headerTitle}>Pengaturan Profil</Text>
           <View style={{ width: 40 }} />
         </View>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           
-          <SoftCard style={styles.card}>
-
+          <SkeuCard isGlass style={styles.card}>
             <View style={styles.avatarSection}>
               <TouchableOpacity onPress={pickImage} style={styles.avatarWrapper} activeOpacity={0.8}>
                 {photoUri ? (
-                  <Image source={{ uri: photoUri }} style={{ width: 64, height: 64, borderRadius: 32 }} />
+                  <Image source={{ uri: photoUri }} style={{ width: 80, height: 80, borderRadius: 40 }} />
                 ) : (
-                  <AvatarInitials name={user?.name || 'User'} size={64} fontSize={24} />
+                  <AvatarInitials name={user?.name || 'User'} size={80} fontSize={32} />
                 )}
                 <View style={styles.editBadge}>
-                  <MaterialCommunityIcons name="camera" size={14} color="#FFF" />
+                  <MaterialCommunityIcons name="camera" size={16} color="#FFF" />
                 </View>
               </TouchableOpacity>
               <View>
@@ -115,61 +115,83 @@ export default function ProfileSettingsScreen() {
               </View>
             </View>
 
-            
             <Text style={styles.label}>Nama Lengkap</Text>
-            <TextInput 
-              style={styles.input} 
-              value={name} 
-              onChangeText={setName} 
-              placeholderTextColor={COLORS.textMuted}
-            />
-
-            <Text style={styles.label}>Email</Text>
-            <TextInput 
-              style={styles.input} 
-              value={email} 
-              onChangeText={setEmail} 
-              keyboardType="email-address"
-              autoCapitalize="none"
-              placeholderTextColor={COLORS.textMuted}
-            />
-            <Text style={styles.label}>Role</Text>
-            <TextInput style={styles.input} value={user?.role?.replace(/_/g, ' ') || ''} editable={false} />
-          </SoftCard>
-
-          <SoftCard style={styles.card}>
-            <Text style={styles.sectionTitle}>Ubah Password</Text>
-            <View style={styles.inputGroup}>
-              <Text style={styles.helperText}>Biarkan kosong jika tidak ingin mengubah password.</Text>
-            
-              <Text style={styles.label}>Password Saat Ini</Text>
+            <View style={[styles.inputWrapper, SHADOWS.inset]}>
+              <MaterialCommunityIcons name="account-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
               <TextInput 
                 style={styles.input} 
-                value={oldPassword} 
-                onChangeText={setOldPassword} 
-                secureTextEntry
-                placeholder="Masukkan password lama"
+                value={name} 
+                onChangeText={setName} 
                 placeholderTextColor={COLORS.textMuted}
               />
+            </View>
 
-              <Text style={styles.label}>Password Baru</Text>
+            <Text style={styles.label}>Email</Text>
+            <View style={[styles.inputWrapper, SHADOWS.inset]}>
+              <MaterialCommunityIcons name="email-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+              <TextInput 
+                style={styles.input} 
+                value={email} 
+                onChangeText={setEmail} 
+                keyboardType="email-address"
+                autoCapitalize="none"
+                placeholderTextColor={COLORS.textMuted}
+              />
+            </View>
+
+            <Text style={styles.label}>Role</Text>
+            <View style={[styles.inputWrapper, SHADOWS.inset, { opacity: 0.6 }]}>
+              <MaterialCommunityIcons name="shield-account-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+              <TextInput 
+                style={styles.input} 
+                value={user?.role?.replace(/_/g, ' ') || ''} 
+                editable={false} 
+              />
+            </View>
+            
+            <BouncyButton 
+              title="Simpan Perubahan" 
+              onPress={handleUpdateProfile} 
+              loading={updateProfileMutation.isPending}
+              style={styles.saveBtn}
+            />
+          </SkeuCard>
+
+          <Text style={styles.sectionHeader}>Keamanan</Text>
+          <SkeuCard style={styles.card} isGlass>
+            <Text style={styles.label}>Password Sekarang</Text>
+            <View style={[styles.inputWrapper, SHADOWS.inset]}>
+              <MaterialCommunityIcons name="lock-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+              <TextInput 
+                style={styles.input} 
+                value={currentPassword} 
+                onChangeText={setCurrentPassword} 
+                placeholder="Masukkan password lama" 
+                placeholderTextColor={COLORS.textMuted}
+                secureTextEntry
+              />
+            </View>
+
+            <Text style={styles.label}>Password Baru</Text>
+            <View style={[styles.inputWrapper, SHADOWS.inset]}>
+              <MaterialCommunityIcons name="lock-reset" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
               <TextInput 
                 style={styles.input} 
                 value={newPassword} 
                 onChangeText={setNewPassword} 
-                secureTextEntry
-                placeholder="Minimal 8 karakter"
+                placeholder="Masukkan password baru" 
                 placeholderTextColor={COLORS.textMuted}
+                secureTextEntry
               />
             </View>
-          </SoftCard>
 
-          <BouncyButton 
-            title={loading ? 'Menyimpan...' : 'Simpan Perubahan'} 
-            onPress={handleSave} 
-            loading={loading}
-            style={styles.saveBtn}
-          />
+            <BouncyButton 
+              title="Ganti Password" 
+              onPress={handleUpdatePassword} 
+              loading={updatePasswordMutation.isPending}
+              style={styles.saveBtn}
+            />
+          </SkeuCard>
 
         </ScrollView>
       </SafeAreaView>
@@ -178,25 +200,24 @@ export default function ProfileSettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'transparent' },
+  container: { flex: 1, backgroundColor: COLORS.bgWhite },
   safeArea: { flex: 1 },
-  header: {
+  headerBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.statusBar + SPACING.sm,
+    paddingTop: SPACING.sm,
     paddingBottom: SPACING.md,
   },
   backBtn: {
     width: 40, height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.surfaceContainer,
+    borderRadius: SIZES.radiusButton,
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1,
-    borderColor: COLORS.outlineVariant,
+    borderColor: COLORS.glassHighlight,
+    overflow: 'hidden',
   },
-  backIcon: { fontSize: 18, color: COLORS.textPrimary, fontWeight: 'bold' },
   headerTitle: {
     fontFamily: FONTS.heading,
     fontSize: 18,
@@ -210,13 +231,20 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
     marginBottom: SPACING.lg,
   },
+  sectionHeader: {
+    fontFamily: FONTS.headingSemi,
+    fontSize: 14,
+    color: COLORS.textMuted,
+    marginBottom: SPACING.sm,
+    marginLeft: SPACING.sm,
+    textTransform: 'uppercase',
+  },
   sectionTitle: {
     fontFamily: FONTS.headingSemi,
     fontSize: 16,
     color: COLORS.primary,
-    marginBottom: SPACING.md,
+    marginBottom: 2,
   },
-
   avatarWrapper: {
     position: 'relative',
   },
@@ -225,13 +253,13 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: COLORS.primary,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: COLORS.surfaceContainerLowest,
+    borderWidth: 3,
+    borderColor: COLORS.bgWhite,
   },
   avatarSection: {
     flexDirection: 'row',
@@ -239,35 +267,39 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
     gap: SPACING.md,
   },
-  inputGroup: {
-    marginTop: SPACING.sm,
-  },
   helperText: {
     fontFamily: FONTS.bodyMedium,
     fontSize: 12,
     color: COLORS.textMuted,
-    marginBottom: SPACING.md,
-    marginTop: -8,
   },
   label: { 
     fontFamily: FONTS.headingSemi, 
     fontSize: 13, 
     color: COLORS.textSecondary, 
     marginBottom: SPACING.xs,
+    marginTop: SPACING.md,
   },
-  input: {
-    backgroundColor: COLORS.surfaceContainerLow,
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant,
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.glassSurface,
     borderRadius: SIZES.radiusMd,
     paddingHorizontal: SPACING.md,
-    height: 48,
+    height: 52,
+    borderWidth: 1,
+    borderColor: COLORS.glassHighlight,
+  },
+  inputIcon: {
+    marginRight: SPACING.sm,
+  },
+  input: {
+    flex: 1,
+    height: '100%',
     fontFamily: FONTS.body,
     fontSize: 15,
     color: COLORS.textPrimary,
-    marginBottom: SPACING.lg,
   },
   saveBtn: {
-    marginTop: SPACING.sm,
+    marginTop: SPACING.xl,
   }
 });

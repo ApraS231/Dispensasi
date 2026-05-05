@@ -1,0 +1,42 @@
+# Implementasi Design System Skeuomorphism + Liquid Glass
+
+## Phase 1: Cleanup Sisa Desain Lama & Komponen Utama
+
+- [ ] Update `src/utils/theme.ts` dengan warna dan shadow baru
+- [ ] Update `src/components/LiquidBackground.tsx` (blur, noise)
+- [ ] Update `src/components/SoftCard.tsx` (blur, shadow)
+- [ ] Update `src/components/TopAppBar.tsx` (hapus brutalist, blur)
+- [ ] Update `src/components/BottomTabBar.tsx` (blur, inner glow)
+- [ ] Update `src/components/BouncyButton.tsx` (raised, inset shadow)
+- [ ] Update `src/components/GlassFAB.tsx` (blur, pulse, float shadow)
+- [ ] Update `src/components/AvatarInitials.tsx` (circle, no brutalist shadow, glass border)
+- [ ] Update `src/components/ChatBubble.tsx` (no brutalist shadow, glass effect)
+- [ ] Update `src/components/MechanicalToggle.tsx` (inset groove, embossed knob)
+- [ ] Update `src/components/DailyLogCard.tsx` (glass bg, badge)
+- [ ] Update `src/components/NotificationBanner.tsx` (glass panel)
+- [ ] Update `src/components/RejectModal.tsx` (glass background, inset input)
+- [ ] Update `src/components/PillBadge.tsx` (glass border, inner glow)
+
+## Phase 2: Update Halaman (Pages)
+
+- [ ] Update `app/login.tsx` (hapus brutalist, inset input)
+- [ ] Update `app/notifications.tsx` (emoji -> icon)
+- [ ] Update `app/profile-settings.tsx` (emoji -> icon, inset input)
+- [ ] Update `app/(siswa)/dashboard.tsx` (hapus brutalist)
+- [ ] Update `app/(siswa)/pengajuan.tsx` (hapus brutalist, inset input)
+- [ ] Update `app/(siswa)/riwayat.tsx` (hapus brutalist, transparent bg)
+- [ ] Update `app/(siswa)/profile.tsx` (emoji -> icon)
+- [ ] Update `app/(piket)/dashboard.tsx` (hapus brutalist)
+- [ ] Update `app/(piket)/queue.tsx` (hapus brutalist, transparent bg)
+- [ ] Update `app/(piket)/history.tsx` (hapus brutalist)
+- [ ] Update `app/(piket)/profile.tsx` (emoji -> icon)
+- [ ] Update `app/(wali)/dashboard.tsx` (hapus brutalist)
+- [ ] Update `app/(wali)/history.tsx` (hapus brutalist)
+- [ ] Update `app/(ortu)/dashboard.tsx` (hapus brutalist)
+- [ ] Update `app/(ortu)/riwayat.tsx` (hapus brutalist, emoji -> icon)
+- [ ] Update `app/ticket/[id].tsx` (glass panel, inset input)
+
+## Phase 3: Verifikasi
+
+- [ ] Run `npx tsc --noEmit`
+- [ ] Cek visual di device/simulator

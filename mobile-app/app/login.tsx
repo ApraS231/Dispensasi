@@ -1,21 +1,42 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
-import { View, Text, TextInput, StyleSheet, Alert, KeyboardAvoidingView, Platform, SafeAreaView } from 'react-native';
-import { Image } from 'expo-image';
+import { View, Text, TextInput, StyleSheet, Alert, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
 import api from '../src/utils/api';
 import { useAuthStore } from '../src/stores/authStore';
 import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../src/utils/theme';
+import { commonStyles } from '../src/utils/commonStyles';
 import BouncyButton from '../src/components/BouncyButton';
-import SoftCard from '../src/components/SoftCard';
+import SkeuCard from '../src/components/SkeuCard';
+import LiquidBackground from '../src/components/LiquidBackground';
+import AnimatedEntrance from '../src/components/AnimatedEntrance';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+function TypewriterText({ text, delay = 50 }: { text: string; delay?: number }) {
+  const [displayedText, setDisplayedText] = useState('');
+  
+  useEffect(() => {
+    let index = 0;
+    setDisplayedText(''); // Reset on text change
+    const interval = setInterval(() => {
+      setDisplayedText(text.substring(0, index + 1));
+      index++;
+      if (index >= text.length) clearInterval(interval);
+    }, delay);
+    return () => clearInterval(interval);
+  }, [text]);
+
+  return <Text style={styles.title}>{displayedText}</Text>;
+}
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const { setUser, setToken } = useAuthStore();
 
   const handleLogin = async () => {
@@ -25,7 +46,6 @@ export default function LoginScreen() {
     }
     setLoading(true);
     try {
-
       let deviceToken: string | undefined;
       try {
         const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
@@ -43,19 +63,21 @@ export default function LoginScreen() {
         device_token: deviceToken
       });
 
-      // Simpan Token di SecureStore
       await SecureStore.setItemAsync('userToken', response.data.token);
-
-      // Update State Global
       setToken(response.data.token);
       setUser(response.data.user);
 
-      // Redirect berdasarkan role
       const role = response.data.user.role;
       if (role === 'siswa') router.replace('/(siswa)/dashboard');
-      else if (role === 'guru_piket') router.replace('/(piket)/dashboard');
+      else if (role === 'guru_piket' || role === 'piket') router.replace('/(piket)/dashboard');
       else if (role === 'wali_kelas') router.replace('/(wali)/dashboard');
       else if (role === 'orang_tua') router.replace('/(ortu)/dashboard');
+      else {
+        Alert.alert('Akses Ditolak', 'Akun admin atau role tidak valid hanya dapat diakses melalui web panel.');
+        setToken(null);
+        setUser(null);
+        await SecureStore.deleteItemAsync('userToken');
+      }
 
     } catch (error: any) {
       const msg = error.response?.data?.message || 'Login Gagal. Periksa kembali email dan password.';
@@ -66,71 +88,111 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Background Logo */}
-      <Image
-        source={require('../assets/images/logo.png')}
-        style={styles.backgroundImage}
-        contentFit="contain"
-      />
+    <View style={commonStyles.container}>
+      <LiquidBackground />
 
-      <SafeAreaView style={styles.safeArea}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
-          
-          <View style={styles.headerContainer}>
-            <View style={styles.badgeContainer}>
-              <Text style={styles.badgeText}>SiDispen</Text>
-            </View>
-            <Text style={styles.title}>Selamat Datang!</Text>
-            <Text style={styles.subtitle}>Silakan masuk ke akunmu untuk melanjutkan.</Text>
-          </View>
-
-          <SoftCard style={styles.card}>
-            <View style={[
-              styles.inputWrapper, 
-              focusedInput === 'email' && styles.inputWrapperFocused
-            ]}>
-              <Text style={styles.inputIcon}>@</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Email"
-                placeholderTextColor={COLORS.textMuted}
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                onFocus={() => setFocusedInput('email')}
-                onBlur={() => setFocusedInput(null)}
-              />
+      <SafeAreaView style={commonStyles.safeArea}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <ScrollView 
+            contentContainerStyle={styles.scrollContent} 
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.headerContainer}>
+              <View style={styles.titleContainer}>
+                <TypewriterText text="Selamat Datang!" />
+                <AnimatedEntrance delay={600}>
+                  <Text style={styles.subtitle}>Masuk ke gerbang digital SMA Negeri 3 untuk mengelola perizinanmu.</Text>
+                </AnimatedEntrance>
+              </View>
             </View>
 
-            <View style={[
-              styles.inputWrapper, 
-              focusedInput === 'password' && styles.inputWrapperFocused
-            ]}>
-              <Text style={styles.inputIcon}>*</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                placeholderTextColor={COLORS.textMuted}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                onFocus={() => setFocusedInput('password')}
-                onBlur={() => setFocusedInput(null)}
-              />
-            </View>
+            <AnimatedEntrance delay={1000} offset={40}>
+              <SkeuCard style={styles.card} isGlass>
+                <View style={styles.formLabelRow}>
+                  <Text style={styles.formLabel}>Informasi Akun</Text>
+                </View>
 
-            <BouncyButton 
-              title={loading ? 'Tunggu Sebentar...' : 'Ayo Mulai!'} 
-              onPress={handleLogin} 
-              loading={loading}
-              style={{ marginTop: SPACING.md }}
-              variant="primary"
-            />
-            
-            <Text style={styles.helpText}>Lupa Password?</Text>
-          </SoftCard>
+                <View style={[
+                  styles.inputWrapper, 
+                  focusedInput === 'email' && styles.inputWrapperFocused,
+                  SHADOWS.inset
+                ]}>
+                  <View style={styles.inputIconContainer}>
+                    <MaterialCommunityIcons 
+                      name="email-outline" 
+                      size={18} 
+                      color={focusedInput === 'email' ? COLORS.primary : COLORS.textMuted} 
+                    />
+                  </View>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Email Sekolah / Username"
+                    placeholderTextColor={COLORS.textMuted}
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    onFocus={() => setFocusedInput('email')}
+                    onBlur={() => setFocusedInput(null)}
+                  />
+                </View>
+
+                <View style={[
+                  styles.inputWrapper, 
+                  focusedInput === 'password' && styles.inputWrapperFocused,
+                  SHADOWS.inset
+                ]}>
+                  <View style={styles.inputIconContainer}>
+                    <MaterialCommunityIcons 
+                      name="lock-outline" 
+                      size={18} 
+                      color={focusedInput === 'password' ? COLORS.primary : COLORS.textMuted} 
+                    />
+                  </View>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Password"
+                    placeholderTextColor={COLORS.textMuted}
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                    onFocus={() => setFocusedInput('password')}
+                    onBlur={() => setFocusedInput(null)}
+                  />
+                  <TouchableOpacity 
+                    onPress={() => setShowPassword(!showPassword)} 
+                    style={styles.eyeButton}
+                    activeOpacity={0.6}
+                  >
+                    <MaterialCommunityIcons 
+                      name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                      size={20} 
+                      color={COLORS.textMuted} 
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.forgotPasswordRow}>
+                  <TouchableOpacity activeOpacity={0.6}>
+                    <Text style={styles.forgotPasswordText}>Lupa Password?</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <BouncyButton 
+                  title={loading ? 'Memvalidasi...' : 'Masuk Sekarang'} 
+                  onPress={handleLogin} 
+                  loading={loading}
+                  icon="login-variant"
+                  style={{ marginTop: SPACING.md }}
+                />
+              </SkeuCard>
+              
+              <View style={styles.footerContainer}>
+                <Text style={styles.footerText}>SiDispen v2.0 • SMAN 3 Digital Team</Text>
+              </View>
+            </AnimatedEntrance>
+          </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </View>
@@ -138,62 +200,104 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'transparent' },
-  safeArea: { flex: 1 },
-  keyboardView: { flex: 1, justifyContent: 'center', padding: SPACING.xl },
-  backgroundImage: {
-    position: 'absolute',
-    width: '150%',
-    height: '150%',
-    opacity: 0.05,
-    top: '-20%',
-    left: '-25%',
-    transform: [{ rotate: '-15deg' as any }]
+  scrollContent: { 
+    flexGrow: 1, 
+    justifyContent: 'center', 
+    padding: SPACING.lg,
+    paddingBottom: SPACING.xxl 
   },
-  headerContainer: { marginBottom: SPACING.xxl, alignItems: 'flex-start' },
-  badgeContainer: {
-    backgroundColor: COLORS.primaryContainer,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
-    borderRadius: SIZES.radiusButton,
-    borderWidth: 2,
-    borderColor: 'transparent',
+  headerContainer: { 
+    marginBottom: SPACING.xl, 
+    alignItems: 'center' 
+  },
+  titleContainer: {
+    alignItems: 'center',
+    width: '100%',
+    marginTop: SPACING.xxl, // Add space since logo is gone
+  },
+  title: { 
+    fontFamily: FONTS.heading, 
+    fontSize: 32, 
+    color: COLORS.textPrimary, 
+    marginBottom: SPACING.xs,
+    textAlign: 'center',
+  },
+  subtitle: { 
+    fontFamily: FONTS.body, 
+    fontSize: 15, 
+    color: COLORS.textSecondary, 
+    lineHeight: 22, 
+    textAlign: 'center',
+    paddingHorizontal: SPACING.lg,
+  },
+  card: { 
+    padding: SPACING.lg,
+    borderRadius: SIZES.radiusXl,
+  },
+  formLabelRow: {
     marginBottom: SPACING.md,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 3, height: 3 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 3,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.primary,
+    paddingLeft: SPACING.sm,
   },
-  badgeText: {
+  formLabel: {
     fontFamily: FONTS.headingSemi,
-    fontSize: 16,
+    fontSize: 14,
     color: COLORS.textPrimary,
+    letterSpacing: 0.2,
   },
-  title: { fontFamily: FONTS.heading, fontSize: 36, color: COLORS.textPrimary, marginBottom: SPACING.sm },
-  subtitle: { fontFamily: FONTS.bodyMedium, fontSize: 16, color: COLORS.textSecondary, lineHeight: 24 },
-  card: { padding: SPACING.lg },
   inputWrapper: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.surfaceContainerLowest,
+    flexDirection: 'row', 
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.4)',
     borderRadius: SIZES.radiusMd,
-    paddingHorizontal: SPACING.md,
-    height: 56,
-    borderWidth: 2,
-    borderColor: 'transparent', // Brutalist thick border
+    paddingHorizontal: SPACING.sm,
+    height: 60,
     marginBottom: SPACING.md,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 3, height: 3 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.6)',
   },
   inputWrapperFocused: {
-    backgroundColor: COLORS.surfaceContainerLow,
-    shadowOffset: { width: 5, height: 5 },
-    transform: [{ translateX: -2 }, { translateY: -2 }],
+    borderColor: COLORS.primaryLight,
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
   },
-  inputIcon: { fontSize: 18, marginRight: SPACING.sm, opacity: 0.5, color: COLORS.textPrimary, fontFamily: FONTS.headingSemi },
-  input: { flex: 1, fontFamily: FONTS.bodyMedium, fontSize: 16, color: COLORS.textPrimary },
-  helpText: { fontFamily: FONTS.headingSemi, fontSize: 14, color: COLORS.primary, textAlign: 'center', marginTop: SPACING.xl }
+  inputIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: SIZES.radiusSm,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.sm,
+  },
+  input: { 
+    flex: 1, 
+    fontFamily: FONTS.bodyMedium, 
+    fontSize: 15, 
+    color: COLORS.textPrimary,
+    height: '100%',
+  },
+  eyeButton: {
+    padding: SPACING.sm,
+  },
+  forgotPasswordRow: {
+    alignItems: 'flex-end',
+    marginBottom: SPACING.lg,
+  },
+  forgotPasswordText: {
+    fontFamily: FONTS.headingSemi,
+    fontSize: 13,
+    color: COLORS.primary,
+  },
+  footerContainer: {
+    marginTop: SPACING.xl,
+    alignItems: 'center',
+  },
+  footerText: {
+    fontFamily: FONTS.labelCaps,
+    fontSize: 10,
+    color: COLORS.textMuted,
+    letterSpacing: 0.5,
+  }
 });
+

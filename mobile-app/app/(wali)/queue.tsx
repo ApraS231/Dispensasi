@@ -1,81 +1,71 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
 import { router as expoRouter } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
 import api from '../../src/utils/api';
 import TopAppBar from '../../src/components/TopAppBar';
 import TicketCard from '../../src/components/TicketCard';
-import { COLORS, FONTS, SIZES, SPACING } from '../../src/utils/theme';
-
-const isToday = (dateString: string) => {
-    const d = new Date(dateString);
-    const today = new Date();
-    return d.getDate() === today.getDate() &&
-      d.getMonth() === today.getMonth() &&
-      d.getFullYear() === today.getFullYear();
-  };
+import SkeuCard from '../../src/components/SkeuCard';
+import LiquidBackground from '../../src/components/LiquidBackground';
+import { COLORS, FONTS, SPACING } from '../../src/utils/theme';
+import { commonStyles } from '../../src/utils/commonStyles';
 
 export default function WaliQueueScreen() {
-  const { data: allTickets = [], isLoading: loading } = useQuery({
-    queryKey: ['dispensasi-all'],
+  const { data: queue, isLoading } = useQuery({
+    queryKey: ['dispensasi-wali-queue'],
     queryFn: async () => {
-      const { data } = await api.get('/dispensasi');
+      const { data } = await api.get('/dispensasi/wali/queue');
       return data;
     }
   });
 
-  // For Wali Kelas, active queue is specifically 'pending' status
-  const tickets = allTickets.filter((t: any) => t.status === 'pending' && isToday(t.created_at));
-
-
-
   return (
-    <View style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        
-        <TopAppBar showAvatar={false} title="Antrean Validasi" showNotification={true} />
+    <View style={commonStyles.container}>
+      <LiquidBackground />
+      <SafeAreaView style={commonStyles.safeArea}>
+        <TopAppBar showAvatar={false} title="Antrean Persetujuan" showNotification={true} />
 
-        <View style={styles.mainContent}>
-          <View style={styles.headerArea}>
-            <Text style={styles.sectionTitle}>Menunggu Validasi</Text>
-            <Text style={styles.sectionSub}>Pengajuan dari siswa di kelas Anda.</Text>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={{ height: 88 + SPACING.statusBar }} />
+          <SkeuCard isGlass style={styles.infoCard}>
+            <Text style={styles.infoText}>Daftar pengajuan izin dari siswa Anda yang memerlukan persetujuan wali kelas.</Text>
+          </SkeuCard>
+
+          <View style={commonStyles.sectionHeader}>
+            <Text style={commonStyles.sectionTitle}>Menunggu ({queue?.length || 0})</Text>
           </View>
 
-          <View style={styles.listContainer}>
-            {loading ? (
-              <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: SPACING.xl }} />
-            ) : (
-              <FlatList
-                data={tickets}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.listContent}
-                showsVerticalScrollIndicator={false}
-                renderItem={({ item }) => (
-                  <TicketCard 
-                    item={item} 
-                    onPress={() => expoRouter.push(`/ticket/${item.id}`)}
-                  />
-                )}
-                ListEmptyComponent={<Text style={styles.emptyText}>Tidak ada pengajuan izin saat ini.</Text>}
-              />
-            )}
-          </View>
-        </View>
+          {queue?.map((item: any) => (
+            <TicketCard 
+              key={item.id} 
+              item={item} 
+              showName={true}
+              onPress={() => expoRouter.push(`/ticket/${item.id}`)} 
+            />
+          ))}
 
-        
+          {(!queue || queue.length === 0) && !isLoading && (
+            <Text style={commonStyles.emptyText}>Tidak ada antrean persetujuan saat ini.</Text>
+          )}
+        </ScrollView>
       </SafeAreaView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'transparent' },
-  safeArea: { flex: 1 },
-  mainContent: { flex: 1 },
-  headerArea: { padding: SPACING.md, paddingBottom: 0 },
-  sectionTitle: { fontFamily: FONTS.heading, fontSize: 22, color: COLORS.textPrimary },
-  sectionSub: { fontFamily: FONTS.bodyMedium, fontSize: 14, color: COLORS.textSecondary, marginTop: 4 },
-  listContainer: { flex: 1, paddingHorizontal: SPACING.md, paddingTop: SPACING.md },
-  listContent: { paddingBottom: 100 },
-  emptyText: { fontFamily: FONTS.body, textAlign: 'center', color: COLORS.textMuted, marginTop: SPACING.xl, fontSize: 14 },
+  content: {
+    padding: SPACING.md,
+    paddingBottom: 100,
+  },
+  infoCard: {
+    padding: SPACING.md,
+    marginBottom: SPACING.lg,
+  },
+  infoText: {
+    fontFamily: FONTS.body,
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    lineHeight: 20,
+  },
 });

@@ -1,6 +1,6 @@
 import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { AppState, Platform } from 'react-native';
+import { AppState, Platform, StyleSheet } from 'react-native';
 import { Slot } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SecureStore from 'expo-secure-store';
@@ -15,6 +15,7 @@ import {
 import * as SplashScreen from 'expo-splash-screen';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
 import LiquidBackground from '../src/components/LiquidBackground';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -76,10 +77,19 @@ export default function RootLayout() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <StatusBar style="dark" />
-      <LiquidBackground />
-      <Slot />
-    </QueryClientProvider>
+    <GestureHandlerRootView style={styles.container}>
+      <QueryClientProvider client={queryClient}>
+        <StatusBar style="dark" />
+        <LiquidBackground />
+        <Slot />
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});
+

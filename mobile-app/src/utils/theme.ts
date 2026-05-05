@@ -2,7 +2,7 @@ import { StatusBar, Platform } from 'react-native';
 
 export const COLORS = {
   // Skeuomorphism & Liquid Glass Theme - Blue Palette
-  bgWhite: '#BDD8E9', // Lightest blue as a base bright color
+  bgWhite: '#F0F4F8', // Broken white with cold tone
 
   surface: 'rgba(255, 255, 255, 0.25)', // Translucent glass surface
   surfaceDim: 'rgba(255, 255, 255, 0.15)',
@@ -11,6 +11,14 @@ export const COLORS = {
   surfaceContainer: 'rgba(255, 255, 255, 0.4)',
   surfaceContainerHigh: 'rgba(255, 255, 255, 0.5)',
   surfaceContainerHighest: 'rgba(255, 255, 255, 0.7)',
+  
+  // Glass Specific
+  glassSurface: 'rgba(255, 255, 255, 0.35)',
+  glassHighlight: 'rgba(255, 255, 255, 0.8)',
+  glassBorder: 'rgba(255, 255, 255, 0.5)',
+  depthShadow: 'rgba(0, 29, 57, 0.3)', // Darkest blue for realistic shadows
+  innerGlow: 'rgba(255, 255, 255, 0.4)',
+  ambientLight: 'rgba(123, 189, 232, 0.2)',
   
   primaryLight: '#7BBDE8', // Bright blue
   primaryMuted: '#6EA2B3', // Muted blue
@@ -71,17 +79,47 @@ export const TYPOGRAPHY = {
 };
 
 export const SHADOWS = {
-  softCard: {
-    shadowColor: '#001D39',
+  skeuShadow: {
+    shadowColor: COLORS.depthShadow,
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.2,
     shadowRadius: 20,
-    elevation: 10,
+    elevation: 8,
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.8)', // Glass edge
+    borderColor: COLORS.glassBorder,
+  },
+  glassPanel: {
+    shadowColor: COLORS.depthShadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: COLORS.glassHighlight,
+  },
+  raised: {
+    shadowColor: COLORS.depthShadow,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: COLORS.glassHighlight,
+  },
+  inset: {
+    // Inset effect is usually achieved via inner shadows or border manipulation in React Native
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderBottomWidth: 1,
+    borderRightWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.1)',
+    borderLeftColor: 'rgba(0,0,0,0.1)',
+    borderBottomColor: COLORS.glassHighlight,
+    borderRightColor: COLORS.glassHighlight,
+    backgroundColor: 'rgba(0,0,0,0.02)',
   },
   elevation2: {
-    shadowColor: '#001D39',
+    shadowColor: COLORS.depthShadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -90,7 +128,7 @@ export const SHADOWS = {
     borderColor: 'rgba(255, 255, 255, 0.6)',
   },
   elevation3: {
-    shadowColor: '#001D39',
+    shadowColor: COLORS.depthShadow,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.12,
     shadowRadius: 16,
@@ -98,13 +136,36 @@ export const SHADOWS = {
     borderWidth: 1.5,
     borderColor: 'rgba(255, 255, 255, 0.7)',
   },
-  bottomStrokePrimary: {
-    borderBottomWidth: 0, // removed hard strokes
-    borderRightWidth: 0,
+  // Embossed card: looks like it's raised and lit from top-left
+  embossedCard: {
+    shadowColor: 'rgba(0, 29, 57, 0.25)',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  bottomStrokeSecondary: {},
-  bottomStrokeTertiary: {},
-  bottomStrokeError: {},
+  // Pressed card: looks pushed into surface
+  pressedCard: {
+    shadowColor: 'rgba(0, 29, 57, 0.15)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  // Toolbar raised
+  toolbarShadow: {
+    shadowColor: 'rgba(0, 29, 57, 0.2)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+};
+
+export const GLASS = {
+  blurIntensity: 30, // For expo-blur
+  tintColor: 'light' as const,
+  opacity: 0.7,
 };
 
 export const SIZES = {
@@ -117,6 +178,8 @@ export const SIZES = {
   radiusButton: 16, // Pill-like or very round buttons
   radiusBadge: 12,
   radiusFull: 9999,
+  radiusGlassPanel: 28,
+  radiusToggle: 24,
 };
 
 export const SPACING = {

@@ -1,7 +1,7 @@
 import { HapticFeedback } from '../../src/utils/haptics';
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { View, Text, TouchableOpacity, FlatList, StyleSheet, Alert, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, SafeAreaView } from 'react-native';
 import { router as expoRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -10,7 +10,7 @@ import { useAuthStore } from '../../src/stores/authStore';
 import { useApproveTicket, useRejectTicket } from '../../src/hooks/useDispensasiQueries';
 import { useTogglePiketStatus } from '../../src/hooks/usePiketQueries';
 import DailyLogCard from '../../src/components/DailyLogCard';
-import SoftCard from '../../src/components/SoftCard';
+import SkeuCard from '../../src/components/SkeuCard';
 import TicketCard from '../../src/components/TicketCard';
 import MechanicalToggle from '../../src/components/MechanicalToggle';
 import TopAppBar from '../../src/components/TopAppBar';
@@ -18,12 +18,21 @@ import GlassFAB from '../../src/components/GlassFAB';
 import AvatarInitials from '../../src/components/AvatarInitials';
 import BouncyButton from '../../src/components/BouncyButton';
 import RejectModal from '../../src/components/RejectModal';
-import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../../src/utils/theme';
+import LiquidBackground from '../../src/components/LiquidBackground';
+import AnimatedEntrance from '../../src/components/AnimatedEntrance';
+import AnimatedCounter from '../../src/components/AnimatedCounter';
+import RefreshableScrollView from '../../src/components/RefreshableScrollView';
+import LogoutButton from '../../src/components/LogoutButton';
+import { COLORS, FONTS, SIZES, SPACING, SHADOWS, GLASS } from '../../src/utils/theme';
+import { commonStyles } from '../../src/utils/commonStyles';
+import { BlurView } from 'expo-blur';
+import { useSharedValue } from 'react-native-reanimated';
 
 export default function PiketDashboard() {
   const { user, logout } = useAuthStore();
   const [isReady, setIsReady] = useState(false);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const scrollY = useSharedValue(0);
 
   const approveMutation = useApproveTicket();
   const rejectMutation = useRejectTicket();
@@ -37,7 +46,7 @@ export default function PiketDashboard() {
     }
   });
 
-  const { data: statusData } = useQuery({
+  const { data: statusData, refetch: refetchStatus } = useQuery({
     queryKey: ['piket-status'],
     queryFn: async () => {
       const { data } = await api.get('/piket/status');
@@ -72,6 +81,13 @@ export default function PiketDashboard() {
     expoRouter.replace('/login');
   };
 
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([refetchPending(), refetchStatus(), refetchLogs()]);
+    setRefreshing(false);
+  };
+
   const handleApprove = async (id: string) => {
     try {
       HapticFeedback.success();
@@ -100,138 +116,166 @@ export default function PiketDashboard() {
   const todayDate = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
-    <View style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
+    <View style={commonStyles.container}>
+      <LiquidBackground />
+      <SafeAreaView style={commonStyles.safeArea}>
         
         <TopAppBar 
           showAvatar={true} 
           avatarLabel={user?.name?.charAt(0)?.toUpperCase() || 'P'} 
           showNotification={true} 
+          scrollY={scrollY}
         />
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-          <View style={styles.mainContent}>
-            {/* Header Card Status Piket */}
-            <View style={styles.headerContainer}>
-              <SoftCard style={styles.headerCard}>
-                <View style={styles.headerTop}>
-                  <View>
-                    <Text style={styles.greeting}>Status Piket Hari Ini</Text>
-                    <Text style={styles.dateText}>{todayDate}</Text>
-                  </View>
-                  <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
-                    <Text style={styles.logoutText}>Keluar</Text>
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.toggleContainer}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.toggleLabel}>Kehadiran</Text>
-                    <Text style={[styles.toggleStatus, { color: isReady ? COLORS.primary : COLORS.textMuted }]}>
-                      {isReady ? 'SEDANG BERTUGAS' : 'ISTIRAHAT'}
-                    </Text>
-                  </View>
-                  <MechanicalToggle
-                    value={isReady}
-                    onValueChange={async (val) => {
-                      HapticFeedback.light();
-                      setIsReady(val);
-                      try {
-                        await toggleStatusMutation.mutateAsync(val);
-                      } catch (e) {
-                        setIsReady(!val);
-                      }
-                    }}
-                  />
-                </View>
-
-                {/* Scan Button */}
-                {isReady && (
-                  <View style={styles.scanActionRow}>
-                    <TouchableOpacity style={styles.scanBtn} onPress={() => expoRouter.push('/scan-qr')}>
-                      <MaterialCommunityIcons name="qrcode-scan" size={24} color={COLORS.onPrimary} />
-                      <Text style={styles.scanBtnText}>Pindai QR Siswa Keluar</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </SoftCard>
-            </View>
-
-            {/* Antrean Persetujuan Area */}
-            <View style={styles.contentContainer}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Antrean Persetujuan</Text>
-                <View style={styles.badgeCount}>
-                  <Text style={styles.badgeCountText}>{pendingTickets.length}</Text>
-                </View>
-              </View>
-              
-              {pendingTickets.length > 0 ? pendingTickets.map((item) => (
-                <View key={item.id} style={styles.ticketWrapper}>
-                  <View style={styles.ticketHeaderRow}>
-                    <AvatarInitials name={item.siswa?.name || 'Siswa'} size={40} fontSize={16} />
-                    <View style={styles.ticketMeta}>
-                      <Text style={styles.ticketName}>{item.siswa?.name || 'Siswa'}</Text>
-                      <Text style={styles.ticketClass}>{item.kelas?.nama_kelas || 'Kelas'}</Text>
+        <RefreshableScrollView 
+          refreshing={refreshing} 
+          onRefresh={onRefresh}
+          scrollY={scrollY}
+          contentContainerStyle={{ paddingBottom: 120 }}
+        >
+          <View style={commonStyles.mainContent}>
+            <View style={{ height: 88 + SPACING.statusBar }} />
+            
+            <AnimatedEntrance delay={300} direction="down">
+              <View style={commonStyles.headerContainer}>
+                <SkeuCard style={styles.headerCard} isGlass>
+                  <View style={styles.headerTop}>
+                    <View>
+                      <Text style={styles.greeting}>Status Piket Hari Ini</Text>
+                      <Text style={styles.dateText}>{todayDate}</Text>
                     </View>
+                    <LogoutButton onPress={handleLogout} />
                   </View>
-                  
-                  <TicketCard 
-                    item={item} 
-                    onPress={() => expoRouter.push(`/ticket/${item.id}`)}
-                  />
-                  
-                  <View style={styles.actionRow}>
-                    <BouncyButton 
-                      title="Tolak" 
-                      variant="danger" 
-                      onPress={() => handleReject(item.id)} 
-                      style={styles.actionBtn}
+
+                  <View style={[styles.toggleContainer, SHADOWS.inset]}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.toggleLabel}>Kehadiran</Text>
+                      <Text style={[styles.toggleStatus, { color: isReady ? COLORS.primary : COLORS.textMuted }]}>
+                        {isReady ? 'SEDANG BERTUGAS' : 'ISTIRAHAT'}
+                      </Text>
+                    </View>
+                    <MechanicalToggle
+                      value={isReady}
+                      onValueChange={async (val) => {
+                        HapticFeedback.light();
+                        setIsReady(val);
+                        try {
+                          await toggleStatusMutation.mutateAsync(val);
+                        } catch (e) {
+                          setIsReady(!val);
+                        }
+                      }}
                     />
-                    <BouncyButton 
-                      title="Setujui & Terbitkan QR"
-                      onPress={() => handleApprove(item.id)} 
-                      style={styles.actionBtn}
-                    />
+                  </View>
+
+                  {isReady && (
+                    <AnimatedEntrance delay={300}>
+                      <View style={styles.scanActionRow}>
+                        <TouchableOpacity onPress={() => expoRouter.push('/scan-qr')} activeOpacity={0.8}>
+                          <View style={styles.scanBtn}>
+                            <MaterialCommunityIcons name="qrcode-scan" size={24} color={COLORS.onPrimary} />
+                            <Text style={styles.scanBtnText}>Pindai QR Siswa Keluar</Text>
+                          </View>
+                        </TouchableOpacity>
+                      </View>
+                    </AnimatedEntrance>
+                  )}
+                </SkeuCard>
+              </View>
+            </AnimatedEntrance>
+
+            <View style={commonStyles.contentContainer}>
+              <AnimatedEntrance delay={500} direction="up">
+                <View style={commonStyles.sectionHeader}>
+                  <Text style={commonStyles.sectionTitle}>Antrean Persetujuan</Text>
+                  <View style={styles.badgeCount}>
+                    <Text style={styles.badgeCountText}>{pendingTickets.length}</Text>
                   </View>
                 </View>
+              </AnimatedEntrance>
+              
+              {pendingTickets.length > 0 ? pendingTickets.map((item, index) => (
+                <AnimatedEntrance key={item.id} delay={600 + (index * 100)} direction="up" offset={20}>
+                  <SkeuCard isGlass style={styles.ticketWrapper}>
+                    <View style={styles.ticketHeaderRow}>
+                      <AvatarInitials name={item.siswa?.name || 'Siswa'} size={40} fontSize={16} />
+                      <View style={styles.ticketMeta}>
+                        <Text style={styles.ticketName}>{item.siswa?.name || 'Siswa'}</Text>
+                        <Text style={styles.ticketClass}>{item.kelas?.nama_kelas || 'Kelas'}</Text>
+                      </View>
+                    </View>
+                    
+                    <TicketCard 
+                      item={item} 
+                      onPress={() => expoRouter.push(`/ticket/${item.id}`)}
+                    />
+                    
+                    <View style={styles.actionRow}>
+                      <BouncyButton 
+                        title="Tolak" 
+                        variant="danger" 
+                        onPress={() => handleReject(item.id)} 
+                        style={styles.actionBtn}
+                      />
+                      <BouncyButton 
+                        title="Setujui & Terbitkan QR"
+                        onPress={() => handleApprove(item.id)} 
+                        style={styles.actionBtn}
+                      />
+                    </View>
+                  </SkeuCard>
+                </AnimatedEntrance>
               )) : (
-                <Text style={styles.emptyText}>Tidak ada antrean persetujuan.</Text>
+                <Text style={commonStyles.emptyText}>Tidak ada antrean persetujuan.</Text>
               )}
             </View>
 
-            {/* Log Hari Ini Area inside a Card Container */}
-            <View style={[styles.contentContainer, { marginTop: SPACING.xl }]}>
-              <SoftCard>
-                <View style={[styles.sectionHeader, { marginBottom: SPACING.md }]}>
-                  <Text style={styles.sectionTitle}>Log Hari Ini</Text>
-                </View>
+            <View style={[commonStyles.contentContainer, { marginTop: SPACING.xl }]}>
+              <AnimatedEntrance delay={800} direction="up">
+                <SkeuCard isGlass style={{ padding: SPACING.md }}>
+                  <View style={[commonStyles.sectionHeader, { marginBottom: SPACING.lg }]}>
+                    <View style={styles.sectionTitleRow}>
+                      <MaterialCommunityIcons name="history" size={20} color={COLORS.primary} />
+                      <Text style={commonStyles.sectionTitle}>Log Hari Ini</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => expoRouter.push('/(piket)/history')}>
+                      <Text style={styles.seeAllText}>Lihat Semua</Text>
+                    </TouchableOpacity>
+                  </View>
 
-                <View style={{ flexDirection: 'row', gap: 12, marginBottom: SPACING.lg }}>
-                  <View style={[styles.statCard, { backgroundColor: COLORS.primaryContainer }]}>
-                    <Text style={[styles.statValue, { color: COLORS.textPrimary }]}>{dailyLogStats.total}</Text>
-                    <Text style={styles.statLabel}>Total Izin</Text>
+                  <View style={styles.statsGrid}>
+                    <View style={[styles.statItem, SHADOWS.inset]}>
+                      <Text style={styles.statLabel}>TOTAL</Text>
+                      <AnimatedCounter value={dailyLogStats.total} style={styles.statValue} delay={1200} />
+                    </View>
+                    <View style={[styles.statItem, SHADOWS.inset]}>
+                      <Text style={[styles.statLabel, { color: COLORS.success }]}>EXIT</Text>
+                      <AnimatedCounter value={dailyLogStats.scanned} style={[styles.statValue, { color: COLORS.success }]} delay={1400} />
+                    </View>
+                    <View style={[styles.statItem, SHADOWS.inset]}>
+                      <Text style={[styles.statLabel, { color: COLORS.warning }]}>WAIT</Text>
+                      <AnimatedCounter value={dailyLogStats.total - dailyLogStats.scanned} style={[styles.statValue, { color: COLORS.warning }]} delay={1600} />
+                    </View>
                   </View>
-                  <View style={[styles.statCard, { backgroundColor: COLORS.secondaryContainer }]}>
-                    <Text style={[styles.statValue, { color: COLORS.textPrimary }]}>{dailyLogStats.scanned}</Text>
-                    <Text style={styles.statLabel}>Telah Keluar</Text>
-                  </View>
-                  <View style={[styles.statCard, { backgroundColor: COLORS.tertiaryContainer }]}>
-                    <Text style={[styles.statValue, { color: COLORS.textPrimary }]}>{dailyLogStats.total - dailyLogStats.scanned}</Text>
-                    <Text style={styles.statLabel}>Menunggu</Text>
-                  </View>
-                </View>
 
-                {dailyLogs.length > 0 ? dailyLogs.map((item) => (
-                  <DailyLogCard key={item.id} item={item} />
-                )) : (
-                  <Text style={styles.emptyText}>Belum ada log hari ini.</Text>
-                )}
-              </SoftCard>
+                  <View style={styles.logList}>
+                    {dailyLogs.length > 0 ? dailyLogs.slice(0, 8).map((item, index) => (
+                      <AnimatedEntrance key={item.id} delay={1000 + (index * 50)} direction="up" offset={10}>
+                        <DailyLogCard item={item} />
+                      </AnimatedEntrance>
+                    )) : (
+                      <View style={styles.emptyLogContainer}>
+                        <MaterialCommunityIcons name="clipboard-text-outline" size={48} color={COLORS.textMuted} />
+                        <Text style={styles.emptyLogText}>Belum ada aktivitas hari ini</Text>
+                      </View>
+                    )}
+                  </View>
+                </SkeuCard>
+              </AnimatedEntrance>
             </View>
 
           </View>
-        </ScrollView>
+        </RefreshableScrollView>
 
         <GlassFAB onPress={() => expoRouter.push('/scan-qr')} icon="qrcode-scan" style={{ bottom: 100 }} />
       </SafeAreaView>
@@ -246,105 +290,64 @@ export default function PiketDashboard() {
 }
 
 const styles = StyleSheet.create({
-  statCard: {
-    flex: 1,
-    padding: SPACING.sm,
-    alignItems: 'center',
-    borderRadius: SIZES.radiusCard,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 3, height: 3 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 3,
+  headerCard: {
+    padding: SPACING.lg,
   },
-  statValue: {
-    fontFamily: FONTS.heading,
-    fontSize: 24,
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: SPACING.lg,
   },
-  statLabel: {
+  greeting: {
     fontFamily: FONTS.bodyMedium,
-    fontSize: 11,
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
+  dateText: {
+    fontFamily: FONTS.heading,
+    fontSize: 20,
     color: COLORS.textPrimary,
     marginTop: 2,
   },
-  container: { flex: 1 },
-  safeArea: { flex: 1 },
-  mainContent: { flex: 1 },
-  headerContainer: {
-    padding: SPACING.md,
-    zIndex: 10,
-  },
-  headerCard: {
-    padding: SPACING.lg,
-    backgroundColor: COLORS.secondaryContainer, // Teal background
-  },
-  headerTop: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'flex-start', 
-    marginBottom: SPACING.xl 
-  },
-  greeting: { fontFamily: FONTS.headingSemi, fontSize: 18, color: COLORS.textPrimary },
-  dateText: { fontFamily: FONTS.bodyMedium, fontSize: 13, color: COLORS.textSecondary, marginTop: 4 },
-  logoutBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: COLORS.errorBg,
-    borderRadius: SIZES.radius,
-  },
-  logoutText: { fontFamily: FONTS.headingSemi, color: COLORS.error, fontSize: 12 },
-  
   toggleContainer: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      backgroundColor: COLORS.surfaceContainerLow,
-      padding: SPACING.md,
-      borderRadius: SIZES.radiusCard,
-
-      shadowColor: COLORS.primary,
-      shadowOffset: { width: 3, height: 3 },
-      shadowOpacity: 1,
-      shadowRadius: 0,
-    },
-  toggleLabel: { fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.textSecondary },
-  toggleStatus: { fontFamily: FONTS.heading, fontSize: 14, marginTop: 2 },
-
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.glassSurface,
+    padding: SPACING.md,
+    borderRadius: SIZES.radiusMd,
+    borderWidth: 1,
+    borderColor: COLORS.glassHighlight,
+  },
+  toggleLabel: {
+    fontFamily: FONTS.labelCaps,
+    fontSize: 11,
+    color: COLORS.textMuted,
+  },
+  toggleStatus: {
+    fontFamily: FONTS.headingSemi,
+    fontSize: 14,
+    marginTop: 2,
+  },
   scanActionRow: {
-    marginTop: SPACING.md,
+    marginTop: SPACING.lg,
   },
   scanBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: COLORS.primary,
-      paddingVertical: SPACING.md,
-      borderRadius: SIZES.radiusButton,
-      gap: SPACING.sm,
-
-      shadowColor: COLORS.primary,
-      shadowOffset: { width: 4, height: 4 },
-      shadowOpacity: 1,
-      shadowRadius: 0,
-    },
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+    paddingVertical: SPACING.md,
+    borderRadius: SIZES.radiusButton,
+    gap: SPACING.sm,
+    borderWidth: 1,
+    borderColor: COLORS.glassHighlight,
+  },
   scanBtnText: {
     fontFamily: FONTS.headingSemi,
-    color: COLORS.inverseOnSurface,
+    color: COLORS.onPrimary,
     fontSize: 16,
   },
-  
-  contentContainer: {
-    flex: 1,
-    paddingHorizontal: SPACING.md,
-  },
-  sectionHeader: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginBottom: SPACING.md 
-  },
-  sectionTitle: { fontFamily: FONTS.headingSemi, fontSize: 18, color: COLORS.textPrimary },
   badgeCount: {
     backgroundColor: COLORS.warning,
     paddingHorizontal: 8,
@@ -355,25 +358,21 @@ const styles = StyleSheet.create({
   badgeCountText: {
     fontFamily: FONTS.heading,
     fontSize: 12,
-    color: COLORS.inverseSurface,
+    color: COLORS.textPrimary,
   },
-  
-  listContent: { paddingBottom: 100 },
   ticketWrapper: {
-    marginBottom: SPACING.xl,
-    backgroundColor: COLORS.surfaceContainerHighest,
-    borderRadius: SIZES.radiusXl,
+    marginBottom: SPACING.lg,
     padding: SPACING.md,
-
-    ...SHADOWS.softCard,
   },
   ticketHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: SPACING.sm,
+    position: 'relative',
   },
   ticketMeta: {
     marginLeft: SPACING.sm,
+    flex: 1,
   },
   ticketName: {
     fontFamily: FONTS.headingSemi,
@@ -385,15 +384,64 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textSecondary,
   },
-  
   actionRow: {
     flexDirection: 'row',
     gap: SPACING.sm,
-    marginTop: SPACING.xs,
+    marginTop: SPACING.md,
   },
   actionBtn: {
     flex: 1,
     height: 48,
   },
-  emptyText: { fontFamily: FONTS.body, textAlign: 'center', color: COLORS.textMuted, marginTop: SPACING.xl, fontSize: 14 },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  seeAllText: {
+    fontFamily: FONTS.headingSemi,
+    fontSize: 12,
+    color: COLORS.primary,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: SPACING.lg,
+  },
+  statItem: {
+    flex: 1,
+    padding: SPACING.md,
+    alignItems: 'center',
+    borderRadius: SIZES.radiusMd,
+    backgroundColor: COLORS.glassSurface,
+    borderWidth: 1,
+    borderColor: COLORS.glassHighlight,
+  },
+  statValue: {
+    fontFamily: FONTS.heading,
+    fontSize: 24,
+    color: COLORS.textPrimary,
+  },
+  statLabel: {
+    fontFamily: FONTS.labelCaps,
+    fontSize: 9,
+    color: COLORS.textMuted,
+    marginTop: 4,
+    letterSpacing: 0.5,
+  },
+  logList: {
+    gap: 2,
+  },
+  emptyLogContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.xl,
+    gap: 8,
+  },
+  emptyLogText: {
+    fontFamily: FONTS.body,
+    fontSize: 14,
+    color: COLORS.textMuted,
+  },
 });
+

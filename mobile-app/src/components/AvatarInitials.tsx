@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { COLORS, FONTS } from '../utils/theme';
+import { COLORS, FONTS, SHADOWS } from '../utils/theme';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface AvatarInitialsProps {
   name: string;
@@ -20,33 +21,32 @@ export default function AvatarInitials({ name, size = 40, fontSize = 16 }: Avata
   const initials = getInitials(name);
 
   return (
-    <View
+    <LinearGradient
+      colors={[COLORS.secondaryContainer, COLORS.surfaceContainer]}
       style={[
         styles.container,
         {
           width: size,
           height: size,
-          borderRadius: size / 2,
+          borderRadius: size / 2, // Circular instead of boxy
         },
       ]}
     >
       <Text style={[styles.text, { fontSize }]}>{initials}</Text>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    ...SHADOWS.glassPanel,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.secondaryContainer,
-            shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    borderRadius: 4, // Boxy brutalist avatar
+    borderWidth: 1.5,
+    borderColor: COLORS.glassHighlight,
   },
   text: {
     fontFamily: FONTS.headingSemi,
-    color: COLORS.onSecondaryContainer,
+    color: COLORS.textPrimary,
   },
 });

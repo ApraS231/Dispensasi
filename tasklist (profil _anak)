@@ -1,0 +1,22 @@
+# Parent-Child Linking — Task List
+
+## Backend
+- [ ] Create migration `parent_link_requests`
+- [ ] Create model `ParentLinkRequest`
+- [ ] Create `ParentLinkController` with all methods
+- [ ] Add routes to `api.php`
+- [ ] Run migration
+
+## Mobile — Orang Tua
+- [ ] Create `app/(ortu)/kelola-anak.tsx` page
+- [ ] Update `app/(ortu)/profile.tsx` to link to kelola-anak
+- [ ] Update `app/(ortu)/_layout.tsx` to register new screen
+
+## Mobile — Siswa
+- [ ] Create `app/(siswa)/parent-requests.tsx` page
+- [ ] Update `app/(siswa)/profile.tsx` to add menu item
+
+## Verification
+- [ ] Run `php artisan migrate`
+- [ ] Run `npx tsc --noEmit`
+- [ ] Walkthrough
