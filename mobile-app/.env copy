@@ -1,3 +1,3 @@
-EXPO_PUBLIC_API_URL=http://10.195.196.212:8000/api
+EXPO_PUBLIC_API_URL=http://192.168.110.51:8000/api
 EXPO_PUBLIC_SUPABASE_URL=https://aecwhotjuuphryoftvpf.supabase.co
 EXPO_PUBLIC_SUPABASE_KEY=sb_publishable_NeOOHJLPJXXczQT10A4f_g_bZEGifm8
