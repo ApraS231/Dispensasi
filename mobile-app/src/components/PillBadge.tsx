@@ -9,7 +9,6 @@ import Animated, {
   Easing
 } from 'react-native-reanimated';
 import { COLORS, FONTS, SIZES } from '../utils/theme';
-import { BlurView } from 'expo-blur';
 
 interface PillBadgeProps {
   status: string;
@@ -74,14 +73,14 @@ export default function PillBadge({ status }: PillBadgeProps) {
 
   return (
     <View style={styles.container}>
-      <BlurView intensity={20} tint="light" style={[styles.badge, { borderColor: config.color + '40' }]}>
+      <View style={[styles.badge, { borderColor: config.color + '40', backgroundColor: config.color + '15' }]}>
         <Animated.View style={[
           styles.dot, 
           { backgroundColor: config.color },
           isPending && animatedStyle
         ]} />
         <Text style={[styles.text, { color: config.color }]}>{config.label}</Text>
-      </BlurView>
+      </View>
     </View>
   );
 }

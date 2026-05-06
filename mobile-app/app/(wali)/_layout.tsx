@@ -19,10 +19,11 @@ export default function WaliLayout() {
         <Stack.Screen name="queue" />
         <Stack.Screen name="history" />
         <Stack.Screen name="profile" />
-        <Stack.Screen name="kelola-siswa" />
+        <Stack.Screen name="kelola-anak" />
+        <Stack.Screen name="laporan-izin" />
       </Stack>
       
-      {!pathname.includes('kelola-siswa') && (
+      {!pathname.includes('kelola-anak') && !pathname.includes('laporan-izin') && (
         <BottomTabBar 
           tabs={WALI_TABS} 
           activeTab={activeTab} 

@@ -21,14 +21,14 @@ export default function WaliProfileScreen() {
       items: (
         <>
           <OptionMenuItem 
-            icon="account-group-outline" 
-            label="Data Siswa Kelas" 
-            onPress={() => expoRouter.push('/(wali)/kelola-siswa')} 
+            icon="account-child-circle" 
+            label="Kelola Data Siswa" 
+            onPress={() => expoRouter.push('/(wali)/kelola-anak')} 
           />
           <OptionMenuItem 
             icon="file-chart-outline" 
             label="Laporan Absensi" 
-            onPress={() => {}} 
+            onPress={() => expoRouter.push('/(wali)/laporan-izin')} 
           />
         </>
       )

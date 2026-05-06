@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('dispensasi_tickets', function (Blueprint $table) {
-            $table->dateTime('expires_at')->nullable()->after('qr_token');
-            $table->boolean('is_scanned')->default(false)->after('scanned_at');
+            if (!Schema::hasColumn('dispensasi_tickets', 'expires_at')) {
+                $table->dateTime('expires_at')->nullable();
+            }
+            if (!Schema::hasColumn('dispensasi_tickets', 'is_scanned')) {
+                $table->boolean('is_scanned')->default(false);
+            }
         });
     }
 

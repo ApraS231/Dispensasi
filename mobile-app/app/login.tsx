@@ -190,6 +190,13 @@ export default function LoginScreen() {
               
               <View style={styles.footerContainer}>
                 <Text style={styles.footerText}>SiDispen v2.0 • SMAN 3 Digital Team</Text>
+                
+                <TouchableOpacity 
+                  onPress={() => router.push('/register')} 
+                  style={{ marginTop: SPACING.md }}
+                >
+                  <Text style={styles.footerLinkText}>Belum punya akun? <Text style={{ color: COLORS.primary, fontFamily: FONTS.headingSemi }}>Daftar di sini</Text></Text>
+                </TouchableOpacity>
               </View>
             </AnimatedEntrance>
           </ScrollView>
@@ -298,6 +305,11 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: COLORS.textMuted,
     letterSpacing: 0.5,
+  },
+  footerLinkText: {
+    fontFamily: FONTS.body,
+    fontSize: 13,
+    color: COLORS.textSecondary,
   }
 });
 

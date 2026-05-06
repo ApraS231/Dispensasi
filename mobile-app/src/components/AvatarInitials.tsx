@@ -4,12 +4,13 @@ import { COLORS, FONTS, SHADOWS } from '../utils/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 
 interface AvatarInitialsProps {
-  name: string;
+  name?: string;
   size?: number;
   fontSize?: number;
 }
 
-function getInitials(name: string): string {
+function getInitials(name?: string): string {
+  if (!name) return '?';
   const parts = name.trim().split(/\s+/);
   if (parts.length >= 2) {
     return (parts[0][0] + parts[1][0]).toUpperCase();

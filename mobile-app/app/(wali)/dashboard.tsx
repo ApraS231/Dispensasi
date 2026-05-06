@@ -39,8 +39,27 @@ export default function WaliDashboard() {
     }
   });
 
-  const totalStudents = 36;
-  const absentStudents = pendingTickets.length;
+  // Fetch real student data for donut chart
+  const { data: kelasData, refetch: refetchKelas } = useQuery({
+    queryKey: ['wali-siswa'],
+    queryFn: async () => {
+      const { data } = await api.get('/wali/siswa');
+      return data;
+    }
+  });
+
+  // Fetch all today's dispensasi (approved + pending) for accurate count
+  const { data: allTickets = [], refetch: refetchAll } = useQuery({
+    queryKey: ['dispensasi-wali-today'],
+    queryFn: async () => {
+      const { data } = await api.get('/dispensasi');
+      const today = new Date().toDateString();
+      return data.filter((t: any) => new Date(t.created_at).toDateString() === today);
+    }
+  });
+
+  const totalStudents = kelasData?.siswa?.length || 0;
+  const absentStudents = allTickets.length;
   const presentStudents = Math.max(0, totalStudents - absentStudents);
 
   const handleLogout = async () => {
@@ -80,7 +99,7 @@ export default function WaliDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = async () => {
     setRefreshing(true);
-    await refetchPending();
+    await Promise.all([refetchPending(), refetchKelas(), refetchAll()]);
     setRefreshing(false);
   };
 

@@ -11,10 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            if (!Schema::hasColumn('users', 'profile_photo_url')) {
-                $table->string('profile_photo_url')->nullable();
-            }
+        Schema::table('siswa_profiles', function (Blueprint $table) {
+            $table->uuid('kelas_id')->nullable()->change();
         });
     }
 
@@ -23,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('profile_photo_url');
+        Schema::table('siswa_profiles', function (Blueprint $table) {
+            $table->uuid('kelas_id')->nullable(false)->change();
         });
     }
 };

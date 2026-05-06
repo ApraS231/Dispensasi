@@ -15,11 +15,21 @@ use App\Http\Controllers\Api\ParentLinkController;
 use App\Http\Controllers\Api\WaliKelasController;
 
 
+use App\Http\Controllers\Api\ProfileController;
+
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register']);
+Route::get('/kelas', [KelasController::class, 'index']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::post('/user/profile', [\App\Http\Controllers\Api\ProfileController::class, 'update']);
+    
+    // Profile
+    Route::post('/profile/update', [ProfileController::class, 'update']);
+    Route::post('/profile/update-password', [ProfileController::class, 'updatePassword']);
+    
+    // Route::get('/kelas', [KelasController::class, 'index']); // Moved out to public for register
+    
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
@@ -59,6 +69,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // WALI KELAS ONLY
     Route::middleware('role:wali_kelas')->group(function () {
         Route::get('/wali/siswa', [WaliKelasController::class, 'getSiswaKelas']);
+        Route::get('/wali/search-siswa', [WaliKelasController::class, 'searchSiswa']);
+        Route::post('/wali/tambah-siswa', [WaliKelasController::class, 'tambahSiswa']);
+        Route::delete('/wali/hapus-siswa/{id}', [WaliKelasController::class, 'hapusSiswa']);
+        Route::get('/wali/laporan-izin', [WaliKelasController::class, 'laporanIzin']);
+        
+        // Class Join Requests
+        Route::get('/wali/class-requests', [WaliKelasController::class, 'getClassRequests']);
+        Route::post('/wali/class-requests/{id}/respond', [WaliKelasController::class, 'respondClassRequest']);
     });
 
     // ORANG TUA

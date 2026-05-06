@@ -73,14 +73,19 @@ class ParentLinkController extends Controller
             ->first();
 
         if ($existingRequest) {
-            return response()->json(['message' => 'Permintaan sudah ada.'], 400);
+            if ($existingRequest->status === 'rejected') {
+                $existingRequest->update(['status' => 'pending']);
+                $linkRequest = $existingRequest;
+            } else {
+                return response()->json(['message' => 'Permintaan sudah ada.'], 400);
+            }
+        } else {
+            $linkRequest = ParentLinkRequest::create([
+                'parent_id' => $parent->id,
+                'siswa_id' => $siswaId,
+                'status' => 'pending'
+            ]);
         }
-
-        $linkRequest = ParentLinkRequest::create([
-            'parent_id' => $parent->id,
-            'siswa_id' => $siswaId,
-            'status' => 'pending'
-        ]);
 
         // Notify Siswa
         $siswa = User::find($siswaId);
@@ -100,6 +105,7 @@ class ParentLinkController extends Controller
     public function myRequests(Request $request)
     {
         $requests = ParentLinkRequest::where('parent_id', $request->user()->id)
+            ->where('status', '!=', 'accepted')
             ->with(['siswa'])
             ->latest()
             ->get();
@@ -110,11 +116,11 @@ class ParentLinkController extends Controller
     {
         $linkRequest = ParentLinkRequest::where('id', $id)
             ->where('parent_id', $request->user()->id)
-            ->where('status', 'pending')
+            ->whereIn('status', ['pending', 'rejected'])
             ->firstOrFail();
 
         $linkRequest->delete();
-        return response()->json(['message' => 'Permintaan dibatalkan']);
+        return response()->json(['message' => 'Permintaan dibatalkan/dihapus']);
     }
 
     public function pendingRequests(Request $request)

@@ -37,14 +37,22 @@ class DispensasiController extends Controller
             return response()->json(['message' => 'Profil siswa tidak ditemukan'], 400);
         }
 
-        // Prevent multiple requests on the same day
-        $today = now()->toDateString();
-        $existingTicket = DispensasiTicket::where('siswa_id', $siswa->id)
-            ->whereDate('created_at', $today)
+        // Prevent multiple tickets within 12 hours, unless previous ticket has expired or been rejected
+        $lastTicket = DispensasiTicket::where('siswa_id', $siswa->id)
+            ->latest()
             ->first();
 
-        if ($existingTicket) {
-            return response()->json(['message' => 'Anda sudah mengajukan dispensasi hari ini.'], 400);
+        if ($lastTicket) {
+            $isRejected = $lastTicket->status === 'rejected';
+            $isExpired = $lastTicket->expires_at && now()->greaterThan($lastTicket->expires_at);
+            $isWithin12Hours = $lastTicket->created_at->diffInHours(now()) < 12;
+
+            if ($isWithin12Hours && !$isRejected && !$isExpired) {
+                $sisaJam = 12 - $lastTicket->created_at->diffInHours(now());
+                return response()->json([
+                    'message' => "Anda hanya dapat mengajukan 1 dispensasi setiap 12 jam. Silakan coba lagi dalam {$sisaJam} jam."
+                ], 400);
+            }
         }
 
         $waliKelasId = $profilSiswa->kelas->wali_kelas_id ?? null;
