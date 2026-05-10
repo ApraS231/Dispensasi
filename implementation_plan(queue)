@@ -1,0 +1,297 @@
+# Integrasi Sistem Antrean Pool Queue Piket
+
+## Latar Belakang
+
+Dokumen [Arsitektur Sistem Antrean Piket.md](file:///c:/laragon/www/SIdispen%20(SMA%203)/Arsitektur%20Sistem%20Antrean%20Piket.md) menjelaskan pendekatan **Status-Based Pool Queue** di mana tiket dispensasi yang disetujui Wali Kelas dilempar ke "kolam antrean" dengan `guru_piket_id = NULL` dan status `waiting_piket`. Guru Piket yang sedang shift akan melihat semua tiket di pool dan **meng-claim** tiket saat eksekusi.
+
+### Perbedaan Kritis: Arsitektur vs Implementasi Saat Ini
+
+| Aspek | Arsitektur (Target) | Kode Saat Ini |
+|---|---|---|
+| `guru_piket_id` saat Wali approve | `NULL` (mengambang di pool) | Langsung di-assign ke `$activeSchedule->guru_id` |
+| Endpoint antrean Piket | `GET /piket/queue` (baru, dedicated) | Tidak ada — Piket pakai `GET /dispensasi/pending` |
+| Filter pending Piket | `WHERE status = 'waiting_piket' AND guru_piket_id IS NULL` | `WHERE guru_piket_id = $user->id AND status = 'waiting_piket'` |
+| Shift check saat approve | Guru meng-claim sendiri saat approve | Wali Kelas yang menentukan Guru Piket |
+| Race condition handling | HTTP 409 Conflict | Tidak ada |
+| Kolom jadwal di DB | Migration: `hari_dalam_minggu` (integer) | Supabase live: `hari` (varchar) |
+
+> [!IMPORTANT]
+> **Supabase sudah di-setup oleh user.** Kolom `guru_piket_id` pada `dispensasi_tickets` sudah nullable. Yang perlu dilakukan sekarang adalah **integrasi kode** (backend + frontend).
+
+## User Review Required
+
+> [!WARNING]
+> **Diskrepansi Nama Kolom `piket_schedules`**: Migration Laravel menggunakan `hari_dalam_minggu` (integer, 1-7), tapi Supabase live schema menunjukkan `hari` (varchar). `PiketController.php` sudah pakai `hari_dalam_minggu`. Sedangkan `DispensasiController.php` line 117 pakai `'hari'`.
+> 
+> **Pertanyaan:** Kolom mana yang sebenarnya aktif di Supabase? `hari_dalam_minggu` (integer) atau `hari` (varchar)? Ini penting karena menentukan cara query jadwal piket.
+
+> [!NOTE]
+> Implementasi ini **tidak mengubah** alur tiket dari sisi Siswa maupun Orang Tua. Yang berubah hanya mekanisme *handoff* dari Wali Kelas ke Guru Piket.
+
+## Proposed Changes
+
+### Komponen 1: Backend — Refactor Approval Flow (Wali Kelas → Pool)
+
+#### [MODIFY] [DispensasiController.php](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/app/Http/Controllers/Api/DispensasiController.php)
+
+**Method `approve()` — blok `wali_kelas` (line 110-154):**
+
+Ubah dari direct-assign menjadi pool-based:
+
+```diff
+  if ($user->role === 'wali_kelas' && $tiket->wali_kelas_id === $user->id) {
+-     // Logika Auto-Assignment Guru Piket
+-     $now = now();
+-     $hariIni = $now->dayOfWeekIso;
+-     $jamIni = $now->format('H:i:s');
+-
+-     $activeSchedule = PiketSchedule::where('hari', $hariIni)
+-         ->where('jam_mulai', '<=', $jamIni)
+-         ->where('jam_selesai', '>=', $jamIni)
+-         ->first();
+-
+-     if (!$activeSchedule) {
+-         return response()->json(['message' => '...'], 422);
+-     }
+-
+-     $tiket->update([
+-         'status' => 'waiting_piket',
+-         'guru_piket_id' => $activeSchedule->guru_id
+-     ]);
+-
+-     // Notify specific Guru Piket
+-     $guruPiket = User::find($activeSchedule->guru_id);
+-     if ($guruPiket && $guruPiket->device_token) { ... }
+
++     // 1. Lempar tiket ke Pool Queue (guru_piket_id tetap NULL)
++     $tiket->update([
++         'status' => 'waiting_piket',
++         'guru_piket_id' => null,
++     ]);
++
++     // 2. Kirim Push Notif ke SEMUA Guru Piket yang sedang shift
++     $now = now();
++     $activeSchedules = PiketSchedule::where('hari_dalam_minggu', $now->dayOfWeekIso)
++         ->where('jam_mulai', '<=', $now->format('H:i:s'))
++         ->where('jam_selesai', '>=', $now->format('H:i:s'))
++         ->with('guru')
++         ->get();
++
++     foreach ($activeSchedules as $schedule) {
++         if ($schedule->guru && $schedule->guru->device_token) {
++             ExpoPushService::send(
++                 $schedule->guru->device_token,
++                 '⏳ Antrean Baru di Meja Piket',
++                 "Tiket izin {$tiket->siswa->name} telah disetujui Wali Kelas.",
++                 ['ticket_id' => $tiket->id, 'type' => 'ticket_forwarded'],
++                 [$schedule->guru->id]
++             );
++         }
++     }
+```
+
+**Method `pending()` (line 289-303) — blok `guru_piket`:**
+
+```diff
+  } else if ($user->role === 'guru_piket') {
+-     $query->where('guru_piket_id', $user->id)->where('status', 'waiting_piket');
++     // Pool: Tampilkan SEMUA tiket waiting_piket (bukan hanya milik guru ini)
++     $query->where('status', 'waiting_piket');
+  }
+```
+
+**Method `approve()` — blok `guru_piket` (line 156-192):**
+
+Ubah dari ownership-check ke pool-claim dengan race condition protection:
+
+```diff
+- } else if ($user->role === 'guru_piket' && $tiket->guru_piket_id === $user->id) {
+-     $tiket->update([
+-         'status' => 'approved_final',
+-         'qr_token' => (string) Str::uuid(),
+-         'expires_at' => now()->addHours(12)
+-     ]);
+
++ } else if ($user->role === 'guru_piket') {
++     // Pool Claim: Pastikan tiket masih available
++     if ($tiket->status !== 'waiting_piket' || $tiket->guru_piket_id !== null) {
++         return response()->json([
++             'message' => 'Tiket ini sudah diproses oleh Guru Piket lain.'
++         ], 409); // 409 Conflict
++     }
++
++     $tiket->update([
++         'status' => 'approved_final',
++         'guru_piket_id' => $user->id, // CLAIM: kunci ke guru ini
++         'qr_token' => (string) Str::uuid(),
++         'expires_at' => now()->addHours(12)
++     ]);
+```
+
+**Method `reject()` — sesuaikan otorisasi Guru Piket:**
+
+```diff
+- ($user->role === 'guru_piket' && $tiket->guru_piket_id === $user->id)
++ ($user->role === 'guru_piket' && ($tiket->guru_piket_id === $user->id || $tiket->status === 'waiting_piket'))
+```
+
+**Method `index()` — blok `guru_piket` (line 312-313):**
+
+```diff
+  } else if ($user->role === 'guru_piket') {
+-     $query->where('guru_piket_id', $user->id);
++     // Tampilkan tiket yang diklaim guru ini ATAU yang masih di pool
++     $query->where(function($q) use ($user) {
++         $q->where('guru_piket_id', $user->id)
++           ->orWhere('status', 'waiting_piket');
++     });
+  }
+```
+
+---
+
+### Komponen 2: Backend — Endpoint Baru: Pool Queue
+
+#### [MODIFY] [PiketController.php](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/app/Http/Controllers/Api/PiketController.php)
+
+Tambahkan method `getQueue()` sesuai arsitektur:
+
+```php
+public function getQueue(Request $request) {
+    $now = now();
+    $guruId = $request->user()->id;
+
+    // 1. Cek apakah Guru ini sedang masuk jadwal shift
+    $isScheduledNow = PiketSchedule::where('guru_id', $guruId)
+        ->where('hari_dalam_minggu', $now->dayOfWeekIso)
+        ->where('jam_mulai', '<=', $now->format('H:i:s'))
+        ->where('jam_selesai', '>=', $now->format('H:i:s'))
+        ->exists();
+
+    if (!$isScheduledNow) {
+        return response()->json([
+            'is_active_shift' => false,
+            'data' => [],
+            'message' => 'Saat ini Anda sedang tidak dalam jadwal piket.'
+        ]);
+    }
+
+    // 2. Tarik semua tiket dari Pool (FIFO)
+    $queue = DispensasiTicket::with(['siswa', 'kelas'])
+        ->where('status', 'waiting_piket')
+        ->whereNull('guru_piket_id')
+        ->orderBy('updated_at', 'asc')
+        ->get();
+
+    return response()->json([
+        'is_active_shift' => true,
+        'data' => $queue
+    ]);
+}
+```
+
+#### [MODIFY] [api.php](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/routes/api.php)
+
+Tambah route baru di grup `guru_piket`:
+
+```diff
+  Route::middleware('role:guru_piket')->group(function () {
+      Route::get('/piket/status', [PiketController::class, 'getStatus']);
++     Route::get('/piket/queue', [PiketController::class, 'getQueue']);
+      Route::post('/piket/validate-qr', [PiketController::class, 'validateQR']);
+      Route::get('/piket/daily-log', [PiketController::class, 'getDailyLog']);
+  });
+```
+
+---
+
+### Komponen 3: Frontend — Service Layer & Hooks
+
+#### [MODIFY] [piketService.ts](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/services/piketService.ts)
+
+Tambah method baru:
+
+```diff
+  export const piketService = {
+    getStatus: () => api.get('/piket/status').then(r => r.data),
++   getQueue: () => api.get('/piket/queue').then(r => r.data),
+    setStatus: (is_ready: boolean) => api.post('/piket/status', { is_ready }).then(r => r.data),
+    getDailyLog: () => api.get('/piket/daily-log').then(r => r.data),
+    validateQR: (qr_token: string) => api.post('/piket/validate-qr', { qr_token }).then(r => r.data),
+  };
+```
+
+#### [MODIFY] [usePiketQueries.ts](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/src/hooks/usePiketQueries.ts)
+
+Tambah hook baru dengan **auto-polling 30 detik**:
+
+```diff
+  export const piketKeys = {
+    all: ['piket'] as const,
+    status: () => [...piketKeys.all, 'status'] as const,
++   queue: () => [...piketKeys.all, 'queue'] as const,
+    dailyLog: () => [...piketKeys.all, 'daily-log'] as const,
+  };
+
++ export function usePiketQueue(enabled = true) {
++   return useQuery({
++     queryKey: piketKeys.queue(),
++     queryFn: piketService.getQueue,
++     enabled,
++     refetchInterval: 30_000, // Polling ringan setiap 30 detik
++     staleTime: 10_000,
++   });
++ }
+```
+
+---
+
+### Komponen 4: Frontend — Refactor Piket Queue Screen
+
+#### [MODIFY] [queue.tsx (piket)](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(piket)/queue.tsx)
+
+Refactor total untuk menggunakan arsitektur Pool Queue:
+
+1. **Ganti API call** dari `/dispensasi/piket/queue` → hook `usePiketQueue()`
+2. **Tambah Shift-Aware UI**: Dua state berbeda (locked vs active)
+   - State 1: **Di luar shift** — tampilkan ikon Lock + pesan "Di Luar Jadwal Shift"
+   - State 2: **Sedang shift** — tampilkan FlatList antrean FIFO
+3. **Tambah tombol Approve & Reject** per tiket di queue (claim langsung)
+4. **Handle HTTP 409**: Alert "Tiket sudah diklaim guru lain" → auto-refresh list
+5. **Auto-polling 30s** via TanStack Query `refetchInterval`
+
+---
+
+### Komponen 5: Frontend — Update Piket Dashboard
+
+#### [MODIFY] [dashboard.tsx (piket)](file:///c:/laragon/www/SIdispen%20(SMA%203)/mobile-app/app/(piket)/dashboard.tsx)
+
+Sesuaikan dashboard karena konsep pending berubah:
+
+1. **"Antrean Persetujuan"** harus menampilkan tiket dari pool (`waiting_piket` + `guru_piket_id IS NULL`)
+2. **Badge count** harus reflect jumlah dari pool queue
+3. Approve action harus handle 409 Conflict
+
+---
+
+## Verification Plan
+
+### Automated Tests
+
+1. **Backend smoke test** via `curl` / Postman:
+   - Wali Kelas approve → cek `guru_piket_id` harus `NULL` dan status `waiting_piket`
+   - `GET /piket/queue` → harus return tiket pool
+   - Guru Piket approve tiket → `guru_piket_id` harus terisi, status `approved_final`
+   - Guru Piket kedua approve tiket yang sama → harus return 409
+
+2. **Frontend test** via browser:
+   - Queue screen menampilkan state locked saat di luar jadwal
+   - Queue screen menampilkan list FIFO saat dalam jadwal
+   - Approve sukses → tiket hilang dari list & muncul QR
+   - 409 Conflict → alert muncul & list ter-refresh
+
+### Manual Verification
+
+- Test dengan 2 akun Guru Piket di jam shift yang sama
+- Pastikan race condition ditangani dengan benar (salah satu dapat 409)
+- Pastikan tiket tidak hilang saat pergantian shift (Guru A off, Guru B lihat semua sisa pool)

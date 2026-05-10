@@ -31,6 +31,51 @@ interface TopAppBarProps {
   rightComponent?: React.ReactNode;
 }
 
+const AnimatedBlob = ({ color, size, top, left, bottom, right, duration, delay = 0 }: any) => {
+  const tx = useSharedValue(0);
+  const ty = useSharedValue(0);
+
+  useEffect(() => {
+    tx.value = withRepeat(
+      withSequence(
+        withTiming(30, { duration, easing: Easing.inOut(Easing.ease) }),
+        withTiming(-30, { duration, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    );
+    ty.value = withRepeat(
+      withSequence(
+        withTiming(-20, { duration: duration * 1.2, easing: Easing.inOut(Easing.ease) }),
+        withTiming(20, { duration: duration * 1.2, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    );
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: tx.value }, { translateY: ty.value }],
+  }));
+
+  return (
+    <Animated.View 
+      style={[
+        {
+          position: 'absolute',
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: color,
+          opacity: 0.15,
+          top, left, bottom, right,
+        },
+        animatedStyle
+      ]}
+    />
+  );
+};
+
 export default function TopAppBar({
   showAvatar = true,
   avatarLabel,
@@ -91,8 +136,41 @@ export default function TopAppBar({
 
   return (
     <Animated.View style={[styles.outerContainer, animatedContainerStyle, SHADOWS.toolbarShadow]}>
-      <BlurView intensity={GLASS.blurIntensity + 10} tint={GLASS.tintColor} style={StyleSheet.absoluteFill} />
+      {/* Background Gradient Base */}
+      <LinearGradient
+        colors={[COLORS.surfaceContainer, COLORS.surfaceContainerLow]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* Soft Blob Gradients */}
+      <View style={StyleSheet.absoluteFill}>
+        <AnimatedBlob 
+          color={COLORS.primary} 
+          size={120} 
+          top={-40} 
+          left={-20} 
+          duration={8000} 
+        />
+        <AnimatedBlob 
+          color={COLORS.secondary} 
+          size={150} 
+          bottom={-60} 
+          right={-30} 
+          duration={10000} 
+          delay={1000}
+        />
+      </View>
+
+      <BlurView intensity={GLASS.blurIntensity + 15} tint={GLASS.tintColor} style={StyleSheet.absoluteFill} />
       
+      {/* Glossy Gradient Overlay */}
+      <LinearGradient
+        colors={['rgba(255,255,255,0.15)', 'transparent', 'rgba(0,0,0,0.02)']}
+        style={StyleSheet.absoluteFill}
+      />
+
       {/* Top Lighting Highlight */}
       <LinearGradient
         colors={['rgba(255,255,255,0.4)', 'transparent']}

@@ -1,5 +1,5 @@
 import React, { useMemo, useCallback, useRef, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, Keyboard } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Keyboard, TouchableOpacity } from 'react-native';
 import BottomSheet, { 
   BottomSheetView, 
   BottomSheetBackdrop,
@@ -72,16 +72,28 @@ export default function RejectModal({ visible, onClose, onSubmit }: RejectModalP
     >
       <BottomSheetView style={styles.contentContainer}>
         <Text style={styles.title}>Alasan Penolakan</Text>
-        <Text style={styles.subtitle}>Masukkan catatan penolakan untuk siswa:</Text>
+        <Text style={styles.subtitle}>Pilih alasan atau masukkan catatan kustom:</Text>
+
+        {/* Quick Reasons Chips */}
+        <View style={styles.chipRow}>
+          {['Dokumen Tidak Lengkap', 'Alasan Kurang Jelas', 'Jam Hampir Selesai', 'Data Tidak Sesuai'].map((chip) => (
+            <TouchableOpacity 
+              key={chip} 
+              style={[styles.chip, reason === chip && styles.chipActive]} 
+              onPress={() => setReason(chip)}
+            >
+              <Text style={[styles.chipText, reason === chip && styles.chipTextActive]}>{chip}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         <BottomSheetTextInput
           style={[styles.input, SHADOWS.inset]}
-          placeholder="Contoh: Dokumen tidak lengkap, Alasan tidak jelas..."
+          placeholder="Tulis alasan penolakan di sini..."
           placeholderTextColor={COLORS.textMuted}
           value={reason}
           onChangeText={setReason}
           multiline
-          autoFocus
         />
 
         <View style={styles.actionRow}>
@@ -96,6 +108,7 @@ export default function RejectModal({ visible, onClose, onSubmit }: RejectModalP
             variant="danger"
             onPress={handleSubmit}
             style={styles.btn}
+            disabled={!reason.trim()}
           />
         </View>
       </BottomSheetView>
@@ -136,9 +149,35 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
     fontSize: 16,
     color: COLORS.textPrimary,
-    minHeight: 120,
+    minHeight: 100,
     textAlignVertical: 'top',
-    marginBottom: SPACING.xl,
+    marginBottom: SPACING.lg,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: SPACING.md,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: COLORS.surfaceContainerLow,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+  },
+  chipActive: {
+    backgroundColor: COLORS.errorBg,
+    borderColor: COLORS.error,
+  },
+  chipText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+  chipTextActive: {
+    color: COLORS.error,
   },
   actionRow: {
     flexDirection: 'row',

@@ -1,21 +1,20 @@
 import { HapticFeedback } from '../../src/utils/haptics';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { router as expoRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import api from '../../src/utils/api';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useApproveTicket, useRejectTicket } from '../../src/hooks/useDispensasiQueries';
-import { useTogglePiketStatus } from '../../src/hooks/usePiketQueries';
+import { useTogglePiketStatus, usePiketQueue } from '../../src/hooks/usePiketQueries';
 import DailyLogCard from '../../src/components/DailyLogCard';
 import SkeuCard from '../../src/components/SkeuCard';
 import TicketCard from '../../src/components/TicketCard';
 import MechanicalToggle from '../../src/components/MechanicalToggle';
 import TopAppBar from '../../src/components/TopAppBar';
 import GlassFAB from '../../src/components/GlassFAB';
-import AvatarInitials from '../../src/components/AvatarInitials';
 import BouncyButton from '../../src/components/BouncyButton';
 import RejectModal from '../../src/components/RejectModal';
 import LiquidBackground from '../../src/components/LiquidBackground';
@@ -38,13 +37,8 @@ export default function PiketDashboard() {
   const rejectMutation = useRejectTicket();
   const toggleStatusMutation = useTogglePiketStatus();
 
-  const { data: pendingTickets = [], refetch: refetchPending } = useQuery({
-    queryKey: ['dispensasi-pending'],
-    queryFn: async () => {
-      const { data } = await api.get('/dispensasi/pending');
-      return data;
-    }
-  });
+  const { data: queueData, refetch: refetchQueue } = usePiketQueue(isReady);
+  const pendingTickets = queueData?.data || [];
 
   const { data: statusData, refetch: refetchStatus } = useQuery({
     queryKey: ['piket-status'],
@@ -84,7 +78,7 @@ export default function PiketDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([refetchPending(), refetchStatus(), refetchLogs()]);
+    await Promise.all([refetchQueue(), refetchStatus(), refetchLogs()]);
     setRefreshing(false);
   };
 
@@ -93,7 +87,14 @@ export default function PiketDashboard() {
       HapticFeedback.success();
       await approveMutation.mutateAsync(id);
       Alert.alert('Berhasil', 'Izin berhasil disetujui');
-    } catch (e: any) { Alert.alert('Gagal', e.response?.data?.message || 'Terjadi kesalahan'); }
+    } catch (e: any) { 
+      if (e.response?.status === 409) {
+        Alert.alert('Terlambat', 'Tiket ini sudah diproses oleh Guru Piket lain.');
+        refetchQueue();
+      } else {
+        Alert.alert('Gagal', e.response?.data?.message || 'Terjadi kesalahan'); 
+      }
+    }
   };
 
   const handleReject = async (id: string) => {
@@ -118,15 +119,18 @@ export default function PiketDashboard() {
   return (
     <View style={commonStyles.container}>
       <LiquidBackground />
-      <SafeAreaView style={commonStyles.safeArea}>
-        
+      
+      {/* Header - Fixed container to ensure responsiveness */}
+      <View style={{ height: SPACING.statusBar + 88, zIndex: 100 }}>
         <TopAppBar 
           showAvatar={true} 
           avatarLabel={user?.name?.charAt(0)?.toUpperCase() || 'P'} 
           showNotification={true} 
           scrollY={scrollY}
         />
+      </View>
 
+      <View style={commonStyles.safeArea}>
         <RefreshableScrollView 
           refreshing={refreshing} 
           onRefresh={onRefresh}
@@ -138,7 +142,13 @@ export default function PiketDashboard() {
             
             <AnimatedEntrance delay={300} direction="down">
               <View style={commonStyles.headerContainer}>
-                <SkeuCard style={styles.headerCard} isGlass>
+                {/* Header Background Blobs */}
+                <View style={styles.headerBlobContainer} pointerEvents="none">
+                  <View style={[styles.headerBlob, { backgroundColor: COLORS.primary, top: -20, left: -20 }]} />
+                  <View style={[styles.headerBlob, { backgroundColor: COLORS.secondary, bottom: -40, right: -20 }]} />
+                </View>
+
+                <SkeuCard style={styles.headerCard}>
                   <View style={styles.headerTop}>
                     <View>
                       <Text style={styles.greeting}>Status Piket Hari Ini</Text>
@@ -194,45 +204,43 @@ export default function PiketDashboard() {
                 </View>
               </AnimatedEntrance>
               
-              {pendingTickets.length > 0 ? pendingTickets.map((item, index) => (
-                <AnimatedEntrance key={item.id} delay={600 + (index * 100)} direction="up" offset={20}>
-                  <SkeuCard isGlass style={styles.ticketWrapper}>
-                    <View style={styles.ticketHeaderRow}>
-                      <AvatarInitials name={item.siswa?.name || 'Siswa'} size={40} fontSize={16} />
-                      <View style={styles.ticketMeta}>
-                        <Text style={styles.ticketName}>{item.siswa?.name || 'Siswa'}</Text>
-                        <Text style={styles.ticketClass}>{item.kelas?.nama_kelas || 'Kelas'}</Text>
+              {useMemo(() => (
+                pendingTickets.length > 0 ? pendingTickets.map((item: any, index: number) => (
+                  <AnimatedEntrance key={item.id} delay={index < 5 ? 600 + (index * 100) : 0} direction="up" offset={20}>
+                    <View style={styles.ticketWrapper}>
+                      <TicketCard 
+                        item={item} 
+                        onPress={() => expoRouter.push(`/ticket/${item.id}`)}
+                        showName={true}
+                      />
+                      
+                      <View style={styles.actionRow}>
+                        <TouchableOpacity 
+                          style={[styles.miniActionBtn, styles.miniReject]} 
+                          onPress={() => handleReject(item.id)}
+                        >
+                          <MaterialCommunityIcons name="close" size={20} color={COLORS.error} />
+                          <Text style={styles.miniBtnTextReject}>Tolak</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          style={[styles.miniActionBtn, styles.miniApprove]} 
+                          onPress={() => handleApprove(item.id)}
+                        >
+                          <MaterialCommunityIcons name="check" size={20} color="#FFF" />
+                          <Text style={styles.miniBtnTextApprove}>Setujui & Terbitkan</Text>
+                        </TouchableOpacity>
                       </View>
                     </View>
-                    
-                    <TicketCard 
-                      item={item} 
-                      onPress={() => expoRouter.push(`/ticket/${item.id}`)}
-                    />
-                    
-                    <View style={styles.actionRow}>
-                      <BouncyButton 
-                        title="Tolak" 
-                        variant="danger" 
-                        onPress={() => handleReject(item.id)} 
-                        style={styles.actionBtn}
-                      />
-                      <BouncyButton 
-                        title="Setujui & Terbitkan QR"
-                        onPress={() => handleApprove(item.id)} 
-                        style={styles.actionBtn}
-                      />
-                    </View>
-                  </SkeuCard>
-                </AnimatedEntrance>
-              )) : (
-                <Text style={commonStyles.emptyText}>Tidak ada antrean persetujuan.</Text>
-              )}
+                  </AnimatedEntrance>
+                )) : (
+                  <Text style={commonStyles.emptyText}>Tidak ada antrean persetujuan.</Text>
+                )
+              ), [pendingTickets])}
             </View>
 
             <View style={[commonStyles.contentContainer, { marginTop: SPACING.xl }]}>
               <AnimatedEntrance delay={800} direction="up">
-                <SkeuCard isGlass style={{ padding: SPACING.md }}>
+                <SkeuCard style={{ padding: SPACING.md }}>
                   <View style={[commonStyles.sectionHeader, { marginBottom: SPACING.lg }]}>
                     <View style={styles.sectionTitleRow}>
                       <MaterialCommunityIcons name="history" size={20} color={COLORS.primary} />
@@ -259,16 +267,18 @@ export default function PiketDashboard() {
                   </View>
 
                   <View style={styles.logList}>
-                    {dailyLogs.length > 0 ? dailyLogs.slice(0, 8).map((item, index) => (
-                      <AnimatedEntrance key={item.id} delay={1000 + (index * 50)} direction="up" offset={10}>
-                        <DailyLogCard item={item} />
-                      </AnimatedEntrance>
-                    )) : (
-                      <View style={styles.emptyLogContainer}>
-                        <MaterialCommunityIcons name="clipboard-text-outline" size={48} color={COLORS.textMuted} />
-                        <Text style={styles.emptyLogText}>Belum ada aktivitas hari ini</Text>
-                      </View>
-                    )}
+                    {useMemo(() => (
+                      dailyLogs.length > 0 ? dailyLogs.slice(0, 8).map((item: any, index: number) => (
+                        <AnimatedEntrance key={item.id} delay={index < 5 ? 1000 + (index * 50) : 0} direction="up" offset={10}>
+                          <DailyLogCard item={item} />
+                        </AnimatedEntrance>
+                      )) : (
+                        <View style={styles.emptyLogContainer}>
+                          <MaterialCommunityIcons name="clipboard-text-outline" size={48} color={COLORS.textMuted} />
+                          <Text style={styles.emptyLogText}>Belum ada aktivitas hari ini</Text>
+                        </View>
+                      )
+                    ), [dailyLogs])}
                   </View>
                 </SkeuCard>
               </AnimatedEntrance>
@@ -278,7 +288,7 @@ export default function PiketDashboard() {
         </RefreshableScrollView>
 
         <GlassFAB onPress={() => expoRouter.push('/scan-qr')} icon="qrcode-scan" style={{ bottom: 100 }} />
-      </SafeAreaView>
+      </View>
 
       <RejectModal
         visible={!!rejectingId}
@@ -290,6 +300,18 @@ export default function PiketDashboard() {
 }
 
 const styles = StyleSheet.create({
+  headerBlobContainer: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+    borderRadius: SIZES.radiusCard,
+    opacity: 0.1,
+  },
+  headerBlob: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+  },
   headerCard: {
     padding: SPACING.lg,
   },
@@ -362,36 +384,41 @@ const styles = StyleSheet.create({
   },
   ticketWrapper: {
     marginBottom: SPACING.lg,
-    padding: SPACING.md,
-  },
-  ticketHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: SPACING.sm,
-    position: 'relative',
-  },
-  ticketMeta: {
-    marginLeft: SPACING.sm,
-    flex: 1,
-  },
-  ticketName: {
-    fontFamily: FONTS.headingSemi,
-    fontSize: 15,
-    color: COLORS.textPrimary,
-  },
-  ticketClass: {
-    fontFamily: FONTS.bodyMedium,
-    fontSize: 12,
-    color: COLORS.textSecondary,
   },
   actionRow: {
     flexDirection: 'row',
-    gap: SPACING.sm,
-    marginTop: SPACING.md,
+    gap: 10,
+    marginTop: -8,
+    paddingHorizontal: 4,
+    marginBottom: 8,
   },
-  actionBtn: {
+  miniActionBtn: {
     flex: 1,
-    height: 48,
+    height: 42,
+    borderRadius: 21,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  miniReject: {
+    backgroundColor: COLORS.errorBg,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 71, 111, 0.1)',
+  },
+  miniApprove: {
+    backgroundColor: COLORS.primary,
+    ...SHADOWS.raised,
+  },
+  miniBtnTextReject: {
+    fontFamily: FONTS.headingSemi,
+    fontSize: 13,
+    color: COLORS.error,
+  },
+  miniBtnTextApprove: {
+    fontFamily: FONTS.headingSemi,
+    fontSize: 13,
+    color: '#FFF',
   },
   sectionTitleRow: {
     flexDirection: 'row',

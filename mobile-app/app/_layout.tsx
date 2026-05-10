@@ -16,6 +16,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
 import LiquidBackground from '../src/components/LiquidBackground';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -78,11 +79,13 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.container}>
-      <QueryClientProvider client={queryClient}>
-        <StatusBar style="dark" />
-        <LiquidBackground />
-        <Slot />
-      </QueryClientProvider>
+      <SafeAreaProvider>
+        <QueryClientProvider client={queryClient}>
+          <StatusBar style="dark" />
+          <LiquidBackground />
+          <Slot />
+        </QueryClientProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
@@ -92,4 +95,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-

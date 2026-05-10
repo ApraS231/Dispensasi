@@ -1,6 +1,6 @@
 import { HapticFeedback } from '../../src/utils/haptics';
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Platform, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, SafeAreaView, Platform, Image } from 'react-native';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -13,12 +13,14 @@ import { BlurView } from 'expo-blur';
 import BouncyButton from '../../src/components/BouncyButton';
 import SkeuCard from '../../src/components/SkeuCard';
 import { compressImage } from '../../src/utils/imageHelper';
-
 import TopAppBar from '../../src/components/TopAppBar';
+import { useQuery } from '@tanstack/react-query';
+import api from '../../src/utils/api';
 
-export default function PengajuanScreen() {
+export default function OrtuPengajuanScreen() {
   const submitMutation = useSubmitDispensasi();
 
+  const [selectedSiswaId, setSelectedSiswaId] = useState<string>('');
   const [jenisIzin, setJenisIzin] = useState('sakit');
   const [alasan, setAlasan] = useState('');
   
@@ -35,6 +37,22 @@ export default function PengajuanScreen() {
   const [loading, setLoading] = useState(false);
   const [lampiran, setLampiran] = useState<ImagePicker.ImagePickerAsset | null>(null);
 
+  // Fetch children list
+  const { data: children = [] } = useQuery({
+    queryKey: ['ortu-children'],
+    queryFn: async () => {
+      const { data } = await api.get('/ortu/children');
+      return data;
+    }
+  });
+
+  // Set default child if list loaded
+  React.useEffect(() => {
+    if (children.length > 0 && !selectedSiswaId) {
+      setSelectedSiswaId(children[0].id);
+    }
+  }, [children]);
+
   const handlePickImage = async () => {
     HapticFeedback.light();
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -47,13 +65,11 @@ export default function PengajuanScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      quality: 0.5,
+      quality: 1,
     });
 
     if (!result.canceled) {
       const originalUri = result.assets[0].uri;
-      
-      // PROSES KOMPRESI (Sebelum disimpan ke state)
       const compressedUri = await compressImage(originalUri);
       
       setLampiran({
@@ -65,19 +81,19 @@ export default function PengajuanScreen() {
   };
 
   const handleSubmit = async () => {
+    if (!selectedSiswaId) { Alert.alert('Perhatian', 'Pilih anak terlebih dahulu.'); return; }
     if (!alasan.trim()) { Alert.alert('Perhatian', 'Alasan harus diisi.'); return; }
     
     setLoading(true);
     try {
-      // Combine date and time
       const finalMulai = new Date(tanggal);
       finalMulai.setHours(waktuMulai.getHours(), waktuMulai.getMinutes(), 0, 0);
       
       const finalSelesai = new Date(tanggal);
       finalSelesai.setHours(waktuSelesai.getHours(), waktuSelesai.getMinutes(), 0, 0);
 
-      // Create FormData for multipart upload
       const formData = new FormData();
+      formData.append('siswa_id', selectedSiswaId);
       formData.append('jenis_izin', jenisIzin);
       formData.append('alasan', alasan);
       formData.append('waktu_mulai', finalMulai.toISOString());
@@ -117,35 +133,39 @@ export default function PengajuanScreen() {
 
   return (
     <View style={styles.container}>
-        <LiquidBackground />
-        
-        {/* Header - Fixed container to ensure responsiveness */}
-        <View style={{ height: SPACING.statusBar + 88, zIndex: 100 }}>
-          <TopAppBar 
-            title="Form Pengajuan" 
-            onBack={() => router.back()} 
-            rightComponent={
-              <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
-                <MaterialCommunityIcons name="close" size={24} color={COLORS.textPrimary} />
-              </TouchableOpacity>
-            }
-          />
-        </View>
+      <LiquidBackground />
+      
+      <TopAppBar 
+        title="Ajukan Izin Anak" 
+        onBack={() => router.back()} 
+      />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={{ height: 88 + SPACING.statusBar }} />
         
-        {/* Info Banner */}
         <BlurView intensity={GLASS.blurIntensity + 10} tint={GLASS.tintColor} style={styles.infoBanner}>
           <MaterialCommunityIcons name="information" size={20} color={COLORS.primary} style={{ marginRight: SPACING.sm }} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.infoTitle}>Alur Pengajuan</Text>
-            <Text style={styles.infoText}>Dispensasi wajib disetujui oleh Wali Kelas sebelum Anda bisa meminta QR Code ke Guru Piket.</Text>
+            <Text style={styles.infoTitle}>Pengajuan Orang Tua</Text>
+            <Text style={styles.infoText}>Anda dapat mengajukan izin atas nama anak Anda. Tetap diperlukan persetujuan Wali Kelas.</Text>
           </View>
         </BlurView>
 
           <SkeuCard isGlass style={styles.glassCard}>
             
+            <Text style={styles.label}>Pilih Anak</Text>
+            <View style={[styles.pickerContainer, SHADOWS.inset]}>
+              <Picker
+                selectedValue={selectedSiswaId}
+                onValueChange={(itemValue) => setSelectedSiswaId(itemValue)}
+                style={styles.picker}
+              >
+                {children.map((child: any) => (
+                  <Picker.Item key={child.id} label={child.name} value={child.id} />
+                ))}
+              </Picker>
+            </View>
+
             <Text style={styles.label}>Jenis Izin</Text>
             <View style={[styles.pickerContainer, SHADOWS.inset]}>
               <Picker
@@ -154,9 +174,8 @@ export default function PengajuanScreen() {
                 style={styles.picker}
               >
                 <Picker.Item label="Sakit" value="sakit" />
-                <Picker.Item label="Izin" value="izin" />
-                <Picker.Item label="Dispensasi" value="dispensasi" />
-                <Picker.Item label="Keterangan Lain" value="keterangan_lain" />
+                <Picker.Item label="Keperluan Keluarga" value="keperluan_keluarga" />
+                <Picker.Item label="Lainnya" value="lainnya" />
               </Picker>
             </View>
 
@@ -267,14 +286,7 @@ export default function PengajuanScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bgWhite },
-  closeBtn: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   scrollContent: { paddingHorizontal: SPACING.md, paddingBottom: 100 },
-  
   infoBanner: {
     flexDirection: 'row',
     backgroundColor: COLORS.glassSurface,
@@ -286,106 +298,20 @@ const styles = StyleSheet.create({
   },
   infoTitle: { fontFamily: FONTS.headingSemi, fontSize: 14, color: COLORS.primary, marginBottom: 2 },
   infoText: { fontFamily: FONTS.bodyMedium, fontSize: 12, color: COLORS.textSecondary, lineHeight: 18 },
-
-  glassCard: {
-    padding: SPACING.lg,
-    marginBottom: SPACING.md,
-  },
-
-  label: { 
-    fontFamily: FONTS.headingSemi, 
-    fontSize: 14, 
-    color: COLORS.textSecondary, 
-    marginBottom: SPACING.sm, 
-    marginTop: SPACING.md 
-  },
-  pickerContainer: {
-    backgroundColor: COLORS.surfaceContainerLow,
-    borderRadius: SIZES.radiusMd,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: COLORS.glassHighlight,
-  },
-  picker: {
-    height: 50,
-  },
-  
-  dateInput: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: COLORS.surfaceContainerLow,
-    borderRadius: SIZES.radiusMd,
-    paddingHorizontal: SPACING.md,
-    height: 52,
-    borderWidth: 1,
-    borderColor: COLORS.glassHighlight,
-  },
-  dateText: {
-    fontFamily: FONTS.bodyMedium,
-    fontSize: 15,
-    color: COLORS.textPrimary,
-  },
-
-  timeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: SPACING.md,
-  },
-  timeCol: {
-    flex: 1,
-  },
-
-  textarea: { 
-    backgroundColor: COLORS.surfaceContainerLow, 
-    borderRadius: SIZES.radiusMd,
-    padding: SPACING.md, 
-    fontSize: 15, 
-    fontFamily: FONTS.body,
-    color: COLORS.textPrimary,
-    minHeight: 100,
-    borderWidth: 1,
-    borderColor: COLORS.glassHighlight,
-  },
-  
-  uploadArea: {
-    borderRadius: SIZES.radiusMd,
-    backgroundColor: COLORS.surfaceContainerLow,
-    padding: SPACING.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: COLORS.textMuted,
-  },
-  uploadAreaSuccess: {
-    backgroundColor: COLORS.glassSurface,
-    padding: SPACING.md,
-    borderStyle: 'solid',
-    borderColor: COLORS.primary,
-  },
-  uploadText: {
-    fontFamily: FONTS.headingSemi,
-    color: COLORS.textMuted,
-    fontSize: 13,
-  },
-  uploadTextSuccess: {
-    fontFamily: FONTS.headingSemi,
-    color: COLORS.primary,
-    marginTop: SPACING.sm,
-  },
-  lampiranContainer: {
-    alignItems: 'center',
-  },
-  lampiranImg: {
-    width: 120,
-    height: 120,
-    borderRadius: SIZES.radiusMd,
-    borderWidth: 2,
-    borderColor: COLORS.bgWhite,
-  },
-
-  submitBtn: {
-    marginTop: SPACING.xl,
-  },
+  glassCard: { padding: SPACING.lg, marginBottom: SPACING.md },
+  label: { fontFamily: FONTS.headingSemi, fontSize: 14, color: COLORS.textSecondary, marginBottom: SPACING.sm, marginTop: SPACING.md },
+  pickerContainer: { backgroundColor: COLORS.surfaceContainerLow, borderRadius: SIZES.radiusMd, overflow: 'hidden', borderWidth: 1, borderColor: COLORS.glassHighlight },
+  picker: { height: 50 },
+  dateInput: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: COLORS.surfaceContainerLow, borderRadius: SIZES.radiusMd, paddingHorizontal: SPACING.md, height: 52, borderWidth: 1, borderColor: COLORS.glassHighlight },
+  dateText: { fontFamily: FONTS.bodyMedium, fontSize: 15, color: COLORS.textPrimary },
+  timeRow: { flexDirection: 'row', justifyContent: 'space-between', gap: SPACING.md },
+  timeCol: { flex: 1 },
+  textarea: { backgroundColor: COLORS.surfaceContainerLow, borderRadius: SIZES.radiusMd, padding: SPACING.md, fontSize: 15, fontFamily: FONTS.body, color: COLORS.textPrimary, minHeight: 100, borderWidth: 1, borderColor: COLORS.glassHighlight },
+  uploadArea: { borderRadius: SIZES.radiusMd, backgroundColor: COLORS.surfaceContainerLow, padding: SPACING.xl, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderStyle: 'dashed', borderColor: COLORS.textMuted },
+  uploadAreaSuccess: { backgroundColor: COLORS.glassSurface, padding: SPACING.md, borderStyle: 'solid', borderColor: COLORS.primary },
+  uploadText: { fontFamily: FONTS.headingSemi, color: COLORS.textMuted, fontSize: 13 },
+  uploadTextSuccess: { fontFamily: FONTS.headingSemi, color: COLORS.primary, marginTop: SPACING.sm },
+  lampiranContainer: { alignItems: 'center' },
+  lampiranImg: { width: 120, height: 120, borderRadius: SIZES.radiusMd, borderWidth: 2, borderColor: COLORS.bgWhite },
+  submitBtn: { marginTop: SPACING.xl },
 });

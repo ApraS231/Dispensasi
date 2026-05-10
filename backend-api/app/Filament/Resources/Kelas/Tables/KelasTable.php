@@ -25,6 +25,10 @@ class KelasTable
                     ->label('Wali Kelas')
                     ->searchable()
                     ->default('-'),
+                TextColumn::make('siswa_profiles_count')
+                    ->label('Jumlah Siswa')
+                    ->counts('siswaProfiles')
+                    ->sortable(),
             ])
             ->filters([
                 //

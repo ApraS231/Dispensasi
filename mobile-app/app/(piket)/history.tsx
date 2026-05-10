@@ -1,31 +1,48 @@
 import { useState, useMemo } from 'react';
-import { View, Text, FlatList, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, StyleSheet, SafeAreaView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { router as expoRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import api from '../../src/utils/api';
 import TopAppBar from '../../src/components/TopAppBar';
 import TicketCard from '../../src/components/TicketCard';
-import FilterPill from '../../src/components/FilterPill';
 import SearchBar from '../../src/components/SearchBar';
 import LiquidBackground from '../../src/components/LiquidBackground';
-import { COLORS, SPACING, GLASS } from '../../src/utils/theme';
+import { COLORS, SPACING, GLASS, FONTS } from '../../src/utils/theme';
 import { commonStyles } from '../../src/utils/commonStyles';
 import { BlurView } from 'expo-blur';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function PiketHistoryScreen() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [timeFilter, setTimeFilter] = useState('semua');
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
-  const { data: ticketsData, isLoading: loading } = useQuery({
-    queryKey: ['dispensasi-piket-history'],
-    queryFn: async () => {
-      const { data } = await api.get('/dispensasi');
+  const { 
+    data, 
+    isLoading, 
+    fetchNextPage, 
+    hasNextPage, 
+    isFetchingNextPage, 
+    refetch 
+  } = useInfiniteQuery({
+    queryKey: ['dispensasi-piket-history', selectedDate?.toISOString().split('T')[0]],
+    queryFn: async ({ pageParam = 1 }) => {
+      const params: any = { page: pageParam, per_page: 10 };
+      if (selectedDate) {
+        params.date = selectedDate.toISOString().split('T')[0];
+      }
+      const { data } = await api.get('/dispensasi', { params });
       return data;
-    }
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.current_page < lastPage.last_page ? lastPage.current_page + 1 : undefined,
   });
 
+  const allTickets = data?.pages.flatMap(page => page.data) || [];
+
   const filteredTickets = useMemo(() => {
-    let result = ticketsData || [];
+    let result = allTickets;
     
     if (searchQuery.trim()) {
       const lowerQ = searchQuery.toLowerCase();
@@ -36,13 +53,15 @@ export default function PiketHistoryScreen() {
       );
     }
     
-    if (timeFilter === 'hari_ini') {
-      const today = new Date().toDateString();
-      result = result.filter(t => new Date(t.created_at).toDateString() === today);
-    }
-    
     return result;
-  }, [searchQuery, timeFilter, ticketsData]);
+  }, [searchQuery, allTickets]);
+
+  const onDateChange = (event: any, date?: Date) => {
+    setShowDatePicker(false);
+    if (date) {
+      setSelectedDate(date);
+    }
+  };
 
   return (
     <View style={commonStyles.container}>
@@ -61,13 +80,39 @@ export default function PiketHistoryScreen() {
             />
 
             <View style={styles.filterRow}>
-              <FilterPill id="semua" label="Semua Waktu" isActive={timeFilter === 'semua'} onPress={setTimeFilter} />
-              <FilterPill id="hari_ini" label="Hari Ini" isActive={timeFilter === 'hari_ini'} onPress={setTimeFilter} />
+              <TouchableOpacity 
+                onPress={() => setShowDatePicker(true)}
+                style={[styles.datePickerBtn, selectedDate && styles.datePickerBtnActive]}
+              >
+                <MaterialCommunityIcons 
+                  name="calendar" 
+                  size={20} 
+                  color={selectedDate ? '#FFFFFF' : COLORS.primary} 
+                />
+                <Text style={[styles.datePickerText, selectedDate && { color: '#FFFFFF' }]}>
+                  {selectedDate ? selectedDate.toLocaleDateString('id-ID') : 'Pilih Tanggal'}
+                </Text>
+              </TouchableOpacity>
+
+              {selectedDate && (
+                <TouchableOpacity onPress={() => setSelectedDate(null)} style={styles.clearDateBtn}>
+                  <MaterialCommunityIcons name="close-circle" size={24} color={COLORS.error} />
+                </TouchableOpacity>
+              )}
             </View>
           </BlurView>
 
+          {showDatePicker && (
+            <DateTimePicker
+              value={selectedDate || new Date()}
+              mode="date"
+              display="default"
+              onChange={onDateChange}
+            />
+          )}
+
           <View style={styles.listContainer}>
-            {loading ? (
+            {isLoading ? (
               <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: SPACING.xl }} />
             ) : (
               <FlatList
@@ -82,7 +127,18 @@ export default function PiketHistoryScreen() {
                     onPress={() => expoRouter.push(`/ticket/${item.id}`)}
                   />
                 )}
+                onEndReached={() => {
+                  if (hasNextPage) fetchNextPage();
+                }}
+                onEndReachedThreshold={0.5}
+                ListFooterComponent={() => 
+                  isFetchingNextPage ? (
+                    <ActivityIndicator size="small" color={COLORS.primary} style={{ marginVertical: SPACING.md }} />
+                  ) : null
+                }
                 ListEmptyComponent={<Text style={commonStyles.emptyText}>Tidak ditemukan riwayat izin.</Text>}
+                onRefresh={refetch}
+                refreshing={isLoading}
               />
             )}
           </View>
@@ -104,6 +160,30 @@ const styles = StyleSheet.create({
   filterRow: {
     flexDirection: 'row',
     gap: SPACING.sm,
+    alignItems: 'center',
+  },
+  datePickerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '30',
+    gap: 8,
+  },
+  datePickerBtnActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  datePickerText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 13,
+    color: COLORS.primary,
+  },
+  clearDateBtn: {
+    padding: 4,
   },
   listContainer: {
     flex: 1,

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router as expoRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import api from '../../src/utils/api';
@@ -27,11 +27,11 @@ export default function SiswaDashboard() {
     queryKey: ['dispensasi-me'],
     queryFn: async () => {
       const { data } = await api.get('/dispensasi/me');
-      return data;
+      return Array.isArray(data) ? data : (data?.data || []);
     }
   });
 
-  const tickets = ticketsData || [];
+  const tickets = Array.isArray(ticketsData) ? ticketsData : (ticketsData as any)?.data || [];
 
   const handleLogout = async () => {
     try { await api.post('/logout'); } catch (e) {}
@@ -47,7 +47,7 @@ export default function SiswaDashboard() {
     setRefreshing(false);
   };
 
-  const renderHeader = () => (
+  const MemoizedHeader = useMemo(() => (
     <View style={styles.headerWrapper}>
       {/* Spacer for Absolute TopAppBar */}
       <View style={{ height: 88 + SPACING.statusBar }} />
@@ -55,6 +55,11 @@ export default function SiswaDashboard() {
       {/* Header Card */}
       <AnimatedEntrance delay={300} direction="down">
         <View style={styles.topCardContainer}>
+          {/* Header Background Blobs */}
+          <View style={styles.headerBlobContainer} pointerEvents="none">
+            <View style={[styles.headerBlob, { backgroundColor: COLORS.primary, top: -20, left: -20 }]} />
+            <View style={[styles.headerBlob, { backgroundColor: COLORS.secondary, bottom: -40, right: -20 }]} />
+          </View>
           <SkeuCard style={styles.headerCard} isGlass>
             <View style={styles.headerRow}>
               <View style={styles.userInfo}>
@@ -95,7 +100,7 @@ export default function SiswaDashboard() {
         </View>
       </View>
     </View>
-  );
+  ), [user, tickets.length]);
 
   return (
     <View style={commonStyles.container}>
@@ -119,10 +124,10 @@ export default function SiswaDashboard() {
           refreshing={refreshing}
           onRefresh={onRefresh}
           scrollY={scrollY}
-          ListHeaderComponent={renderHeader}
+          ListHeaderComponent={MemoizedHeader}
           renderItem={({ item, index }) => (
             <View style={{ paddingHorizontal: SPACING.md, width: '100%' }}>
-              <AnimatedEntrance delay={800 + (index * 100)} direction="up" offset={20}>
+              <AnimatedEntrance delay={index < 5 ? 800 + (index * 100) : 0} direction="up" offset={20}>
                 <TicketCard 
                   item={item} 
                   onPress={() => expoRouter.push(`/ticket/${item.id}`)} 
@@ -148,6 +153,23 @@ const styles = StyleSheet.create({
   },
   topCardContainer: {
     padding: SPACING.md,
+    position: 'relative',
+  },
+  headerBlobContainer: {
+    position: 'absolute',
+    top: SPACING.md,
+    left: SPACING.md,
+    right: SPACING.md,
+    bottom: SPACING.md,
+    overflow: 'hidden',
+    borderRadius: SIZES.radiusCard,
+    opacity: 0.1,
+  },
+  headerBlob: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
   },
   fabPosition: {
     bottom: 110,

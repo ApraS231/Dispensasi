@@ -1,0 +1,38 @@
+# Walkthrough: Integrasi Sistem Antrean Pool Queue Piket
+
+Sistem antrean Piket telah berhasil diintegrasikan menggunakan pendekatan **Status-Based Pool Queue**. Tiket kini tidak lagi di-assign secara kaku ke satu Guru Piket oleh Wali Kelas, melainkan dilempar ke kolam antrean pusat dan diklaim oleh Guru Piket yang sedang bertugas.
+
+## Perubahan Utama
+
+### 1. Backend: Refactor Alur Persetujuan
+- **Wali Kelas Approve**: Tiket kini diset ke status `waiting_piket` dengan `guru_piket_id = null`. Notifikasi push dikirimkan ke **semua** Guru Piket yang sedang bertugas berdasarkan jadwal.
+- **Guru Piket Claim (Approve)**: Guru Piket kini "mengambil" tiket dari pool. Ditambahkan pengecekan **Race Condition** (HTTP 409 Conflict) untuk memastikan satu tiket tidak diproses oleh dua guru sekaligus.
+- **Query Pool**: Method `pending()` dan `index()` di backend disesuaikan agar Guru Piket dapat melihat seluruh isi kolam antrean.
+
+### 2. Backend: Endpoint Dedicated `/piket/queue`
+- Menambahkan method `getQueue()` di `PiketController` yang memvalidasi jadwal shift guru sebelum menampilkan isi antrean FIFO (First In First Out).
+
+### 3. Frontend: Service & Hooks
+- Menambahkan `usePiketQueue()` hook dengan fitur **auto-polling 30 detik**. Ini memastikan daftar antrean di aplikasi mobile selalu sinkron tanpa harus refresh manual.
+- Mengupdate cache invalidation agar data otomatis diperbarui setelah aksi approve/reject.
+
+### 4. Frontend: Antarmuka Baru (Queue & Dashboard)
+- **Shift-Aware UI**: Layar antrean akan terkunci jika guru di luar jam shift.
+- **Inline Actions**: Tombol "Setujui & Claim" tersedia langsung di setiap kartu tiket.
+- **Conflict Alerts**: Jika tiket sudah diklaim rekan sejawat, aplikasi akan memberikan peringatan dan memperbarui daftar secara otomatis.
+
+## Verifikasi yang Telah Dilakukan
+
+### Backend
+- [x] Wali Kelas approve → `guru_piket_id` menjadi `NULL`.
+- [x] `GET /api/piket/queue` mengembalikan tiket pool dengan urutan waktu terlama di atas.
+- [x] Guru claim sukses → `guru_piket_id` terisi & status `approved_final`.
+- [x] Guru kedua claim tiket yang sama → return `409 Conflict`.
+
+### Frontend
+- [x] Layar "Meja Piket" menampilkan pesan "Di Luar Jadwal Shift" jika tidak ada jadwal.
+- [x] Tombol claim di dashboard dan queue berfungsi dengan handling error 409.
+- [x] Auto-polling berjalan setiap 30 detik.
+
+## Langkah Selanjutnya
+Sistem sudah siap digunakan secara operasional. Guru Piket cukup membuka menu "Antrean" saat jam shift dimulai untuk memproses pengajuan izin siswa.

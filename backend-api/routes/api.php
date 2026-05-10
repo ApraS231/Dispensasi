@@ -43,9 +43,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('piket-schedules', PiketScheduleController::class);
     });
 
-    // SISWA
-    Route::middleware('role:siswa')->group(function () {
+    // SISWA & ORANG TUA (Bisa buat pengajuan)
+    Route::middleware('role:siswa,orang_tua')->group(function () {
         Route::post('/dispensasi', [DispensasiController::class, 'store']);
+    });
+
+    Route::middleware('role:siswa')->group(function () {
         Route::get('/dispensasi/me', [DispensasiController::class, 'myTickets']);
         Route::get('/siswa/parent-requests', [ParentLinkController::class, 'pendingRequests']);
         Route::post('/siswa/parent-requests/{id}/respond', [ParentLinkController::class, 'respondRequest']);
@@ -54,6 +57,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // GURU PIKET
     Route::middleware('role:guru_piket')->group(function () {
         Route::get('/piket/status', [PiketController::class, 'getStatus']);
+        Route::get('/piket/queue', [PiketController::class, 'getQueue']);
         Route::post('/piket/validate-qr', [PiketController::class, 'validateQR']);
     Route::get('/piket/daily-log', [PiketController::class, 'getDailyLog']);
     });

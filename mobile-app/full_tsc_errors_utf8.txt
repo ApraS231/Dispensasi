@@ -1,0 +1,2 @@
+﻿app/(wali)/laporan-izin.tsx(6,10): error TS2305: Module '"expo-file-system"' has no exported member 'documentDirectory'.
+app/(wali)/laporan-izin.tsx(6,49): error TS2305: Module '"expo-file-system"' has no exported member 'EncodingType'.

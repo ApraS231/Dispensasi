@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router as expoRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { documentDirectory, writeAsStringAsync, EncodingType } from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import api from '../../src/utils/api';
 import { COLORS, FONTS, SIZES, SPACING, SHADOWS, GLASS } from '../../src/utils/theme';
@@ -56,9 +57,9 @@ export default function LaporanIzinScreen() {
       });
 
       const fileName = `Laporan_Izin_${data.kelas.replace(/\s+/g, '_')}_${data.bulan_nama}_${tahun}.csv`;
-      const fileUri = (documentDirectory || 'file:///') + fileName;
+      const fileUri = (FileSystem.documentDirectory || 'file:///') + fileName;
       
-      await writeAsStringAsync(fileUri, csvContent, { encoding: EncodingType.UTF8 });
+      await FileSystem.writeAsStringAsync(fileUri, csvContent, { encoding: FileSystem.EncodingType.UTF8 });
       
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(fileUri, {

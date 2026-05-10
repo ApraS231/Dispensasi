@@ -14,7 +14,7 @@ class PiketScheduleForm
             ->components([
                 Select::make('guru_id')
                     ->label('Guru Piket')
-                    ->relationship('guru', 'name')
+                    ->relationship('guru', 'name', fn ($query) => $query->where('role', 'guru_piket'))
                     ->searchable()
                     ->preload()
                     ->required(),

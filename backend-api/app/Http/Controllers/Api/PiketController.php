@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\PiketSchedule;
 use App\Models\SiswaProfile;
 use App\Models\User;
+use App\Models\DispensasiTicket;
 use App\Services\ExpoPushService;
 
 class PiketController extends Controller
@@ -20,13 +21,47 @@ class PiketController extends Controller
         $jamIni = $now->format('H:i:s');
 
         $aktif = PiketSchedule::where('guru_id', $user->id)
-            ->where('hari_dalam_minggu', $hariIni)
+            ->where('hari', $hariIni)
             ->where('jam_mulai', '<=', $jamIni)
             ->where('jam_selesai', '>=', $jamIni)
-            ->where('is_active', true)
             ->exists();
 
         return response()->json(['is_ready' => $aktif]);
+    }
+
+
+    public function getQueue(Request $request)
+    {
+        $now = now();
+        $guruId = $request->user()->id;
+
+        // 1. Cek apakah Guru ini sedang masuk jadwal Shift
+        $isScheduledNow = PiketSchedule::where('guru_id', $guruId)
+            ->where('hari', $now->dayOfWeekIso)
+            ->where('jam_mulai', '<=', $now->format('H:i:s'))
+            ->where('jam_selesai', '>=', $now->format('H:i:s'))
+            ->exists();
+
+        // Jika di luar jadwal, kembalikan status false agar UI menyesuaikan
+        if (!$isScheduledNow) {
+            return response()->json([
+                'is_active_shift' => false,
+                'data' => [],
+                'message' => 'Saat ini Anda sedang tidak dalam jadwal piket.'
+            ]);
+        }
+
+        // 2. Tarik semua tiket dari Pool (FIFO - First In First Out)
+        $queue = DispensasiTicket::with(['siswa', 'kelas'])
+            ->where('status', 'waiting_piket')
+            ->whereNull('guru_piket_id')
+            ->orderBy('created_at', 'asc') // Yang paling lama menunggu ada di atas
+            ->get();
+
+        return response()->json([
+            'is_active_shift' => true,
+            'data' => $queue
+        ]);
     }
 
 

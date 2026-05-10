@@ -68,7 +68,7 @@ export function useApproveTicket() {
       queryClient.invalidateQueries({ queryKey: dispensasiKeys.pending() });
       queryClient.invalidateQueries({ queryKey: dispensasiKeys.allTickets() });
       queryClient.invalidateQueries({ queryKey: dispensasiKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: ['piket', 'daily-log'] }); // Invalidate piket log as well
+      queryClient.invalidateQueries({ queryKey: ['piket'] }); // Invalidate all piket queries (status, queue, log)
     },
   });
 }
@@ -81,6 +81,7 @@ export function useRejectTicket() {
       queryClient.invalidateQueries({ queryKey: dispensasiKeys.pending() });
       queryClient.invalidateQueries({ queryKey: dispensasiKeys.allTickets() });
       queryClient.invalidateQueries({ queryKey: dispensasiKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: ['piket'] }); // Invalidate all piket queries
     },
   });
 }

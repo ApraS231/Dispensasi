@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { View, Text, FlatList, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { View, Text, FlatList, StyleSheet, SafeAreaView, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { router as expoRouter } from 'expo-router';
 import api from '../../src/utils/api';
 import TopAppBar from '../../src/components/TopAppBar';
 import TicketCard from '../../src/components/TicketCard';
@@ -12,25 +13,39 @@ import { commonStyles } from '../../src/utils/commonStyles';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import LiquidBackground from '../../src/components/LiquidBackground';
 import { BlurView } from 'expo-blur';
-import { router as expoRouter } from 'expo-router';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function OrtuRiwayatScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('semua');
-  const [timeFilter, setTimeFilter] = useState('semua');
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
-  const { data: ticketsData, isLoading: loading } = useQuery({
-    queryKey: ['ortu-dispensasi-all'],
-    queryFn: async () => {
-      const { data } = await api.get('/dispensasi/children');
+  const { 
+    data, 
+    isLoading, 
+    fetchNextPage, 
+    hasNextPage, 
+    isFetchingNextPage, 
+    refetch 
+  } = useInfiniteQuery({
+    queryKey: ['ortu-dispensasi-history', selectedDate?.toISOString().split('T')[0]],
+    queryFn: async ({ pageParam = 1 }) => {
+      const params: any = { page: pageParam, per_page: 10 };
+      if (selectedDate) {
+        params.date = selectedDate.toISOString().split('T')[0];
+      }
+      const { data } = await api.get('/monitoring/anak', { params });
       return data;
-    }
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.current_page < lastPage.last_page ? lastPage.current_page + 1 : undefined,
   });
 
-  const tickets = ticketsData || [];
+  const allTickets = data?.pages.flatMap(page => page.data) || [];
 
   const filteredTickets = useMemo(() => {
-    let result = ticketsData || [];
+    let result = allTickets;
     
     if (searchQuery.trim()) {
       const lowerQ = searchQuery.toLowerCase();
@@ -44,17 +59,16 @@ export default function OrtuRiwayatScreen() {
     if (activeFilter !== 'semua') {
         result = result.filter(t => t.status === activeFilter);
     }
-
-    if (timeFilter === 'bulan_ini') {
-      const now = new Date();
-      result = result.filter(t => {
-        const d = new Date(t.created_at);
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-      });
-    }
     
     return result;
-  }, [searchQuery, activeFilter, timeFilter, ticketsData]);
+  }, [searchQuery, activeFilter, allTickets]);
+
+  const onDateChange = (event: any, date?: Date) => {
+    setShowDatePicker(false);
+    if (date) {
+      setSelectedDate(date);
+    }
+  };
 
   return (
     <View style={commonStyles.container}>
@@ -66,33 +80,52 @@ export default function OrtuRiwayatScreen() {
         <View style={commonStyles.mainContent}>
           <View style={{ height: 88 + SPACING.statusBar }} />
           <BlurView intensity={GLASS.blurIntensity + 20} tint={GLASS.tintColor} style={styles.searchSection}>
-            <SkeuCard style={styles.summaryCard} isGlass>
-              <View>
-                <Text style={styles.summaryTitle}>Total Izin Anak</Text>
-                <Text style={styles.summaryValue}>{tickets.length} Kali</Text>
-              </View>
-              <MaterialCommunityIcons name="shield-check-outline" size={32} color={COLORS.primary} />
-            </SkeuCard>
-
             <SearchBar 
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Cari izin, sakit, keperluan..."
             />
 
-            <View style={[styles.filterRow, { marginBottom: SPACING.sm }]}>
-              <FilterPill id="semua" label="Semua Waktu" isActive={timeFilter === 'semua'} onPress={setTimeFilter} />
-              <FilterPill id="bulan_ini" label="Bulan Ini" isActive={timeFilter === 'bulan_ini'} onPress={setTimeFilter} />
-            </View>
             <View style={styles.filterRow}>
-              <FilterPill id="semua" label="Semua" isActive={activeFilter === 'semua'} onPress={setActiveFilter} />
+              <TouchableOpacity 
+                onPress={() => setShowDatePicker(true)}
+                style={[styles.datePickerBtn, selectedDate && styles.datePickerBtnActive]}
+              >
+                <MaterialCommunityIcons 
+                  name="calendar" 
+                  size={20} 
+                  color={selectedDate ? '#FFFFFF' : COLORS.primary} 
+                />
+                <Text style={[styles.datePickerText, selectedDate && { color: '#FFFFFF' }]}>
+                  {selectedDate ? selectedDate.toLocaleDateString('id-ID') : 'Pilih Tanggal'}
+                </Text>
+              </TouchableOpacity>
+
+              {selectedDate && (
+                <TouchableOpacity onPress={() => setSelectedDate(null)} style={styles.clearDateBtn}>
+                  <MaterialCommunityIcons name="close-circle" size={24} color={COLORS.error} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <View style={[styles.filterRow, { marginTop: SPACING.sm }]}>
+              <FilterPill id="semua" label="Semua Status" isActive={activeFilter === 'semua'} onPress={setActiveFilter} />
               <FilterPill id="approved_final" label="Disetujui" isActive={activeFilter === 'approved_final'} onPress={setActiveFilter} />
               <FilterPill id="rejected" label="Ditolak" isActive={activeFilter === 'rejected'} onPress={setActiveFilter} />
             </View>
           </BlurView>
 
+          {showDatePicker && (
+            <DateTimePicker
+              value={selectedDate || new Date()}
+              mode="date"
+              display="default"
+              onChange={onDateChange}
+            />
+          )}
+
           <View style={styles.listContainer}>
-            {loading ? (
+            {isLoading ? (
               <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: SPACING.xl }} />
             ) : (
               <FlatList
@@ -107,7 +140,18 @@ export default function OrtuRiwayatScreen() {
                     onPress={() => expoRouter.push(`/ticket/${item.id}`)}
                   />
                 )}
+                onEndReached={() => {
+                  if (hasNextPage) fetchNextPage();
+                }}
+                onEndReachedThreshold={0.5}
+                ListFooterComponent={() => 
+                  isFetchingNextPage ? (
+                    <ActivityIndicator size="small" color={COLORS.primary} style={{ marginVertical: SPACING.md }} />
+                  ) : null
+                }
                 ListEmptyComponent={<Text style={commonStyles.emptyText}>Tidak ditemukan riwayat izin.</Text>}
+                onRefresh={refetch}
+                refreshing={isLoading}
               />
             )}
           </View>
@@ -126,16 +170,29 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.glassHighlight,
   },
-  summaryCard: {
+  filterRow: { flexDirection: 'row', gap: SPACING.sm, flexWrap: 'wrap', alignItems: 'center' },
+  datePickerBtn: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: SPACING.md,
-    marginVertical: 0,
-    marginBottom: SPACING.md,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '30',
+    gap: 8,
   },
-  summaryTitle: { fontFamily: FONTS.bodyMedium, fontSize: 13, color: COLORS.textPrimary },
-  summaryValue: { fontFamily: FONTS.heading, fontSize: 24, color: COLORS.textPrimary, marginTop: 4 },
-  filterRow: { flexDirection: 'row', gap: SPACING.sm, flexWrap: 'wrap' },
+  datePickerBtnActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  datePickerText: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 13,
+    color: COLORS.primary,
+  },
+  clearDateBtn: {
+    padding: 4,
+  },
   listContainer: { flex: 1, paddingHorizontal: SPACING.md, paddingTop: SPACING.md },
 });

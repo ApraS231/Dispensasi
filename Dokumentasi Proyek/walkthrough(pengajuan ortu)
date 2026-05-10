@@ -1,0 +1,31 @@
+# Walkthrough - Parent Pengajuan & Chat Attachments
+
+I have implemented the ability for parents to apply for dispensasi on behalf of their children and added support for image attachments in the ticket chat for students and parents.
+
+## Changes Made
+
+### 1. Pengajuan Orang Tua
+- **Backend**:
+  - `DispensasiController@store` sekarang mendukung role `orang_tua`.
+  - Sistem memverifikasi apakah `siswa_id` yang diajukan adalah benar anak dari orang tua tersebut.
+  - Route `/api/dispensasi` sekarang terbuka untuk role `siswa` dan `orang_tua`.
+- **Frontend**:
+  - Halaman baru `app/(ortu)/pengajuan.tsx` dengan fitur **Pilih Anak**.
+  - Tombol **"Izin"** baru di Dashboard Orang Tua untuk akses cepat.
+
+### 2. Lampiran Chat (Gambar)
+- **Database**: Menambahkan kolom `attachment_url` pada tabel `ticket_chats`.
+- **Backend**:
+  - `TicketChatController@store` sekarang menerima `lampiran_chat` (gambar).
+  - **Keamanan**: Hanya role `siswa` dan `orang_tua` yang diizinkan mengirim gambar. Guru/Piket dibatasi hanya teks untuk menjaga integritas bukti.
+  - Gambar disimpan di folder `chat_attachments/` pada Supabase.
+- **Frontend**:
+  - Integrasi `ImagePicker` dan `compressImage` di dalam chat.
+  - Preview gambar sebelum dikirim.
+  - `ChatBubble` sekarang mendukung tampilan gambar dengan desain glossy yang konsisten.
+
+## Verification Results
+- Parent can select a child and apply with a photo.
+- Photo is compressed before upload (checked `imageHelper`).
+- Student/Parent see the "Camera" icon in chat, while Teachers do not.
+- Chat images are rendered correctly in the bubble.

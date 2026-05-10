@@ -1,8 +1,10 @@
 import { HapticFeedback } from '../../src/utils/haptics';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { View, Text, StyleSheet, Alert, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router as expoRouter } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import api from '../../src/utils/api';
 import { useAuthStore } from '../../src/stores/authStore';
@@ -31,13 +33,16 @@ export default function WaliDashboard() {
   const approveMutation = useApproveTicket();
   const rejectMutation = useRejectTicket();
 
-  const { data: pendingTickets = [], refetch: refetchPending } = useQuery({
+  const { data: pendingTicketsRaw, refetch: refetchPending } = useQuery({
     queryKey: ['dispensasi-pending'],
     queryFn: async () => {
       const { data } = await api.get('/dispensasi/pending');
-      return data;
+      const today = new Date().toDateString();
+      const rawData = Array.isArray(data) ? data : data?.data || [];
+      return rawData.filter((t: any) => new Date(t.created_at).toDateString() === today);
     }
   });
+  const pendingTickets = pendingTicketsRaw || [];
 
   // Fetch real student data for donut chart
   const { data: kelasData, refetch: refetchKelas } = useQuery({
@@ -49,6 +54,14 @@ export default function WaliDashboard() {
   });
 
   // Fetch all today's dispensasi (approved + pending) for accurate count
+  const { data: classRequests = [], refetch: refetchRequests } = useQuery({
+    queryKey: ['wali-class-requests'],
+    queryFn: async () => {
+      const { data } = await api.get('/wali/class-requests');
+      return data;
+    }
+  });
+
   const { data: allTickets = [], refetch: refetchAll } = useQuery({
     queryKey: ['dispensasi-wali-today'],
     queryFn: async () => {
@@ -99,17 +112,22 @@ export default function WaliDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([refetchPending(), refetchKelas(), refetchAll()]);
+    await Promise.all([refetchPending(), refetchKelas(), refetchAll(), refetchRequests()]);
     setRefreshing(false);
   };
 
-  const renderHeader = () => (
+  const MemoizedHeader = useMemo(() => (
     <View style={commonStyles.mainContent}>
       <View style={{ height: 88 + SPACING.statusBar }} />
       
       <AnimatedEntrance delay={300} direction="down">
         <View style={commonStyles.headerContainer}>
-          <SkeuCard style={styles.headerCard} isGlass>
+          {/* Header Background Blobs */}
+          <View style={styles.headerBlobContainer} pointerEvents="none">
+            <View style={[styles.headerBlob, { backgroundColor: COLORS.primary, top: -20, left: -20 }]} />
+            <View style={[styles.headerBlob, { backgroundColor: COLORS.secondary, bottom: -40, right: -20 }]} />
+          </View>
+          <SkeuCard style={styles.headerCard}>
             <View style={styles.headerTop}>
               <View>
                 <Text style={styles.greeting}>Kehadiran Kelas Anda</Text>
@@ -117,7 +135,7 @@ export default function WaliDashboard() {
               </View>
               <LogoutButton onPress={handleLogout} />
             </View>
-
+ 
             <View style={styles.chartContainer}>
               <View style={styles.chartColLeft}>
                 <DonutChart 
@@ -150,7 +168,25 @@ export default function WaliDashboard() {
           </SkeuCard>
         </View>
       </AnimatedEntrance>
-
+      
+      {classRequests.length > 0 && (
+        <AnimatedEntrance delay={450} direction="up">
+          <TouchableOpacity 
+            style={styles.notificationBanner}
+            onPress={() => expoRouter.push('/(wali)/kelola-anak')}
+          >
+            <View style={styles.notificationIcon}>
+              <MaterialCommunityIcons name="account-plus" size={24} color={COLORS.primary} />
+            </View>
+            <View style={styles.notificationTextContent}>
+              <Text style={styles.notificationTitle}>Permintaan Bergabung</Text>
+              <Text style={styles.notificationSub}>{classRequests.length} siswa menunggu persetujuan Anda</Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={24} color={COLORS.textMuted} />
+          </TouchableOpacity>
+        </AnimatedEntrance>
+      )}
+ 
       <View style={commonStyles.contentContainer}>
         <AnimatedEntrance delay={600} direction="up">
           <View style={commonStyles.sectionHeader}>
@@ -159,7 +195,7 @@ export default function WaliDashboard() {
         </AnimatedEntrance>
       </View>
     </View>
-  );
+  ), [totalStudents, presentStudents, absentStudents, classRequests.length]);
 
   return (
     <View style={commonStyles.container}>
@@ -169,6 +205,7 @@ export default function WaliDashboard() {
         <TopAppBar 
           showAvatar={true} 
           avatarLabel={user?.name?.charAt(0)?.toUpperCase() || 'W'} 
+          title={`Kelas ${kelasData?.kelas || '-'}`}
           showNotification={true} 
           scrollY={scrollY}
         />
@@ -180,11 +217,11 @@ export default function WaliDashboard() {
           refreshing={refreshing}
           onRefresh={onRefresh}
           scrollY={scrollY}
-          ListHeaderComponent={renderHeader}
+          ListHeaderComponent={MemoizedHeader}
           renderItem={({ item, index }) => (
             <View style={{ paddingHorizontal: SPACING.md }}>
-              <AnimatedEntrance delay={800 + (index * 100)} direction="up" offset={20}>
-                <SkeuCard isGlass style={styles.ticketWrapper}>
+              <AnimatedEntrance delay={index < 5 ? 800 + (index * 100) : 0} direction="up" offset={20}>
+                <SkeuCard style={styles.ticketWrapper}>
                   <View style={styles.ticketHeaderRow}>
                     <AvatarInitials name={item.siswa?.name || 'Siswa'} size={40} fontSize={16} />
                     <View style={styles.ticketMeta}>
@@ -230,6 +267,18 @@ export default function WaliDashboard() {
 }
 
 const styles = StyleSheet.create({
+  headerBlobContainer: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+    borderRadius: SIZES.radiusCard,
+    opacity: 0.1,
+  },
+  headerBlob: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+  },
   headerCard: {
     padding: SPACING.lg,
   },
@@ -324,6 +373,41 @@ const styles = StyleSheet.create({
   actionBtn: {
     flex: 1,
     height: 48,
+  },
+  notificationBanner: {
+    marginHorizontal: SPACING.md,
+    marginTop: SPACING.md,
+    padding: SPACING.md,
+    backgroundColor: COLORS.primary + '10',
+    borderRadius: SIZES.radiusMd,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.primary + '20',
+  },
+  notificationIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.bgWhite,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.md,
+    ...SHADOWS.elevation2,
+  },
+  notificationTextContent: {
+    flex: 1,
+  },
+  notificationTitle: {
+    fontFamily: FONTS.headingSemi,
+    fontSize: 14,
+    color: COLORS.textPrimary,
+  },
+  notificationSub: {
+    fontFamily: FONTS.body,
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
   },
 });
 

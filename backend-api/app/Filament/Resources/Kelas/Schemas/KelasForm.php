@@ -26,7 +26,7 @@ class KelasForm
                     ->required(),
                 Select::make('wali_kelas_id')
                     ->label('Wali Kelas')
-                    ->relationship('waliKelas', 'name')
+                    ->relationship('waliKelas', 'name', fn ($query) => $query->where('role', 'wali_kelas'))
                     ->searchable()
                     ->preload()
                     ->nullable(),

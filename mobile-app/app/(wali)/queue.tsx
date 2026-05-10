@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router as expoRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../src/utils/api';
@@ -14,7 +15,7 @@ export default function WaliQueueScreen() {
   const { data: queue, isLoading } = useQuery({
     queryKey: ['dispensasi-wali-queue'],
     queryFn: async () => {
-      const { data } = await api.get('/dispensasi/wali/queue');
+      const { data } = await api.get('/dispensasi/pending');
       return data;
     }
   });

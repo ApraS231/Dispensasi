@@ -14,10 +14,18 @@ class TicketChatController extends Controller
 {
     private function checkAccess($user, $ticket)
     {
+        // Admin always has access
+        if ($user->role === 'admin') return true;
+        
+        // Ownership access
         if ($ticket->siswa_id === $user->id) return true;
         if ($ticket->wali_kelas_id === $user->id) return true;
         if ($ticket->guru_piket_id === $user->id) return true;
         
+        // Staff access (Guru Piket can view all chats to process tickets)
+        if ($user->role === 'guru_piket') return true;
+        
+        // Parent access to their child's ticket
         if ($user->role === 'orang_tua') {
             $isAnak = SiswaProfile::where('orang_tua_id', $user->id)
                 ->where('user_id', $ticket->siswa_id)
@@ -73,13 +81,42 @@ class TicketChatController extends Controller
 
 
         $request->validate([
-            'pesan' => 'required|string'
+            'pesan' => 'nullable|string',
+            'lampiran_chat' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
         ]);
+
+        if (!$request->pesan && !$request->hasFile('lampiran_chat')) {
+            return response()->json(['message' => 'Pesan atau lampiran harus diisi'], 422);
+        }
+
+        $user = $request->user();
+        $attachmentUrl = null;
+
+        if ($request->hasFile('lampiran_chat')) {
+            // Cek role: Hanya siswa dan orang tua yang boleh kirim gambar
+            if (!in_array($user->role, ['siswa', 'orang_tua'])) {
+                return response()->json(['message' => 'Hanya siswa dan orang tua yang dapat mengirim gambar di chat.'], 403);
+            }
+
+            try {
+                $file = $request->file('lampiran_chat');
+                $fileName = (string) \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
+                $path = $file->storeAs('chat_attachments', $fileName, 'supabase');
+                
+                if ($path) {
+                    $attachmentUrl = \Illuminate\Support\Facades\Storage::disk('supabase')->url($path);
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("Gagal upload lampiran chat ke Supabase: " . $e->getMessage());
+                // Tetap lanjut kirim pesan teksnya saja jika upload gagal
+            }
+        }
 
         $chat = TicketChat::create([
             'dispensasi_ticket_id' => $ticketId,
-            'sender_id' => $request->user()->id,
-            'pesan' => $request->pesan
+            'sender_id' => $user->id,
+            'pesan' => $request->pesan ?? '',
+            'attachment_url' => $attachmentUrl
         ]);
 
         $chat->load('sender');
@@ -117,7 +154,7 @@ class TicketChatController extends Controller
         ExpoPushService::send(
             $tokens,
             'Pesan Baru: ' . $sender->name,
-            $chat->pesan,
+            $chat->pesan ?: '[Gambar]',
             ['ticket_id' => $ticket->id, 'type' => 'chat'],
             array_values($targetUserIds) // Reset keys
         );

@@ -7,7 +7,8 @@ import {
   ViewStyle, 
   TextStyle, 
   ActivityIndicator,
-  View
+  View,
+  StyleProp
 } from 'react-native';
 import Animated, { 
   useSharedValue, 
@@ -24,8 +25,8 @@ interface BouncyButtonProps {
   title: string;
   onPress: () => void;
   variant?: 'primary' | 'tonal' | 'outlined' | 'danger';
-  style?: ViewStyle;
-  textStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
   disabled?: boolean;
   loading?: boolean;
   icon?: keyof typeof MaterialCommunityIcons.glyphMap;

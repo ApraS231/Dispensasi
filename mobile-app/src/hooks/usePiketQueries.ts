@@ -5,6 +5,7 @@ import { dispensasiKeys } from './useDispensasiQueries';
 export const piketKeys = {
   all: ['piket'] as const,
   status: () => [...piketKeys.all, 'status'] as const,
+  queue: () => [...piketKeys.all, 'queue'] as const,
   dailyLog: () => [...piketKeys.all, 'daily-log'] as const,
 };
 
@@ -12,6 +13,16 @@ export function usePiketStatus() {
   return useQuery({
     queryKey: piketKeys.status(),
     queryFn: piketService.getStatus,
+  });
+}
+
+export function usePiketQueue(enabled = true) {
+  return useQuery({
+    queryKey: piketKeys.queue(),
+    queryFn: piketService.getQueue,
+    enabled,
+    refetchInterval: 30_000, // Polling ringan setiap 30 detik
+    staleTime: 10_000,
   });
 }
 

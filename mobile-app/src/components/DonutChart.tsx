@@ -1,17 +1,18 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import { View, StyleSheet, Text, TextInput } from 'react-native';
 import Svg, { Circle, G } from 'react-native-svg';
 import Animated, { 
   useSharedValue, 
   useAnimatedProps, 
   withTiming, 
   Easing,
-  interpolate,
-  useDerivedValue
+  useDerivedValue,
+  useAnimatedStyle
 } from 'react-native-reanimated';
 import { COLORS, FONTS } from '../utils/theme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 
 interface DonutChartProps {
   total: number;
@@ -47,26 +48,19 @@ export default function DonutChart({
     return () => clearTimeout(timeout);
   }, [present, total]);
 
-  const animatedProps = useAnimatedProps(() => {
+  const animatedCircleProps = useAnimatedProps(() => {
     return {
       strokeDashoffset: circumference - (progress.value * circumference),
     };
   });
 
-  // Animated percentage text
-  const [displayText, setDisplayText] = React.useState('0%');
-  
-  // Update display text periodically to sync with animation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const currentPercent = Math.round(progress.value * 100);
-      setDisplayText(`${currentPercent}%`);
-      if (progress.value === (total > 0 ? present / total : 0)) {
-        clearInterval(interval);
-      }
-    }, 32);
-    return () => clearInterval(interval);
-  }, [present, total]);
+  // Efficient animated text using useDerivedValue and AnimatedTextInput
+  const animatedTextProps = useAnimatedProps(() => {
+    const percent = Math.round(progress.value * 100);
+    return {
+      text: `${percent}%`,
+    } as any;
+  });
 
   return (
     <View style={[styles.container, { width: size, height: size }]}>
@@ -91,20 +85,26 @@ export default function DonutChart({
             stroke={COLORS.primary}
             strokeWidth={strokeWidth}
             strokeDasharray={circumference}
-            animatedProps={animatedProps}
+            animatedProps={animatedCircleProps}
             strokeLinecap="round"
             fill="none"
           />
         </G>
       </Svg>
 
-      {/* Center Text */}
+      {/* Center Text Wrapper */}
       <View style={[styles.innerCircle, { 
         width: size - (strokeWidth * 2), 
         height: size - (strokeWidth * 2),
         borderRadius: size / 2 
       }]}>
-        <Text style={styles.centerValue}>{displayText}</Text>
+        <AnimatedTextInput
+          underlineColorAndroid="transparent"
+          editable={false}
+          value="0%"
+          style={styles.centerValue}
+          animatedProps={animatedTextProps}
+        />
         <Text style={styles.centerLabel}>Hadir</Text>
       </View>
     </View>
@@ -130,12 +130,16 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.heading,
     fontSize: 28,
     color: COLORS.primary,
-    lineHeight: 32,
+    textAlign: 'center',
+    padding: 0,
+    margin: 0,
+    width: '100%',
   },
   centerLabel: {
     fontFamily: FONTS.labelCaps,
     fontSize: 10,
     color: COLORS.textMuted,
     letterSpacing: 1,
+    marginTop: -4,
   }
 });
