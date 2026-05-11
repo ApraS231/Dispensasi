@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignUuid('wali_kelas_id')->nullable()->constrained('users')->onDelete('set null');
             $table->foreignUuid('guru_piket_id')->nullable()->constrained('users')->onDelete('set null');
             $table->foreignUuid('piket_attendance_id')->nullable()->constrained('piket_attendance_logs')->onDelete('set null');
-            $table->enum('jenis_izin', ['sakit', 'keperluan_keluarga', 'lainnya'])->default('sakit');
+            $table->enum('jenis_izin', ['sakit', 'izin', 'dispensasi', 'keterangan_lain', 'keperluan_keluarga', 'lainnya'])->default('sakit');
             $table->text('alasan');
             $table->string('lampiran_bukti')->nullable();
             $table->dateTime('waktu_mulai');
