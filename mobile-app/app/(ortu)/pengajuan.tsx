@@ -174,8 +174,8 @@ export default function OrtuPengajuanScreen() {
                 style={styles.picker}
               >
                 <Picker.Item label="Sakit" value="sakit" />
-                <Picker.Item label="Keperluan Keluarga" value="keperluan_keluarga" />
-                <Picker.Item label="Lainnya" value="lainnya" />
+                <Picker.Item label="Izin" value="izin" />
+                <Picker.Item label="Dispensasi" value="dispensasi" />
               </Picker>
             </View>
 

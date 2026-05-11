@@ -27,8 +27,8 @@ class DispensasiTicketsTable
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'sakit' => 'danger',
-                        'keperluan_keluarga' => 'warning',
-                        'lainnya' => 'gray',
+                        'izin' => 'warning',
+                        'dispensasi' => 'info',
                         default => 'gray',
                     }),
                 TextColumn::make('status')
@@ -64,8 +64,8 @@ class DispensasiTicketsTable
                 SelectFilter::make('jenis_izin')
                     ->options([
                         'sakit' => 'Sakit',
-                        'keperluan_keluarga' => 'Keperluan Keluarga',
-                        'lainnya' => 'Lainnya',
+                        'izin' => 'Izin',
+                        'dispensasi' => 'Dispensasi',
                     ]),
             ])
             ->recordActions([

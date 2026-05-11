@@ -156,7 +156,6 @@ export default function PengajuanScreen() {
                 <Picker.Item label="Sakit" value="sakit" />
                 <Picker.Item label="Izin" value="izin" />
                 <Picker.Item label="Dispensasi" value="dispensasi" />
-                <Picker.Item label="Keterangan Lain" value="keterangan_lain" />
               </Picker>
             </View>
 

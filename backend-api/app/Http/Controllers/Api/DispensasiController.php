@@ -29,7 +29,7 @@ class DispensasiController extends Controller
         $user = $request->user();
         
         $request->validate([
-            'jenis_izin' => 'required|in:sakit,izin,dispensasi,keterangan_lain,keperluan_keluarga,lainnya',
+            'jenis_izin' => 'required|in:sakit,izin,dispensasi',
             'alasan' => 'required|string',
             'waktu_mulai' => 'required|date',
             'waktu_selesai' => 'required|date',

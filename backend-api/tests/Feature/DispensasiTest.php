@@ -33,7 +33,7 @@ class DispensasiTest extends TestCase
 
         // Second request on the same day should fail
         $response2 = $this->postJson('/api/dispensasi', [
-            'jenis_izin' => 'keperluan_keluarga',
+            'jenis_izin' => 'izin',
             'alasan' => 'Acara keluarga',
             'waktu_mulai' => now()->toDateTimeString(),
             'waktu_selesai' => now()->addDay()->toDateTimeString(),

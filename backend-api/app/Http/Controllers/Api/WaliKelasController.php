@@ -156,8 +156,8 @@ class WaliKelasController extends Controller
 
             $totalIzin = $tickets->count();
             $sakit = $tickets->where('jenis_izin', 'sakit')->count();
-            $keluarga = $tickets->where('jenis_izin', 'keperluan_keluarga')->count();
-            $lainnya = $tickets->where('jenis_izin', 'lainnya')->count();
+            $izin = $tickets->where('jenis_izin', 'izin')->count();
+            $dispensasi = $tickets->where('jenis_izin', 'dispensasi')->count();
             
             // Only count approved tickets as reducing attendance
             $disetujui = $tickets->where('status', 'approved_final')->count();
@@ -173,8 +173,8 @@ class WaliKelasController extends Controller
                 'nis' => $profile->nis,
                 'total_izin' => $totalIzin,
                 'sakit' => $sakit,
-                'keperluan_keluarga' => $keluarga,
-                'lainnya' => $lainnya,
+                'izin' => $izin,
+                'dispensasi' => $dispensasi,
                 'disetujui' => $disetujui,
                 'ditolak' => $ditolak,
                 'persen_hadir' => $persenHadir,
