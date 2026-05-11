@@ -28,6 +28,9 @@ class DispensasiTicketsTable
                     ->color(fn (string $state): string => match ($state) {
                         'sakit' => 'danger',
                         'keperluan_keluarga' => 'warning',
+                        'izin' => 'info',
+                        'dispensasi' => 'info',
+                        'keterangan_lain' => 'gray',
                         'lainnya' => 'gray',
                         default => 'gray',
                     }),
@@ -65,6 +68,9 @@ class DispensasiTicketsTable
                     ->options([
                         'sakit' => 'Sakit',
                         'keperluan_keluarga' => 'Keperluan Keluarga',
+                        'izin' => 'Izin',
+                        'dispensasi' => 'Dispensasi',
+                        'keterangan_lain' => 'Keterangan Lain',
                         'lainnya' => 'Lainnya',
                     ]),
             ])

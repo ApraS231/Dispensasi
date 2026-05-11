@@ -156,6 +156,9 @@ class WaliKelasController extends Controller
 
             $totalIzin = $tickets->count();
             $sakit = $tickets->where('jenis_izin', 'sakit')->count();
+            $izin = $tickets->where('jenis_izin', 'izin')->count();
+            $dispensasi = $tickets->where('jenis_izin', 'dispensasi')->count();
+            $keterangan_lain = $tickets->where('jenis_izin', 'keterangan_lain')->count();
             $keluarga = $tickets->where('jenis_izin', 'keperluan_keluarga')->count();
             $lainnya = $tickets->where('jenis_izin', 'lainnya')->count();
             

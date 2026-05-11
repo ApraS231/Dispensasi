@@ -50,10 +50,10 @@ export default function LaporanIzinScreen() {
     HapticFeedback.medium();
     
     try {
-      let csvContent = 'No,Nama,NIS,Sakit,Keluarga,Lainnya,Total Izin,Disetujui,Ditolak,% Hadir\n';
+      let csvContent = 'No,Nama,NIS,Sakit,Izin,Dispensasi,Keterangan Lain,Keluarga,Lainnya,Total Izin,Disetujui,Ditolak,% Hadir\n';
       
       data.siswa.forEach((item: any, index: number) => {
-        csvContent += `${index + 1},"${item.name}","${item.nis || '-'}",${item.sakit},${item.keperluan_keluarga},${item.lainnya},${item.total_izin},${item.disetujui},${item.ditolak},"${item.persen_hadir}%"\n`;
+        csvContent += `${index + 1},"${item.name}","${item.nis || '-'}",${item.sakit},${item.izin},${item.dispensasi},${item.keterangan_lain},${item.keluarga},${item.lainnya},${item.total_izin},${item.disetujui},${item.ditolak},"${item.persen_hadir}%"\n`;
       });
 
       const fileName = `Laporan_Izin_${data.kelas.replace(/\s+/g, '_')}_${data.bulan_nama}_${tahun}.csv`;

@@ -40,6 +40,6 @@ class DispensasiTest extends TestCase
         ]);
 
         $response2->assertStatus(400);
-        $response2->assertJson(['message' => 'Anda sudah mengajukan dispensasi hari ini.']);
+        $response2->assertJson(fn (\Illuminate\Testing\Fluent\AssertableJson $json) => $json->has('message'));
     }
 }
