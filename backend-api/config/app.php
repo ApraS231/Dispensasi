@@ -123,4 +123,15 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Trusted Proxies
+    |--------------------------------------------------------------------------
+    |
+    | Trust all proxies (Render uses reverse proxy for SSL termination)
+    |
+    |
+    */
+    'trusted_proxies' => '*',
+
 ];
