@@ -1,0 +1,40 @@
+# Walkthrough — Implementasi Algoritma Genetika (AG)
+
+Fitur Alokasi Ruang Otomatis menggunakan Algoritma Genetika telah berhasil diimplementasikan sebagai *Background Job* untuk optimasi pembagian siswa ke ruangan dan nomor meja tanpa bentrok.
+
+## Perubahan Utama
+
+### 1. Database & Model
+- **Migration:** Menambahkan `allocation_status` ke `exam_sessions` dan membuat tabel `ga_allocation_logs`.
+- **Model:** Membuat model `GaAllocationLog` dan memperbarui `ExamSession` dengan relasi yang diperlukan.
+
+### 2. Core Logic (Genetic Algorithm)
+- **File:** [GeneticAlgorithmService.php](file:///c:/laragon/www/kartu-ujian-app/app/Services/GeneticAlgorithmService.php)
+- Mengimplementasikan alur: *Initialization* → *Fitness Evaluation* (Penalty untuk bentrok meja & kelebihan kapasitas) → *Tournament Selection* → *Crossover* → *Mutation*.
+
+### 3. Background Job
+- **File:** [GenerateAllocationJob.php](file:///c:/laragon/www/kartu-ujian-app/app/Jobs/GenerateAllocationJob.php)
+- Melakukan pembersihan data lama, eksekusi AG, *chunk insert* hasil alokasi, dan pencatatan log performa.
+
+### 4. Controller & UI
+- **Controller:** Menambahkan method `generateAlokasi` dan `cekStatusAG` ke [ExamSessionController.php](file:///c:/laragon/www/kartu-ujian-app/app/Http/Controllers/ExamSessionController.php).
+- **UI:** Menambahkan kolom **AG Status** pada tabel Riwayat Ujian dengan desain *glassmorphism*. Menyertakan *AJAX polling* untuk memantau status secara *real-time*.
+
+## Hasil Verifikasi
+
+### Pengujian Teknis (Tinker)
+- **AG Service:** Berhasil menjalankan 500 generasi evolusi.
+- **Job Handle:** Berhasil men-generate 50 alokasi siswa dan menyimpan log ke database secara manual.
+- **Database:**
+  - `exam_allocations`: Terisi 50 records (Sesuai jumlah siswa).
+  - `ga_allocation_logs`: Mencatat detail generasi dan waktu eksekusi.
+
+### UI Check
+- Kolom baru muncul di halaman `sessions/index`.
+- Tombol **Auto-Generate** memicu status `Processing` dengan spinner animasi.
+
+## Cara Penggunaan
+1. Buka menu **Riwayat Ujian**.
+2. Cari sesi yang ingin di-generate alokasinya.
+3. Klik tombol **Auto-Generate** (Pastikan `php artisan queue:work` berjalan jika di server lokal).
+4. Status akan berubah menjadi **Processing** dan otomatis menjadi **Optimal** (Selesai) tanpa refresh halaman.

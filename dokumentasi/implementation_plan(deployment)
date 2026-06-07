@@ -1,0 +1,491 @@
+# Deploy Laravel Backend API (SIdispen) ke Render.com
+
+## Deskripsi
+
+Menyiapkan project Laravel 11 **backend-api** (SIdispen SMA 3) agar siap di-deploy ke [Render.com](https://render.com) menggunakan **Docker**. Render tidak memiliki native PHP buildpack, sehingga kita perlu membuat `Dockerfile` dan startup script.
+
+### Konteks Project
+
+| Aspek | Detail |
+|---|---|
+| **Framework** | Laravel 11 (PHP ^8.2) |
+| **Database** | PostgreSQL via Supabase (sudah ada, external) |
+| **File Storage** | Supabase S3-compatible storage (sudah dikonfigurasi) |
+| **Admin Panel** | Filament v5.6 |
+| **Auth** | Laravel Sanctum (token-based untuk mobile app) |
+| **API Docs** | Scramble (auto-generated OpenAPI) |
+| **Push Notification** | Expo Push Service (HTTP call ke `exp.host`) |
+| **Frontend** | Mobile app (Expo/React Native) — deploy terpisah |
+
+> [!IMPORTANT]
+> Database PostgreSQL dan Storage S3 sudah menggunakan **Supabase external**, jadi TIDAK perlu membuat database baru di Render. Kita hanya perlu deploy web service saja.
+
+---
+
+## User Review Required
+
+> [!WARNING]
+> **Kredensial yang terexpose:** File `.env` saat ini berisi password database dan S3 keys secara langsung. Pastikan:
+> 1. File `.env` TIDAK masuk ke Git (sudah ada di `.gitignore` ✅)
+> 2. Semua secrets di-set melalui **Environment Variables** di dashboard Render
+> 3. Pertimbangkan untuk rotate password Supabase setelah deployment jika pernah ter-commit
+
+> [!IMPORTANT]
+> **Render Free Tier:** Instance gratis akan "spin down" setelah 15 menit tidak ada traffic. Request pertama setelah itu akan lambat (cold start ~30-60 detik). Untuk aplikasi sekolah yang harus selalu responsive, pertimbangkan tier **Starter ($7/bulan)**.
+
+---
+
+## Open Questions
+
+> [!IMPORTANT]
+> 1. **Git Repository:** Apakah project sudah di-push ke GitHub/GitLab? Render perlu connect ke repository. Jika belum, perlu setup repository terlebih dahulu.
+> 2. **Domain Custom:** Apakah akan menggunakan custom domain (misal `api.sidispen.sch.id`) atau cukup subdomain Render (`*.onrender.com`)?
+> 3. **Render Tier:** Apakah ingin menggunakan Free Tier atau Starter ($7/bulan) untuk menghindari cold start?
+> 4. **Filament Admin Access:** URL admin panel Filament saat ini diakses via `/admin`. Apakah ini tetap digunakan di production?
+
+---
+
+## Proposed Changes
+
+### 1. Docker Configuration
+
+File-file untuk containerize aplikasi Laravel agar bisa berjalan di Render.
+
+---
+
+#### [NEW] [Dockerfile](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/Dockerfile)
+
+Membuat Dockerfile menggunakan base image `richarvey/nginx-php-fpm` yang sudah bundle Nginx + PHP-FPM, cocok untuk Laravel.
+
+```dockerfile
+FROM richarvey/nginx-php-fpm:3.1.6
+
+# Copy project files
+COPY . /var/www/html
+
+# Set working directory
+WORKDIR /var/www/html
+
+# Image config
+ENV SKIP_COMPOSER=1
+ENV WEBROOT=/var/www/html/public
+ENV PHP_ERRORS_ON=1
+ENV RUN_SCRIPTS=1
+ENV REAL_IP_HEADER=1
+
+# Laravel config
+ENV APP_ENV=production
+ENV APP_DEBUG=false
+ENV LOG_CHANNEL=stderr
+ENV SESSION_DRIVER=cookie
+
+# Allow composer to run as root
+ENV COMPOSER_ALLOW_SUPERUSER=1
+
+# Install composer dependencies (production only)
+RUN composer install --no-dev --optimize-autoloader
+
+# Create necessary directories and set permissions
+RUN mkdir -p /var/www/html/storage/logs \
+    && mkdir -p /var/www/html/storage/framework/sessions \
+    && mkdir -p /var/www/html/storage/framework/views \
+    && mkdir -p /var/www/html/storage/framework/cache \
+    && mkdir -p /var/www/html/bootstrap/cache \
+    && chown -R nginx:nginx /var/www/html/storage \
+    && chown -R nginx:nginx /var/www/html/bootstrap/cache \
+    && chmod -R 775 /var/www/html/storage \
+    && chmod -R 775 /var/www/html/bootstrap/cache
+
+# Copy startup script
+COPY scripts/00-laravel-deploy.sh /var/www/html/scripts/00-laravel-deploy.sh
+RUN chmod +x /var/www/html/scripts/00-laravel-deploy.sh
+```
+
+**Catatan:**
+- `richarvey/nginx-php-fpm` secara otomatis menjalankan script di `/var/www/html/scripts/` saat startup
+- `SKIP_COMPOSER=1` karena kita sudah menjalankan composer di build step
+- `LOG_CHANNEL=stderr` agar logs terlihat di Render dashboard
+- `SESSION_DRIVER=cookie` karena Render filesystem bersifat ephemeral (tidak persistent)
+
+---
+
+#### [NEW] [.dockerignore](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/.dockerignore)
+
+Mengecualikan file yang tidak diperlukan dalam Docker image.
+
+```
+/vendor
+/node_modules
+/.git
+/.idea
+/.vscode
+/.fleet
+.env
+.env.backup
+.env.production
+panduan_deploy_laravel_render.pdf
+```
+
+---
+
+#### [NEW] [scripts/00-laravel-deploy.sh](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/scripts/00-laravel-deploy.sh)
+
+Startup script yang dijalankan setiap kali container start. Menjalankan artisan commands untuk production setup.
+
+```bash
+#!/usr/bin/env bash
+
+echo "Running Laravel deployment script..."
+
+# Generate APP_KEY if not set
+if [ -z "$APP_KEY" ]; then
+    echo "Generating application key..."
+    php artisan key:generate --show
+fi
+
+# Clear and cache config for production
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+# Run migrations
+php artisan migrate --force
+
+# Filament: publish assets & create storage link
+php artisan filament:assets
+php artisan storage:link || true
+
+echo "Laravel deployment script completed!"
+```
+
+---
+
+### 2. Laravel Production Adjustments
+
+Perubahan pada source code Laravel agar kompatibel dengan environment Render.
+
+---
+
+#### [MODIFY] [AppServiceProvider.php](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/app/Providers/AppServiceProvider.php)
+
+Menambahkan **force HTTPS** di production karena Render menangani SSL/TLS di level proxy (termination). Tanpa ini, semua URL yang di-generate Laravel akan menggunakan `http://` dan menyebabkan mixed-content errors.
+
+```diff
+ <?php
+
+ namespace App\Providers;
+
+ use Illuminate\Support\ServiceProvider;
++use Illuminate\Support\Facades\URL;
+
+ class AppServiceProvider extends ServiceProvider
+ {
+     public function register(): void
+     {
+         //
+     }
+
+     public function boot(): void
+     {
++        // Force HTTPS in production (Render handles TLS termination)
++        if (config('app.env') === 'production') {
++            URL::forceScheme('https');
++        }
++
+         \Dedoc\Scramble\Scramble::afterOpenApiGenerated(function (\Dedoc\Scramble\Support\Generator\OpenApi $openApi) {
+             $openApi->secure(
+                 \Dedoc\Scramble\Support\Generator\SecurityScheme::http('bearer')
+             );
+         });
+     }
+ }
+```
+
+---
+
+#### [MODIFY] [config/app.php](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/config/app.php)
+
+Menambahkan `trusted_proxies` config agar Laravel mengenali Render reverse proxy dan menghasilkan URL yang benar.
+
+```diff
+     'maintenance' => [
+         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
+         'store' => env('APP_MAINTENANCE_STORE', 'database'),
+     ],
+
++    /*
++    |--------------------------------------------------------------------------
++    | Trusted Proxies
++    |--------------------------------------------------------------------------
++    |
++    | Trust all proxies (Render uses reverse proxy for SSL termination)
++    |
++    */
++    'trusted_proxies' => '*',
++
+ ];
+```
+
+> [!NOTE]
+> Alternatif: Trusted proxy bisa juga dikonfigurasi via middleware di `bootstrap/app.php`. Pendekatan di `config/app.php` lebih simple untuk kasus Render yang selalu di-balik proxy.
+
+---
+
+#### [MODIFY] [.env.example](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/.env.example)
+
+Update `.env.example` dengan konfigurasi yang sesuai untuk production di Render, sebagai referensi.
+
+```diff
+-APP_NAME=Laravel
++APP_NAME=SIdispen
+ APP_ENV=local
+ APP_KEY=
+ APP_DEBUG=true
+-APP_TIMEZONE=UTC
+-APP_URL=http://localhost
++APP_TIMEZONE=Asia/Jakarta
++APP_URL=http://localhost:8000
+
+ APP_LOCALE=en
+ APP_FALLBACK_LOCALE=en
+ APP_FAKER_LOCALE=en_US
+
++# === Production (Render) ===
++# APP_ENV=production
++# APP_DEBUG=false
++# APP_URL=https://your-app.onrender.com
++# LOG_CHANNEL=stderr
++
+ APP_MAINTENANCE_DRIVER=file
+ APP_MAINTENANCE_STORE=database
+
+ BCRYPT_ROUNDS=12
+
+ LOG_CHANNEL=stack
+ LOG_STACK=single
+ LOG_DEPRECATIONS_CHANNEL=null
+ LOG_LEVEL=debug
+
+-DB_CONNECTION=sqlite
+-# DB_HOST=127.0.0.1
+-# DB_PORT=3306
+-# DB_DATABASE=laravel
+-# DB_USERNAME=root
+-# DB_PASSWORD=
++DB_CONNECTION=pgsql
++DB_HOST=
++DB_PORT=5432
++DB_DATABASE=postgres
++DB_USERNAME=
++DB_PASSWORD=
++
++# === Supabase S3 Storage ===
++FILESYSTEM_DISK=supabase
++SUPABASE_S3_ACCESS_KEY_ID=
++SUPABASE_S3_SECRET_ACCESS_KEY=
++SUPABASE_S3_REGION=
++SUPABASE_S3_BUCKET=
++SUPABASE_S3_ENDPOINT=
++SUPABASE_S3_URL=
+
+-SESSION_DRIVER=database
++SESSION_DRIVER=cookie
+ SESSION_LIFETIME=120
+ SESSION_ENCRYPT=false
+ SESSION_PATH=/
+ SESSION_DOMAIN=null
+```
+
+---
+
+#### [NEW] [render.yaml](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/render.yaml)
+
+Blueprint file opsional — Render bisa membaca file ini untuk auto-configure service. Ini membuat deployment lebih reproducible.
+
+```yaml
+services:
+  - type: web
+    name: sidispen-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    region: singapore  # Terdekat untuk Indonesia
+    plan: starter      # Ganti ke 'free' jika ingin gratis
+    envVars:
+      - key: APP_NAME
+        value: SIdispen
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        generateValue: true
+      - key: APP_URL
+        value: https://sidispen-api.onrender.com
+      - key: APP_TIMEZONE
+        value: Asia/Jakarta
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        sync: false  # Set manually in dashboard
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_DATABASE
+        value: postgres
+      - key: DB_USERNAME
+        sync: false  # Set manually in dashboard
+      - key: DB_PASSWORD
+        sync: false  # Set manually in dashboard
+      - key: SESSION_DRIVER
+        value: cookie
+      - key: CACHE_STORE
+        value: file
+      - key: FILESYSTEM_DISK
+        value: supabase
+      - key: SUPABASE_S3_ACCESS_KEY_ID
+        sync: false
+      - key: SUPABASE_S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: SUPABASE_S3_REGION
+        sync: false
+      - key: SUPABASE_S3_BUCKET
+        sync: false
+      - key: SUPABASE_S3_ENDPOINT
+        sync: false
+      - key: SUPABASE_S3_URL
+        sync: false
+```
+
+---
+
+### 3. Konfigurasi Tambahan
+
+---
+
+#### [MODIFY] [bootstrap/app.php](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/bootstrap/app.php)
+
+Menambahkan trusted proxy middleware agar Laravel bisa mendeteksi HTTPS dari Render proxy.
+
+```diff
+ use Illuminate\Foundation\Application;
+ use Illuminate\Foundation\Configuration\Exceptions;
+ use Illuminate\Foundation\Configuration\Middleware;
+
+ return Application::configure(basePath: dirname(__DIR__))
+     ->withRouting(
+         web: __DIR__.'/../routes/web.php',
+         api: __DIR__.'/../routes/api.php',
+         commands: __DIR__.'/../routes/console.php',
+         health: '/up',
+     )
+     ->withMiddleware(function (Middleware $middleware) {
++        $middleware->trustProxies(at: '*');
+         $middleware->alias([
+             'role' => \App\Http\Middleware\CheckRole::class,
+         ]);
+     })
+     ->withExceptions(function (Exceptions $exceptions) {
+         //
+     })->create();
+```
+
+---
+
+#### [MODIFY] [config/logging.php](file:///c:/laragon/www/SIdispen%20(SMA%203)/backend-api/config/logging.php)
+
+Memastikan `stderr` channel sudah terkonfigurasi (biasanya sudah ada di Laravel 11 default). Ini penting agar logs muncul di Render dashboard.
+
+> [!NOTE]
+> File ini kemungkinan sudah memiliki `stderr` channel. Kita hanya perlu memastikan `LOG_CHANNEL=stderr` di environment variables Render.
+
+---
+
+## Ringkasan File yang Akan Dibuat/Dimodifikasi
+
+| File | Aksi | Deskripsi |
+|---|---|---|
+| `Dockerfile` | **NEW** | Docker image configuration (Nginx + PHP-FPM) |
+| `.dockerignore` | **NEW** | Exclude unnecessary files from Docker build |
+| `scripts/00-laravel-deploy.sh` | **NEW** | Startup script (migrations, cache, etc.) |
+| `render.yaml` | **NEW** | Render Blueprint untuk auto-configure |
+| `app/Providers/AppServiceProvider.php` | **MODIFY** | Force HTTPS di production |
+| `bootstrap/app.php` | **MODIFY** | Trust all proxies (Render reverse proxy) |
+| `.env.example` | **MODIFY** | Update template env untuk production reference |
+| `config/app.php` | **MODIFY** | Tambah trusted_proxies config |
+
+---
+
+## Panduan Deploy di Dashboard Render
+
+Setelah semua file siap, berikut langkah di Render Dashboard:
+
+### Step 1: Push ke GitHub
+```bash
+git add .
+git commit -m "feat: prepare deployment config for Render"
+git push origin main
+```
+
+### Step 2: Buat Web Service di Render
+1. Login ke [dashboard.render.com](https://dashboard.render.com)
+2. Klik **"New +"** → **"Web Service"**
+3. Connect repository GitHub
+4. Pilih **Docker** sebagai Environment
+5. Region: **Singapore** (terdekat untuk Indonesia)
+
+### Step 3: Set Environment Variables
+Masukkan semua env vars berikut di Render Dashboard:
+
+| Key | Value |
+|---|---|
+| `APP_NAME` | `SIdispen` |
+| `APP_ENV` | `production` |
+| `APP_DEBUG` | `false` |
+| `APP_KEY` | *(generate via `php artisan key:generate --show`)* |
+| `APP_URL` | `https://<nama-service>.onrender.com` |
+| `APP_TIMEZONE` | `Asia/Jakarta` |
+| `LOG_CHANNEL` | `stderr` |
+| `DB_CONNECTION` | `pgsql` |
+| `DB_HOST` | `aws-1-ap-northeast-1.pooler.supabase.com` |
+| `DB_PORT` | `5432` |
+| `DB_DATABASE` | `postgres` |
+| `DB_USERNAME` | *(dari Supabase)* |
+| `DB_PASSWORD` | *(dari Supabase)* |
+| `SESSION_DRIVER` | `cookie` |
+| `CACHE_STORE` | `file` |
+| `FILESYSTEM_DISK` | `supabase` |
+| `SUPABASE_S3_ACCESS_KEY_ID` | *(dari Supabase)* |
+| `SUPABASE_S3_SECRET_ACCESS_KEY` | *(dari Supabase)* |
+| `SUPABASE_S3_REGION` | `ap-northeast-1` |
+| `SUPABASE_S3_BUCKET` | `sidispen-attachments` |
+| `SUPABASE_S3_ENDPOINT` | *(dari Supabase)* |
+| `SUPABASE_S3_URL` | *(dari Supabase)* |
+
+### Step 4: Deploy
+Klik **"Create Web Service"** — Render akan otomatis build Docker image dan deploy.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+```bash
+# Lokal — verifikasi Dockerfile bisa build
+docker build -t sidispen-api .
+
+# Lokal — verifikasi container bisa start
+docker run --rm -p 8080:80 --env-file .env sidispen-api
+
+# Test health endpoint
+curl http://localhost:8080/up
+```
+
+### Manual Verification (Setelah Deploy)
+1. **Health Check:** Akses `https://<app>.onrender.com/up` → harus return 200 OK
+2. **API Login:** `POST https://<app>.onrender.com/api/login` dengan credentials → harus return token
+3. **Filament Admin:** Akses `https://<app>.onrender.com/admin` → harus tampil halaman login Filament
+4. **API Docs:** Akses `https://<app>.onrender.com/docs/api` → harus tampil Scramble API documentation
+5. **File Upload:** Test upload file via API → harus tersimpan di Supabase S3
+6. **Push Notification:** Test kirim dispensasi → harus trigger Expo push notification
+7. **Mobile App Connection:** Update `API_BASE_URL` di mobile app ke URL Render, test login dan semua fitur

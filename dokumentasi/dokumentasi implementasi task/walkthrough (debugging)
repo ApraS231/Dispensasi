@@ -1,0 +1,52 @@
+# Laporan Debugging & Solusi: Algoritma Genetika (AG)
+
+Berdasarkan hasil pengujian end-to-end dan analisis database, tiga masalah telah diidentifikasi dan diperbaiki agar modul Algoritma Genetika berjalan sempurna.
+
+## 1. Bug: Fitness Score Rendah & Desk Collision (Kritis)
+
+### Temuan
+Pada pengujian awal, AG berjalan selama 500 generasi namun hanya mencapai skor fitness `0.0099`. Hal ini menandakan bahwa algoritma kesulitan mencapai titik konvergen (optimal). Hasil akhirnya menyisakan **1 desk collision** (2 siswa ditempatkan di ruangan dan nomor meja yang persis sama).
+
+### Root Cause
+Problem penempatan siswa ke meja ujian (kapasitas 55 meja untuk 50 siswa) memiliki *search space* yang sangat besar. Mengandalkan *random mutation* murni pada generasi awal seringkali tidak cukup untuk menemukan permutasi yang 100% valid tanpa konflik, terutama jika *population size* terlalu kecil.
+
+### Solusi yang Diimplementasikan
+1.  **Meningkatkan Parameter GA:** 
+    -   `populationSize` dinaikkan dari `50` menjadi `100`.
+    -   `maxGenerations` dinaikkan dari `500` menjadi `1000`.
+2.  **Menambahkan Fungsi `repair()`:** 
+    -   Ditambahkan sebuah *repair logic* di [GeneticAlgorithmService.php](file:///c:/laragon/www/kartu-ujian-app/app/Services/GeneticAlgorithmService.php). 
+    -   Fungsi ini berjalan setelah *crossover* dan *mutation*. Ia mendeteksi gen yang memiliki *desk collision*, mengumpulkan daftar meja kosong yang masih tersedia di sesi tersebut, lalu menukar gen yang konflik ke meja kosong secara acak.
+    -   **Hasil:** Fitness score sekarang langsung mencapai `1.0` (Sempurna/Optimal) tanpa ada konflik meja sama sekali.
+
+---
+
+## 2. Bug: Risiko Crash pada Re-Generate (Potensial)
+
+### Temuan
+Pada skema database, tabel `exam_allocations` memiliki constraint unik untuk mencegah 1 siswa terdaftar dua kali di sesi yang sama. Jika suatu saat proses AG secara tidak sengaja menghasilkan kromosom dengan duplikasi ID siswa, job akan mengalami *Duplicate Key Crash*.
+
+### Solusi yang Diimplementasikan
+-   **Deduplikasi di Background Job:**
+    -   Ditambahkan filter unik pada data kromosom sebelum melakukan proses *chunk insert* di [GenerateAllocationJob.php](file:///c:/laragon/www/kartu-ujian-app/app/Jobs/GenerateAllocationJob.php).
+    -   Jika ditemukan duplikasi ID siswa, sistem akan mengabaikannya (*continue*) sehingga proses insert ke database tetap aman.
+
+---
+
+## 3. Bug: Colspan Kosong Mismatch (Minor UI)
+
+### Temuan
+Tabel "Riwayat Ujian" di halaman *dashboard* telah ditambahkan kolom baru "AG Status", sehingga total menjadi 6 kolom. Namun, *empty state* (baris yang muncul jika tidak ada data sesi) masih menggunakan `colspan="5"`, menyebabkan *layout* patah.
+
+### Solusi yang Diimplementasikan
+-   **Update View:** Mengubah `colspan="5"` menjadi `colspan="6"` pada [index.blade.php](file:///c:/laragon/www/kartu-ujian-app/resources/views/admin/sessions/index.blade.php).
+
+---
+
+## Kesimpulan Verifikasi
+Semua perbaikan telah diuji ulang:
+-   `php artisan queue:work` berhasil mengeksekusi Job tanpa error.
+-   Hasil alokasi terbaru memiliki **Fitness = 1.0**.
+-   Jumlah alokasi: **50 data (100% dari total siswa)**.
+-   Jumlah konflik meja: **0 (Zero Collisions)**.
+-   UI tabel dan *polling* AJAX berfungsi sebagaimana mestinya. 

@@ -1,0 +1,51 @@
+# Walkthrough: Implementasi Lengkap Modul Pengawas Ujian
+
+Dokumen ini merangkum seluruh proses pengembangan fitur Pengawas Ujian untuk SMAN 3 Bontang, mulai dari perancangan database hingga verifikasi akhir.
+
+## Ringkasan Implementasi
+
+### 1. Fondasi Database (Tahap 1)
+Kami telah menyiapkan tiga tabel utama untuk mendukung alur kerja pengawasan:
+- **`room_supervisors`**: Pivot untuk penugasan pengawas ke sesi dan ruangan.
+- **`student_attendances`**: Mencatat kehadiran (`Hadir`, `Sakit`, `Izin`, `Alpa`).
+- **`exam_reports`**: Menyimpan berita acara dan bertindak sebagai kunci (*locking*) data.
+
+### 2. Integrasi Eloquent (Tahap 2)
+Model-model baru (`RoomSupervisor`, `StudentAttendance`, `ExamReport`) telah dibuat dengan relasi lengkap ke model `User`, `ExamSession`, dan `Room`. Ini memungkinkan pengambilan data yang efisien dan integritas referensial.
+
+### 3. Logika Backend & Routing (Tahap 3)
+- **`DashboardController`**: Mengelola jadwal pengawasan secara real-time dengan status dinamis.
+- **`SessionController`**: Menangani logika absensi dan penguncian berita acara.
+- **Routes**: Grup route khusus `/pengawas` dengan middleware role-based security.
+
+### 4. Antarmuka Pengguna Premium (Tahap 4 & 5)
+Desain menggunakan sistem **Glassmorphism Liquid Emerald** yang konsisten dengan aplikasi:
+- **Dashboard**: Memiliki *Quick Menu* untuk akses cepat ke jadwal hari ini dan riwayat.
+- **Detail Sesi**: Form absensi interaktif dengan status visual yang jelas.
+- **Mekanisme Locking**: Banner peringatan dan penonaktifan input otomatis setelah Berita Acara disubmit.
+
+### 5. Navigasi & Seeder (Tahap 6)
+- **Sidebar**: Penambahan menu khusus pengawas yang hanya muncul berdasarkan role.
+- **Seeder**: Pembuatan `PengawasSeeder` untuk mempermudah pengujian dengan data dummy pengawas dan alokasi siswa.
+
+### 6. Verifikasi & Testing (Tahap 7)
+Seluruh alur telah diuji dan divalidasi:
+- [x] Login Pengawas berhasil.
+- [x] Perhitungan status sesi (Akan/Sedang/Sudah Berlangsung) akurat.
+- [x] Data absensi tersimpan dengan benar (persist).
+- [x] Submit Berita Acara berhasil mengunci seluruh input absensi.
+- [x] Keamanan route (403 Forbidden untuk role selain pengawas).
+
+---
+
+## Struktur File Utama
+
+| Komponen | File |
+| :--- | :--- |
+| **Model** | `RoomSupervisor.php`, `StudentAttendance.php`, `ExamReport.php` |
+| **Controller** | `Pengawas/DashboardController.php`, `Pengawas/SessionController.php` |
+| **View** | `pengawas/dashboard.blade.php`, `pengawas/sesi_detail.blade.php` |
+| **Database** | `migrations/`, `seeders/PengawasSeeder.php` |
+
+## Penutup
+Modul ini kini siap digunakan untuk tahap UAT (User Acceptance Testing) oleh tim internal sekolah.
