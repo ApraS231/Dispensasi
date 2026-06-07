@@ -1,0 +1,52 @@
+services:
+  - type: web
+    name: sidispen-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    region: singapore  # Terdekat untuk Indonesia
+    plan: free         # Free Tier - produksi awal & uji coba internal
+    envVars:
+      - key: APP_NAME
+        value: SIdispen
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        sync: false  # Salin dari .env lokal via dashboard
+      - key: APP_URL
+        value: https://sidispen-api.onrender.com
+      - key: APP_TIMEZONE
+        value: Asia/Jakarta
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        sync: false  # Set manually in dashboard (dari Supabase)
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_DATABASE
+        value: postgres
+      - key: DB_USERNAME
+        sync: false  # Set manually in dashboard (dari Supabase)
+      - key: DB_PASSWORD
+        sync: false  # Set manually in dashboard (dari Supabase)
+      - key: SESSION_DRIVER
+        value: cookie
+      - key: CACHE_STORE
+        value: file
+      - key: FILESYSTEM_DISK
+        value: supabase
+      - key: SUPABASE_S3_ACCESS_KEY_ID
+        sync: false
+      - key: SUPABASE_S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: SUPABASE_S3_REGION
+        sync: false
+      - key: SUPABASE_S3_BUCKET
+        sync: false
+      - key: SUPABASE_S3_ENDPOINT
+        sync: false
+      - key: SUPABASE_S3_URL
+        sync: false

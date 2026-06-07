@@ -1,0 +1,11 @@
+/vendor
+/node_modules
+/.git
+/.idea
+/.vscode
+/.fleet
+.env
+.env.backup
+.env.production
+panduan_deploy_laravel_render.pdf
+dokumentasi_resolusi_deploy.pdf
