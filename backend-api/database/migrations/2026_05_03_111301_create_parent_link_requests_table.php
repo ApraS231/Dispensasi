@@ -17,9 +17,6 @@ return new class extends Migration
             $table->foreignUuid('siswa_id')->constrained('users')->onDelete('cascade');
             $table->enum('status', ['pending', 'accepted', 'rejected'])->default('pending');
             $table->timestamps();
-
-            // Satu orang tua hanya bisa mengirim 1 request aktif ke 1 siswa
-            $table->unique(['parent_id', 'siswa_id']);
         });
     }
 

@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('device_token')->nullable();
             $table->rememberToken();
             $table->timestamps();
+            $table->string('profile_photo_url')->nullable();
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

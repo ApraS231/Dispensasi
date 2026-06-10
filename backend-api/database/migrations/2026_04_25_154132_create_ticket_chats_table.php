@@ -18,6 +18,7 @@ return new class extends Migration
             $table->text('pesan');
             $table->boolean('is_read')->default(false);
             $table->timestamps();
+            $table->string('attachment_url')->nullable();
         });
     }
 

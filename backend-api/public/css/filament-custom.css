@@ -1,0 +1,347 @@
+/* Custom Theme for SiDispen Filament Admin Panel */
+
+/* Import Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+/* Apply font to everything in Filament */
+body, 
+.fi-body, 
+.fi-sidebar, 
+.fi-topbar, 
+.fi-modal, 
+.fi-dropdown {
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+}
+
+/* ==========================================
+   SIDEBAR CUSTOMIZATION (Premium Dark Navy)
+   ========================================== */
+.fi-sidebar {
+    background: linear-gradient(180deg, #051E38 0%, #0A4174 100%) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 4px 0 25px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Sidebar Header / Brand */
+.fi-sidebar-header {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    padding-top: 1.5rem !important;
+    padding-bottom: 1.5rem !important;
+}
+
+.fi-sidebar-header .fi-logo,
+.fi-sidebar-header svg {
+    color: #ffffff !important;
+}
+
+.fi-simple-layout .fi-logo {
+    color: #0A4174 !important;
+}
+
+.fi-simple-layout svg {
+    color: #0A4174 !important;
+}
+
+.fi-sidebar-header-title {
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.5px !important;
+}
+
+/* Sidebar Navigation Items */
+.fi-sidebar-group-label {
+    color: rgba(255, 255, 255, 0.45) !important;
+    font-weight: 700 !important;
+    font-size: 0.75rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+}
+
+.fi-sidebar-item-button {
+    color: rgba(255, 255, 255, 0.75) !important;
+    border-radius: 12px !important;
+    margin-left: 0.5rem !important;
+    margin-right: 0.5rem !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    transition: all 0.25s ease !important;
+}
+
+.fi-sidebar-item-button:hover {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    color: #ffffff !important;
+    transform: translateX(4px) !important;
+}
+
+/* Active Sidebar Item */
+.fi-sidebar-item-button.fi-active,
+.fi-sidebar-item-button[class*="fi-active"] {
+    background: linear-gradient(90deg, #7BBDE8 0%, #49769F 100%) !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 15px rgba(123, 189, 232, 0.25) !important;
+}
+
+/* Sidebar Icons */
+.fi-sidebar-item-icon {
+    color: rgba(255, 255, 255, 0.6) !important;
+    transition: color 0.25s ease !important;
+}
+
+.fi-sidebar-item-button:hover .fi-sidebar-item-icon {
+    color: #ffffff !important;
+}
+
+.fi-sidebar-item-button.fi-active .fi-sidebar-item-icon,
+.fi-sidebar-item-button[class*="fi-active"] .fi-sidebar-item-icon {
+    color: #ffffff !important;
+}
+
+/* Collapsed Sidebar overrides if any */
+.fi-sidebar-collapse-button {
+    color: #ffffff !important;
+}
+
+/* ==========================================
+   TOPBAR & HEADER CUSTOMIZATION
+   ========================================== */
+.fi-topbar {
+    background: rgba(240, 244, 248, 0.8) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border-bottom: 1px solid rgba(10, 65, 116, 0.08) !important;
+}
+
+/* User Menu Button */
+.fi-user-menu {
+    border-radius: 9999px !important;
+    padding: 2px !important;
+    border: 1px solid rgba(10, 65, 116, 0.1) !important;
+    transition: all 0.2s ease !important;
+}
+
+.fi-user-menu:hover {
+    border-color: rgba(10, 65, 116, 0.3) !important;
+    background-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* ==========================================
+   LOGIN / SIMPLE LAYOUT CUSTOMIZATION
+   ========================================== */
+.fi-simple-layout {
+    position: relative !important;
+    overflow: hidden !important;
+    background: linear-gradient(135deg, #F0F4F8 0%, #DDEBFA 100%) !important;
+    min-height: 100vh !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Background Blobs for Login Page */
+.fi-simple-layout::before,
+.fi-simple-layout::after {
+    content: "" !important;
+    position: absolute !important;
+    width: 600px !important;
+    height: 600px !important;
+    border-radius: 50% !important;
+    z-index: 0 !important;
+    filter: blur(100px) !important;
+    pointer-events: none !important;
+}
+
+.fi-simple-layout::before {
+    top: -15% !important;
+    left: -15% !important;
+    background: linear-gradient(135deg, rgba(123, 189, 232, 0.45) 0%, rgba(73, 118, 159, 0.45) 100%) !important;
+}
+
+.fi-simple-layout::after {
+    bottom: -15% !important;
+    right: -15% !important;
+    background: linear-gradient(135deg, rgba(78, 142, 162, 0.35) 0%, rgba(123, 189, 232, 0.35) 100%) !important;
+}
+
+/* Simple Main / Login Card Container */
+.fi-simple-main {
+    z-index: 10 !important;
+    background: rgba(255, 255, 255, 0.4) !important;
+    backdrop-filter: blur(25px) !important;
+    -webkit-backdrop-filter: blur(25px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.7) !important;
+    box-shadow: 0 30px 60px -15px rgba(0, 29, 57, 0.12) !important;
+    border-radius: 32px !important;
+    padding: 2.5rem !important;
+}
+
+/* Heading & Logo */
+.fi-simple-header {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-bottom: 2rem !important;
+    text-align: center !important;
+}
+
+.fi-simple-header a {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    height: auto !important;
+    margin-bottom: 0.75rem !important;
+}
+
+.fi-simple-header-heading {
+    color: #0A4174 !important;
+    font-weight: 800 !important;
+    font-size: 1.875rem !important;
+    letter-spacing: -0.5px !important;
+    margin-top: 0.5rem !important;
+}
+
+/* Form input wrappers on Login Page */
+.fi-simple-main .fi-input-wrp {
+    background: rgba(255, 255, 255, 0.6) !important;
+    border: 1px solid rgba(10, 65, 116, 0.15) !important;
+    box-shadow: inset 0 2px 4px rgba(0, 29, 57, 0.04) !important;
+    border-radius: 16px !important;
+    transition: all 0.3s ease !important;
+}
+
+.fi-simple-main .fi-input-wrp:focus-within {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border-color: #0A4174 !important;
+    box-shadow: 0 0 0 4px rgba(10, 65, 116, 0.15) !important;
+}
+
+/* Internal inputs adjustments */
+.fi-simple-main .fi-input-wrp input {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #001D39 !important;
+    font-weight: 500 !important;
+}
+
+.fi-simple-main .fi-input-wrp:focus-within input {
+    box-shadow: none !important;
+    border: none !important;
+}
+
+/* Buttons in Login Page */
+.fi-simple-main button[type="submit"] {
+    background: linear-gradient(135deg, #0A4174 0%, #49769F 100%) !important;
+    border: none !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 1rem !important;
+    padding: 0.875rem 1.5rem !important;
+    border-radius: 16px !important;
+    box-shadow: 0 10px 20px rgba(10, 65, 116, 0.2) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.fi-simple-main button[type="submit"]:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 15px 30px rgba(10, 65, 116, 0.3) !important;
+    opacity: 0.95 !important;
+}
+
+.fi-simple-main button[type="submit"]:active {
+    transform: translateY(0) !important;
+}
+
+/* Links inside Login Form */
+.fi-simple-main a {
+    color: #49769F !important;
+    font-weight: 600 !important;
+    transition: color 0.2s ease !important;
+}
+
+.fi-simple-main a:hover {
+    color: #0A4174 !important;
+    text-decoration: underline !important;
+}
+
+/* ==========================================
+   CARDS, TABLES, PANELS CUSTOMIZATION
+   ========================================== */
+/* Custom rounded cards */
+.fi-section,
+.fi-ta-ctn,
+.fi-wi-stats-overview-stat-ctn {
+    background-color: #ffffff !important;
+    border: 1px solid rgba(10, 65, 116, 0.05) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 10px 30px -5px rgba(0, 29, 57, 0.04) !important;
+    overflow: hidden !important;
+}
+
+.fi-section-header {
+    border-bottom: 1px solid rgba(10, 65, 116, 0.05) !important;
+    padding: 1.25rem 1.5rem !important;
+}
+
+.fi-section-header-title {
+    color: #0A4174 !important;
+    font-weight: 700 !important;
+}
+
+/* Table Header Customization */
+.fi-ta-header-cell {
+    background-color: rgba(240, 244, 248, 0.5) !important;
+    color: #0A4174 !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    font-size: 0.75rem !important;
+    letter-spacing: 0.5px !important;
+}
+
+/* Stats Overview Cards Customization */
+.fi-wi-stats-overview-stat-ctn {
+    border-left: 4px solid #0A4174 !important;
+    transition: all 0.3s ease !important;
+}
+
+.fi-wi-stats-overview-stat-ctn:hover {
+    transform: translateY(-4px) !important;
+    box-shadow: 0 15px 35px -5px rgba(0, 29, 57, 0.08) !important;
+}
+
+.fi-wi-stats-overview-stat-label {
+    color: #49769F !important;
+    font-weight: 600 !important;
+}
+
+.fi-wi-stats-overview-stat-value {
+    color: #0A4174 !important;
+    font-weight: 800 !important;
+}
+
+/* Primary/Accent Pill Badges */
+.fi-badge {
+    border-radius: 9999px !important;
+    font-weight: 600 !important;
+    padding: 2px 10px !important;
+}
+
+/* Remove default focus outlines and use clean rings */
+input:focus, 
+select:focus, 
+textarea:focus {
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(10, 65, 116, 0.15) !important;
+    border-color: #0A4174 !important;
+}
+
+/* Disable inner input focus ring inside Filament input wrappers */
+.fi-input-wrp input:focus,
+.fi-input-wrp select:focus,
+.fi-input-wrp textarea:focus {
+    box-shadow: none !important;
+    border-color: transparent !important;
+    outline: none !important;
+}

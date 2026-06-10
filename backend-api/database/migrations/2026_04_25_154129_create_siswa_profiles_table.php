@@ -15,7 +15,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('user_id')->constrained('users')->onDelete('cascade');
             $table->string('nis')->unique();
-            $table->foreignUuid('kelas_id')->constrained('kelas')->onDelete('restrict');
+            $table->foreignUuid('kelas_id')->nullable()->constrained('kelas')->onDelete('restrict');
             $table->foreignUuid('orang_tua_id')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
         });
