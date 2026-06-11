@@ -3,17 +3,21 @@ import { Image } from 'expo-image';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { HapticFeedback } from '../src/utils/haptics';
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, Alert, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useAuthStore } from '../src/stores/authStore';
 import api from '../src/utils/api';
 import SkeuCard from '../src/components/SkeuCard';
 import BouncyButton from '../src/components/BouncyButton';
 import AvatarInitials from '../src/components/AvatarInitials';
-import { COLORS, FONTS, SIZES, SPACING, SHADOWS, GLASS } from '../src/utils/theme';
-import LiquidBackground from '../src/components/LiquidBackground';
+import { FONTS, SIZES, SPACING, GLASS } from '../src/utils/theme';
 import { BlurView } from 'expo-blur';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { useTheme } from '../src/hooks/useTheme';
+import { createCommonStyles } from '../src/utils/commonStyles';
+import { LinearGradient } from 'expo-linear-gradient';
+import TopAppBar from '../src/components/TopAppBar';
 
 export default function ProfileSettingsScreen() {
   const { user, setUser } = useAuthStore();
@@ -25,6 +29,8 @@ export default function ProfileSettingsScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(user?.profile_photo_url || null);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const { colors, shadows, isDark } = useTheme();
+  const commonStyles = createCommonStyles(colors);
 
   // Fetch Classes
   const { data: kelasList = [] } = useQuery({
@@ -43,17 +49,6 @@ export default function ProfileSettingsScreen() {
       formData.append('email', data.email);
       if (data.nis) formData.append('nis', data.nis);
       if (data.kelas_id) formData.append('kelas_id', data.kelas_id);
-      // if (data.profile_photo && data.profile_photo.startsWith('file://')) {
-      //   const filename = data.profile_photo.split('/').pop();
-      //   const match = /\.(\w+)$/.exec(filename || '');
-      //   const type = match ? `image/${match[1]}` : `image`;
-      //   
-      //   formData.append('profile_photo', {
-      //     uri: data.profile_photo,
-      //     name: filename,
-      //     type,
-      //   } as any);
-      // }
 
       const { data: response } = await api.post('/profile/update', formData, {
         headers: {
@@ -106,7 +101,6 @@ export default function ProfileSettingsScreen() {
       email, 
       nis, 
       kelas_id: selectedKelasId,
-      // profile_photo: photoUri 
     });
   };
 
@@ -120,91 +114,82 @@ export default function ProfileSettingsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <LiquidBackground />
-      <SafeAreaView style={styles.safeArea}>
-        
-        {/* Header Navigation */}
-        <View style={styles.headerBar}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <BlurView intensity={GLASS.blurIntensity} tint={GLASS.tintColor} style={styles.backBtn}>
-              <MaterialCommunityIcons name="chevron-left" size={28} color={COLORS.textPrimary} />
-            </BlurView>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Pengaturan Profil</Text>
-          <View style={{ width: 40 }} />
-        </View>
+    <LinearGradient
+      colors={[colors.bgPrimary, colors.bgSecondary]}
+      style={styles.container}
+    >
+      <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
+        <TopAppBar 
+          title="Pengaturan Profil" 
+          onBack={() => router.back()} 
+        />
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           
           <SkeuCard isGlass style={styles.card}>
             <View style={styles.avatarSection}>
               <TouchableOpacity /* onPress={pickImage} */ style={styles.avatarWrapper} activeOpacity={0.8}>
-                {/* {photoUri ? (
-                  <Image source={{ uri: photoUri }} style={{ width: 80, height: 80, borderRadius: 40 }} />
-                ) : ( */}
-                  <AvatarInitials name={user?.name || 'User'} size={80} fontSize={32} />
-                {/* )} */}
-                <View style={styles.editBadge}>
+                <AvatarInitials name={user?.name || 'User'} size={80} fontSize={32} />
+                <View style={[styles.editBadge, { backgroundColor: colors.primary, borderColor: colors.bgWhite }]}>
                   <MaterialCommunityIcons name="camera" size={16} color="#FFF" />
                 </View>
               </TouchableOpacity>
               <View>
-                <Text style={styles.sectionTitle}>Data Pribadi</Text>
-                <Text style={styles.helperText}>Ketuk foto untuk mengubah</Text>
+                <Text style={[styles.sectionTitle, { color: colors.primary }]}>Data Pribadi</Text>
+                <Text style={[styles.helperText, { color: colors.textMuted }]}>Ketuk foto untuk mengubah</Text>
               </View>
             </View>
 
-            <Text style={styles.label}>Nama Lengkap</Text>
-            <View style={[styles.inputWrapper, SHADOWS.inset]}>
-              <MaterialCommunityIcons name="account-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Nama Lengkap</Text>
+            <View style={[styles.inputWrapper, shadows.inset]}>
+              <MaterialCommunityIcons name="account-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
               <TextInput 
-                style={styles.input} 
+                style={[styles.input, { color: colors.textPrimary }]} 
                 value={name} 
                 onChangeText={setName} 
-                placeholderTextColor={COLORS.textMuted}
+                placeholderTextColor={colors.textMuted}
               />
             </View>
 
-            <Text style={styles.label}>Email</Text>
-            <View style={[styles.inputWrapper, SHADOWS.inset]}>
-              <MaterialCommunityIcons name="email-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Email</Text>
+            <View style={[styles.inputWrapper, shadows.inset]}>
+              <MaterialCommunityIcons name="email-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
               <TextInput 
-                style={styles.input} 
+                style={[styles.input, { color: colors.textPrimary }]} 
                 value={email} 
                 onChangeText={setEmail} 
                 keyboardType="email-address"
                 autoCapitalize="none"
-                placeholderTextColor={COLORS.textMuted}
+                placeholderTextColor={colors.textMuted}
               />
             </View>
 
             {user?.role === 'siswa' && (
               <>
-                <Text style={styles.label}>NIS (Nomor Induk Siswa)</Text>
-                <View style={[styles.inputWrapper, SHADOWS.inset]}>
-                  <MaterialCommunityIcons name="card-account-details-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+                <Text style={[styles.label, { color: colors.textSecondary }]}>NIS (Nomor Induk Siswa)</Text>
+                <View style={[styles.inputWrapper, shadows.inset]}>
+                  <MaterialCommunityIcons name="card-account-details-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
                   <TextInput 
-                    style={styles.input} 
+                    style={[styles.input, { color: colors.textPrimary }]} 
                     value={nis} 
                     onChangeText={setNis} 
                     placeholder="Masukkan NIS Anda"
-                    placeholderTextColor={COLORS.textMuted}
+                    placeholderTextColor={colors.textMuted}
                   />
                 </View>
 
-                <Text style={styles.label}>Kelas</Text>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Kelas</Text>
                 <TouchableOpacity 
-                  style={[styles.inputWrapper, SHADOWS.inset]} 
+                  style={[styles.inputWrapper, shadows.inset]} 
                   onPress={() => setShowKelasPicker(!showKelasPicker)}
                 >
-                  <MaterialCommunityIcons name="google-classroom" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
-                  <Text style={[styles.input, { textAlignVertical: 'center', paddingTop: 14 }]}>
+                  <MaterialCommunityIcons name="google-classroom" size={20} color={colors.textMuted} style={styles.inputIcon} />
+                  <Text style={[styles.input, { color: colors.textPrimary, textAlignVertical: 'center', paddingTop: 14 }]}>
                     {selectedKelasId 
                       ? kelasList.find((k: any) => k.id === selectedKelasId)?.nama_kelas 
                       : 'Pilih Kelas'}
                   </Text>
-                  <MaterialCommunityIcons name={showKelasPicker ? "chevron-up" : "chevron-down"} size={20} color={COLORS.textMuted} />
+                  <MaterialCommunityIcons name={showKelasPicker ? "chevron-up" : "chevron-down"} size={20} color={colors.textMuted} />
                 </TouchableOpacity>
 
                 {showKelasPicker && (
@@ -213,7 +198,7 @@ export default function ProfileSettingsScreen() {
                       {kelasList.map((kelas: any) => (
                         <TouchableOpacity 
                           key={kelas.id} 
-                          style={styles.dropdownItem}
+                          style={[styles.dropdownItem, { borderBottomColor: colors.glassHighlight }]}
                           onPress={() => {
                             setSelectedKelasId(kelas.id);
                             setShowKelasPicker(false);
@@ -222,27 +207,28 @@ export default function ProfileSettingsScreen() {
                         >
                           <Text style={[
                             styles.dropdownItemText,
-                            selectedKelasId === kelas.id && { color: COLORS.primary, fontFamily: FONTS.headingSemi }
+                            { color: colors.textPrimary },
+                            selectedKelasId === kelas.id && { color: colors.primary, fontFamily: FONTS.headingSemi }
                           ]}>
                             {kelas.nama_kelas}
                           </Text>
                           {selectedKelasId === kelas.id && (
-                            <MaterialCommunityIcons name="check" size={18} color={COLORS.primary} />
+                            <MaterialCommunityIcons name="check" size={18} color={colors.primary} />
                           )}
                         </TouchableOpacity>
                       ))}
                     </ScrollView>
                   </SkeuCard>
                 )}
-                <Text style={styles.helperTextNote}>* Perubahan kelas memerlukan persetujuan Wali Kelas.</Text>
+                <Text style={[styles.helperTextNote, { color: colors.textMuted }]}>* Perubahan kelas memerlukan persetujuan Wali Kelas.</Text>
               </>
             )}
 
-            <Text style={styles.label}>Role</Text>
-            <View style={[styles.inputWrapper, SHADOWS.inset, { opacity: 0.6 }]}>
-              <MaterialCommunityIcons name="shield-account-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Role</Text>
+            <View style={[styles.inputWrapper, shadows.inset, { opacity: 0.6 }]}>
+              <MaterialCommunityIcons name="shield-account-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
               <TextInput 
-                style={styles.input} 
+                style={[styles.input, { color: colors.textPrimary }]} 
                 value={user?.role?.replace(/_/g, ' ') || ''} 
                 editable={false} 
               />
@@ -256,30 +242,30 @@ export default function ProfileSettingsScreen() {
             />
           </SkeuCard>
 
-          <Text style={styles.sectionHeader}>Keamanan</Text>
+          <Text style={[styles.sectionHeader, { color: colors.textMuted }]}>Keamanan</Text>
           <SkeuCard style={styles.card} isGlass>
-            <Text style={styles.label}>Password Sekarang</Text>
-            <View style={[styles.inputWrapper, SHADOWS.inset]}>
-              <MaterialCommunityIcons name="lock-outline" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Password Sekarang</Text>
+            <View style={[styles.inputWrapper, shadows.inset]}>
+              <MaterialCommunityIcons name="lock-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
               <TextInput 
-                style={styles.input} 
+                style={[styles.input, { color: colors.textPrimary }]} 
                 value={currentPassword} 
                 onChangeText={setCurrentPassword} 
                 placeholder="Masukkan password lama" 
-                placeholderTextColor={COLORS.textMuted}
+                placeholderTextColor={colors.textMuted}
                 secureTextEntry
               />
             </View>
 
-            <Text style={styles.label}>Password Baru</Text>
-            <View style={[styles.inputWrapper, SHADOWS.inset]}>
-              <MaterialCommunityIcons name="lock-reset" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Password Baru</Text>
+            <View style={[styles.inputWrapper, shadows.inset]}>
+              <MaterialCommunityIcons name="lock-reset" size={20} color={colors.textMuted} style={styles.inputIcon} />
               <TextInput 
-                style={styles.input} 
+                style={[styles.input, { color: colors.textPrimary }]} 
                 value={newPassword} 
                 onChangeText={setNewPassword} 
                 placeholder="Masukkan password baru" 
-                placeholderTextColor={COLORS.textMuted}
+                placeholderTextColor={colors.textMuted}
                 secureTextEntry
               />
             </View>
@@ -294,46 +280,23 @@ export default function ProfileSettingsScreen() {
 
         </ScrollView>
       </SafeAreaView>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bgWhite },
+  container: { flex: 1 },
   safeArea: { flex: 1 },
-  headerBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.sm,
-    paddingBottom: SPACING.md,
-  },
-  backBtn: {
-    width: 40, height: 40,
-    borderRadius: SIZES.radiusButton,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.glassHighlight,
-    overflow: 'hidden',
-  },
-  headerTitle: {
-    fontFamily: FONTS.heading,
-    fontSize: 18,
-    color: COLORS.textPrimary,
-  },
   content: {
     padding: SPACING.md,
     paddingBottom: SPACING.xxl,
   },
   card: {
-    padding: SPACING.lg,
     marginBottom: SPACING.lg,
   },
   sectionHeader: {
     fontFamily: FONTS.headingSemi,
     fontSize: 14,
-    color: COLORS.textMuted,
     marginBottom: SPACING.sm,
     marginLeft: SPACING.sm,
     textTransform: 'uppercase',
@@ -341,7 +304,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: FONTS.headingSemi,
     fontSize: 16,
-    color: COLORS.primary,
     marginBottom: 2,
   },
   avatarWrapper: {
@@ -351,14 +313,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
     bottom: 0,
-    backgroundColor: COLORS.primary,
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: COLORS.bgWhite,
   },
   avatarSection: {
     flexDirection: 'row',
@@ -369,24 +329,19 @@ const styles = StyleSheet.create({
   helperText: {
     fontFamily: FONTS.bodyMedium,
     fontSize: 12,
-    color: COLORS.textMuted,
   },
   label: { 
     fontFamily: FONTS.headingSemi, 
     fontSize: 13, 
-    color: COLORS.textSecondary, 
     marginBottom: SPACING.xs,
     marginTop: SPACING.md,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.glassSurface,
     borderRadius: SIZES.radiusMd,
     paddingHorizontal: SPACING.md,
-    height: 52,
-    borderWidth: 1,
-    borderColor: COLORS.glassHighlight,
+    height: 55,
   },
   inputIcon: {
     marginRight: SPACING.sm,
@@ -396,17 +351,12 @@ const styles = StyleSheet.create({
     height: '100%',
     fontFamily: FONTS.body,
     fontSize: 15,
-    color: COLORS.textPrimary,
   },
   saveBtn: {
     marginTop: SPACING.xl,
   },
   dropdownCard: {
     marginTop: SPACING.xs,
-    padding: SPACING.xs,
-    borderRadius: SIZES.radiusMd,
-    borderWidth: 1,
-    borderColor: COLORS.glassHighlight,
   },
   dropdownItem: {
     flexDirection: 'row',
@@ -414,17 +364,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: SPACING.md,
     borderBottomWidth: 0.5,
-    borderBottomColor: COLORS.glassHighlight,
   },
   dropdownItemText: {
     fontFamily: FONTS.body,
     fontSize: 14,
-    color: COLORS.textPrimary,
   },
   helperTextNote: {
     fontFamily: FONTS.body,
     fontSize: 11,
-    color: COLORS.textMuted,
     marginTop: SPACING.xs,
     marginLeft: SPACING.xs,
     fontStyle: 'italic',

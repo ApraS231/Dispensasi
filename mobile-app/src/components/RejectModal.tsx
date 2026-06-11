@@ -1,13 +1,12 @@
 import React, { useMemo, useCallback, useRef, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, Keyboard, TouchableOpacity } from 'react-native';
-import BottomSheet, { 
-  BottomSheetView, 
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import BottomSheet, {
+  BottomSheetView,
   BottomSheetBackdrop,
-  BottomSheetTextInput 
+  BottomSheetTextInput,
 } from '@gorhom/bottom-sheet';
-import { COLORS, FONTS, SIZES, SPACING, SHADOWS, GLASS } from '../utils/theme';
+import { useTheme } from '../hooks/useTheme';
 import BouncyButton from './BouncyButton';
-import { BlurView } from 'expo-blur';
 
 interface RejectModalProps {
   visible: boolean;
@@ -16,6 +15,7 @@ interface RejectModalProps {
 }
 
 export default function RejectModal({ visible, onClose, onSubmit }: RejectModalProps) {
+  const { colors, isDark, SIZES, SPACING, FONTS, shadows } = useTheme();
   const [reason, setReason] = React.useState('');
   const bottomSheetRef = useRef<BottomSheet>(null);
 
@@ -30,12 +30,15 @@ export default function RejectModal({ visible, onClose, onSubmit }: RejectModalP
     }
   }, [visible]);
 
-  const handleSheetChanges = useCallback((index: number) => {
-    if (index === -1) {
-      onClose();
-      setReason('');
-    }
-  }, [onClose]);
+  const handleSheetChanges = useCallback(
+    (index: number) => {
+      if (index === -1) {
+        onClose();
+        setReason('');
+      }
+    },
+    [onClose]
+  );
 
   const handleSubmit = () => {
     if (!reason.trim()) return;
@@ -46,12 +49,7 @@ export default function RejectModal({ visible, onClose, onSubmit }: RejectModalP
 
   const renderBackdrop = useCallback(
     (props: any) => (
-      <BottomSheetBackdrop
-        {...props}
-        appearsOnIndex={0}
-        disappearsOnIndex={-1}
-        opacity={0.5}
-      />
+      <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.5} />
     ),
     []
   );
@@ -66,37 +64,103 @@ export default function RejectModal({ visible, onClose, onSubmit }: RejectModalP
       onChange={handleSheetChanges}
       enablePanDownToClose
       backdropComponent={renderBackdrop}
-      backgroundStyle={styles.sheetBackground}
-      handleIndicatorStyle={styles.indicator}
+      backgroundStyle={{
+        backgroundColor: colors.bgWhite,
+        borderTopLeftRadius: SIZES.radiusXl,
+        borderTopRightRadius: SIZES.radiusXl,
+      }}
+      handleIndicatorStyle={{
+        backgroundColor: colors.glassHighlight,
+        width: 40,
+      }}
       keyboardBehavior="extend"
     >
-      <BottomSheetView style={styles.contentContainer}>
-        <Text style={styles.title}>Alasan Penolakan</Text>
-        <Text style={styles.subtitle}>Pilih alasan atau masukkan catatan kustom:</Text>
+      <BottomSheetView style={[styles.contentContainer, { padding: SPACING.lg }]}>
+        <Text
+          style={[
+            styles.title,
+            {
+              fontFamily: FONTS.headingSemi,
+              fontSize: 21, // Modular scale text-h3
+              color: colors.textPrimary,
+              marginBottom: SPACING.xs,
+            },
+          ]}
+        >
+          Alasan Penolakan
+        </Text>
+        <Text
+          style={[
+            styles.subtitle,
+            {
+              fontFamily: FONTS.bodyMedium,
+              fontSize: 16, // Modular scale text-body
+              color: colors.textSecondary,
+              marginBottom: SPACING.md,
+            },
+          ]}
+        >
+          Pilih alasan atau masukkan catatan kustom:
+        </Text>
 
         {/* Quick Reasons Chips */}
-        <View style={styles.chipRow}>
-          {['Dokumen Tidak Lengkap', 'Alasan Kurang Jelas', 'Jam Hampir Selesai', 'Data Tidak Sesuai'].map((chip) => (
-            <TouchableOpacity 
-              key={chip} 
-              style={[styles.chip, reason === chip && styles.chipActive]} 
-              onPress={() => setReason(chip)}
-            >
-              <Text style={[styles.chipText, reason === chip && styles.chipTextActive]}>{chip}</Text>
-            </TouchableOpacity>
-          ))}
+        <View style={[styles.chipRow, { marginBottom: SPACING.md }]}>
+          {['Dokumen Tidak Lengkap', 'Alasan Kurang Jelas', 'Jam Hampir Selesai', 'Data Tidak Sesuai'].map((chip) => {
+            const isActive = reason === chip;
+            return (
+              <TouchableOpacity
+                key={chip}
+                style={[
+                  styles.chip,
+                  {
+                    borderRadius: SIZES.radiusLg, // 21px
+                    paddingHorizontal: SPACING.sm, // 13px spacing-sm
+                    paddingVertical: SPACING.xs, // 8px spacing-xs
+                    backgroundColor: isActive ? colors.errorBg : colors.glassSurface,
+                    borderColor: isActive ? colors.error : colors.glassBorder,
+                  },
+                ]}
+                onPress={() => setReason(chip)}
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    {
+                      fontFamily: FONTS.bodyMedium,
+                      fontSize: 10, // Modular scale text-caption
+                      color: isActive ? colors.error : colors.textSecondary,
+                    },
+                  ]}
+                >
+                  {chip}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         <BottomSheetTextInput
-          style={[styles.input, SHADOWS.inset]}
+          style={[
+            styles.input,
+            shadows.inset,
+            {
+              backgroundColor: colors.inputBg || 'rgba(0, 0, 0, 0.25)',
+              borderRadius: SIZES.radiusMd,
+              padding: SPACING.md,
+              fontFamily: FONTS.body,
+              fontSize: 16,
+              color: colors.textPrimary,
+              marginBottom: SPACING.lg,
+            },
+          ]}
           placeholder="Tulis alasan penolakan di sini..."
-          placeholderTextColor={COLORS.textMuted}
+          placeholderTextColor={colors.textMuted}
           value={reason}
           onChangeText={setReason}
           multiline
         />
 
-        <View style={styles.actionRow}>
+        <View style={[styles.actionRow, { gap: SPACING.md }]}>
           <BouncyButton
             title="Batal"
             variant="tonal"
@@ -117,71 +181,26 @@ export default function RejectModal({ visible, onClose, onSubmit }: RejectModalP
 }
 
 const styles = StyleSheet.create({
-  sheetBackground: {
-    backgroundColor: COLORS.bgWhite,
-    borderTopLeftRadius: SIZES.radiusXl,
-    borderTopRightRadius: SIZES.radiusXl,
-  },
-  indicator: {
-    backgroundColor: COLORS.glassHighlight,
-    width: 40,
-  },
   contentContainer: {
     flex: 1,
-    padding: SPACING.xl,
   },
-  title: {
-    fontFamily: FONTS.headingSemi,
-    fontSize: 20,
-    color: COLORS.textPrimary,
-    marginBottom: SPACING.xs,
-  },
-  subtitle: {
-    fontFamily: FONTS.bodyMedium,
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.lg,
-  },
+  title: {},
+  subtitle: {},
   input: {
-    backgroundColor: COLORS.surfaceContainerLow,
-    borderRadius: SIZES.radiusMd,
-    padding: SPACING.md,
-    fontFamily: FONTS.body,
-    fontSize: 16,
-    color: COLORS.textPrimary,
     minHeight: 100,
     textAlignVertical: 'top',
-    marginBottom: SPACING.lg,
   },
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: SPACING.md,
   },
   chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: COLORS.surfaceContainerLow,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
   },
-  chipActive: {
-    backgroundColor: COLORS.errorBg,
-    borderColor: COLORS.error,
-  },
-  chipText: {
-    fontFamily: FONTS.bodyMedium,
-    fontSize: 12,
-    color: COLORS.textSecondary,
-  },
-  chipTextActive: {
-    color: COLORS.error,
-  },
+  chipText: {},
   actionRow: {
     flexDirection: 'row',
-    gap: SPACING.md,
   },
   btn: {
     flex: 1,

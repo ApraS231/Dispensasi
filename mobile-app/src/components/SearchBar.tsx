@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../utils/theme';
+import { useTheme } from '../hooks/useTheme';
 
 interface SearchBarProps {
   value: string;
@@ -10,19 +10,48 @@ interface SearchBarProps {
 }
 
 export default function SearchBar({ value, onChangeText, placeholder }: SearchBarProps) {
+  const { colors, SIZES, SPACING, FONTS, shadows } = useTheme();
+
   return (
-    <View style={[styles.searchBar, SHADOWS.inset]}>
-      <MaterialCommunityIcons name="magnify" size={20} color={COLORS.textMuted} style={styles.searchIcon} />
-      <TextInput 
-        style={styles.searchInput}
-        placeholder={placeholder || "Cari..."}
-        placeholderTextColor={COLORS.textMuted}
+    <View
+      style={[
+        styles.searchBar,
+        shadows.inset,
+        {
+          backgroundColor: colors.inputBg || 'rgba(0, 0, 0, 0.25)',
+          borderRadius: SIZES.radiusInput,
+          paddingHorizontal: SPACING.md,
+          height: 55, // design.md §4C input height 55px
+          marginBottom: SPACING.md,
+        },
+      ]}
+    >
+      <MaterialCommunityIcons
+        name="magnify"
+        size={20}
+        color={colors.textMuted}
+        style={[styles.searchIcon, { marginRight: SPACING.sm }]}
+      />
+      <TextInput
+        style={[
+          styles.searchInput,
+          {
+            fontFamily: FONTS.body,
+            fontSize: 16, // Modular scale
+            color: colors.textPrimary,
+          },
+        ]}
+        placeholder={placeholder || 'Cari...'}
+        placeholderTextColor={colors.textMuted}
         value={value}
         onChangeText={onChangeText}
       />
       {value.length > 0 && (
-        <TouchableOpacity onPress={() => onChangeText('')} style={styles.clearBtn}>
-          <MaterialCommunityIcons name="close" size={16} color={COLORS.textMuted} />
+        <TouchableOpacity
+          onPress={() => onChangeText('')}
+          style={[styles.clearBtn, { padding: SPACING.xs }]}
+        >
+          <MaterialCommunityIcons name="close" size={16} color={colors.textMuted} />
         </TouchableOpacity>
       )}
     </View>
@@ -33,22 +62,10 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.glassSurface,
-    borderRadius: SIZES.radiusButton,
-    paddingHorizontal: SPACING.md,
-    height: 48,
-    marginBottom: SPACING.md,
   },
-  searchIcon: {
-    marginRight: SPACING.sm,
-  },
+  searchIcon: {},
   searchInput: {
     flex: 1,
-    fontFamily: FONTS.body,
-    fontSize: 14,
-    color: COLORS.textPrimary,
   },
-  clearBtn: {
-    padding: SPACING.xs,
-  },
+  clearBtn: {},
 });

@@ -1,30 +1,24 @@
 import React from 'react';
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  useAnimatedScrollHandler,
-  withSpring,
   interpolate,
   Extrapolation,
   withRepeat,
   withTiming,
-  Easing
+  Easing,
 } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
-import { COLORS, SPACING } from '../utils/theme';
-
-const REFRESH_THRESHOLD = 80;
+import { useTheme } from '../hooks/useTheme';
 
 interface LiquidRefreshControlProps {
   refreshing: boolean;
   onRefresh: () => void;
 }
 
-export default function LiquidRefreshControl({ refreshing, onRefresh }: LiquidRefreshControlProps) {
-  // This component will be controlled by the scroll position of the parent ScrollView/FlatList
-  // For now, let's create a standalone version that can be triggered.
-  
+export default function LiquidRefreshControl({ refreshing }: LiquidRefreshControlProps) {
+  const { colors, SIZES } = useTheme();
   const pulse = useSharedValue(0);
 
   React.useEffect(() => {
@@ -50,12 +44,29 @@ export default function LiquidRefreshControl({ refreshing, onRefresh }: LiquidRe
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.circle, animatedCircleStyle]} />
-      <View style={styles.innerCircle}>
+      <Animated.View
+        style={[
+          styles.circle,
+          animatedCircleStyle,
+          {
+            backgroundColor: colors.primaryLight,
+            borderRadius: SIZES.radiusFull,
+          },
+        ]}
+      />
+      <View
+        style={[
+          styles.innerCircle,
+          {
+            borderRadius: SIZES.radiusFull,
+            borderColor: colors.glassHighlight,
+          },
+        ]}
+      >
         <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <Path
             d="M12 2V6M12 18V22M6 12H2M22 12H18M19.07 4.93L16.24 7.76M7.76 16.24L4.93 19.07M19.07 19.07L16.24 16.24M7.76 7.76L4.93 4.93"
-            stroke={COLORS.primary}
+            stroke={colors.primary}
             strokeWidth="2.5"
             strokeLinecap="round"
           />
@@ -76,18 +87,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 30,
     height: 30,
-    borderRadius: 15,
-    backgroundColor: COLORS.primaryLight,
     opacity: 0.3,
   },
   innerCircle: {
     width: 36,
     height: 36,
-    borderRadius: 18,
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: COLORS.glassHighlight,
   },
 });

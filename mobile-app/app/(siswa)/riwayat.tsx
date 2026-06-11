@@ -2,17 +2,18 @@ import { HapticFeedback } from '../../src/utils/haptics';
 import { useMemo, useState } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router as expoRouter } from 'expo-router';
 import api from '../../src/utils/api';
 import TopAppBar from '../../src/components/TopAppBar';
 import TicketCard from '../../src/components/TicketCard';
 import FilterPill from '../../src/components/FilterPill';
 import SearchBar from '../../src/components/SearchBar';
-import SkeuCard from '../../src/components/SkeuCard';
-import { COLORS, FONTS, SIZES, SPACING, GLASS } from '../../src/utils/theme';
-import { commonStyles } from '../../src/utils/commonStyles';
+import { FONTS, SIZES, SPACING, GLASS } from '../../src/utils/theme';
+import { createCommonStyles } from '../../src/utils/commonStyles';
+import { useTheme } from '../../src/hooks/useTheme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import LiquidBackground from '../../src/components/LiquidBackground';
 import { BlurView } from 'expo-blur';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import GlassFAB from '../../src/components/GlassFAB';
@@ -22,6 +23,8 @@ export default function SiswaRiwayatScreen() {
   const [activeFilter, setActiveFilter] = useState('semua');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const { colors, isDark, shadows } = useTheme();
+  const commonStyles = createCommonStyles(colors);
 
   const { 
     data, 
@@ -41,10 +44,16 @@ export default function SiswaRiwayatScreen() {
       return data;
     },
     initialPageParam: 1,
-    getNextPageParam: (lastPage) => lastPage.current_page < lastPage.last_page ? lastPage.current_page + 1 : undefined,
+    getNextPageParam: (lastPage) => {
+      if (!lastPage || Array.isArray(lastPage)) return undefined;
+      return lastPage.current_page < lastPage.last_page ? lastPage.current_page + 1 : undefined;
+    },
   });
 
-  const allTickets = data?.pages.flatMap(page => page.data) || [];
+  const allTickets = data?.pages.flatMap(page => {
+    if (Array.isArray(page)) return page;
+    return page?.data || [];
+  }) || [];
 
   const filteredTickets = useMemo(() => {
     let result = allTickets;
@@ -80,14 +89,17 @@ export default function SiswaRiwayatScreen() {
   };
 
   return (
-    <View style={commonStyles.container}>
-      <LiquidBackground />
-      <TopAppBar showAvatar={false} title="Riwayat Izin" showNotification={true} />
+    <LinearGradient
+      colors={[colors.bgPrimary, colors.bgSecondary]}
+      style={commonStyles.container}
+    >
+      <SafeAreaView style={commonStyles.safeArea} edges={['bottom', 'left', 'right']}>
+        <TopAppBar showAvatar={false} title="Riwayat Izin" showNotification={true} />
 
       <View style={commonStyles.mainContent}>
         <View style={{ height: 88 + SPACING.statusBar }} />
         
-        <BlurView intensity={GLASS.blurIntensity + 20} tint={GLASS.tintColor} style={styles.searchSection}>
+        <BlurView intensity={GLASS.blurIntensity + 20} tint={GLASS.tintColor} style={[styles.searchSection, { borderBottomColor: colors.glassHighlight }]}>
           <SearchBar 
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -97,21 +109,27 @@ export default function SiswaRiwayatScreen() {
           <View style={styles.filterRow}>
             <TouchableOpacity 
               onPress={() => setShowDatePicker(true)}
-              style={[styles.datePickerBtn, selectedDate && styles.datePickerBtnActive]}
+              style={[
+                styles.datePickerBtn, 
+                { 
+                  backgroundColor: selectedDate ? colors.primary : (isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF'),
+                  borderColor: selectedDate ? colors.primary : colors.primary + '30'
+                }
+              ]}
             >
               <MaterialCommunityIcons 
                 name="calendar" 
                 size={20} 
-                color={selectedDate ? '#FFFFFF' : COLORS.primary} 
+                color={selectedDate ? '#FFFFFF' : colors.primary} 
               />
-              <Text style={[styles.datePickerText, selectedDate && { color: '#FFFFFF' }]}>
+              <Text style={[styles.datePickerText, { color: selectedDate ? '#FFFFFF' : colors.primary }]}>
                 {selectedDate ? selectedDate.toLocaleDateString('id-ID') : 'Pilih Tanggal'}
               </Text>
             </TouchableOpacity>
 
             {selectedDate && (
               <TouchableOpacity onPress={clearDate} style={styles.clearDateBtn}>
-                <MaterialCommunityIcons name="close-circle" size={24} color={COLORS.error} />
+                <MaterialCommunityIcons name="close-circle" size={24} color={colors.error} />
               </TouchableOpacity>
             )}
           </View>
@@ -135,7 +153,7 @@ export default function SiswaRiwayatScreen() {
 
         <View style={styles.listContainer}>
           {isLoading ? (
-            <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: SPACING.xl }} />
+            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: SPACING.xl }} />
           ) : (
             <FlatList
               data={filteredTickets}
@@ -154,7 +172,7 @@ export default function SiswaRiwayatScreen() {
               onEndReachedThreshold={0.5}
               ListFooterComponent={() => 
                 isFetchingNextPage ? (
-                  <ActivityIndicator size="small" color={COLORS.primary} style={{ marginVertical: SPACING.md }} />
+                  <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: SPACING.md }} />
                 ) : null
               }
               ListEmptyComponent={<Text style={commonStyles.emptyText}>Tidak ditemukan riwayat izin.</Text>}
@@ -165,14 +183,15 @@ export default function SiswaRiwayatScreen() {
         </View>
       </View>
 
-      <GlassFAB 
-        onPress={() => {
-          HapticFeedback.light();
-          expoRouter.push('/(siswa)/pengajuan');
-        }}
-        bottom={110}
-      />
-    </View>
+        <GlassFAB 
+          onPress={() => {
+            HapticFeedback.light();
+            expoRouter.push('/(siswa)/pengajuan');
+          }}
+          bottom={110}
+        />
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
@@ -182,28 +201,20 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.md,
     paddingBottom: SPACING.md,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.glassHighlight,
   },
   filterRow: { flexDirection: 'row', gap: SPACING.sm, flexWrap: 'wrap', alignItems: 'center' },
   datePickerBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     paddingHorizontal: 15,
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.primary + '30',
     gap: 8,
-  },
-  datePickerBtnActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
   },
   datePickerText: {
     fontFamily: FONTS.bodyMedium,
     fontSize: 13,
-    color: COLORS.primary,
   },
   clearDateBtn: {
     padding: 4,

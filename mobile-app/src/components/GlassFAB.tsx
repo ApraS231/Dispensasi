@@ -1,12 +1,24 @@
-import { HapticFeedback } from '../../src/utils/haptics';
-import { StyleSheet, TouchableWithoutFeedback, Animated, View } from 'react-native';
 import React, { useRef, useEffect } from 'react';
-import { COLORS, SHADOWS, SIZES, GLASS } from '../utils/theme';
+import { StyleSheet, TouchableWithoutFeedback, Animated, View } from 'react-native';
+import { useTheme } from '../hooks/useTheme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ICONS } from '../utils/icons';
 import { BlurView } from 'expo-blur';
+import { HapticFeedback } from '../../src/utils/haptics';
 
-export default function GlassFAB({ onPress, icon, style, bottom = 24 }: { onPress: () => void; icon?: keyof typeof MaterialCommunityIcons.glyphMap; style?: any; bottom?: number }) {
+export default function GlassFAB({ 
+  onPress, 
+  icon, 
+  style, 
+  bottom = 21 
+}: { 
+  onPress: () => void; 
+  icon?: keyof typeof MaterialCommunityIcons.glyphMap; 
+  style?: any; 
+  bottom?: number 
+}) {
+  const { colors, isDark, SIZES, shadows } = useTheme();
+  
   const scaleValue = useRef(new Animated.Value(1)).current;
   const pulseValue = useRef(new Animated.Value(1)).current;
 
@@ -50,13 +62,28 @@ export default function GlassFAB({ onPress, icon, style, bottom = 24 }: { onPres
     <TouchableWithoutFeedback onPress={onPress} onPressIn={handlePressIn} onPressOut={handlePressOut}>
       <Animated.View style={[
         styles.wrapper,
-        { bottom },
+        { 
+          bottom,
+          shadowColor: colors.depthShadow,
+        },
+        shadows.skeuShadow,
         style,
         { transform: [{ scale: Animated.multiply(scaleValue, pulseValue) }] }
       ]}>
-        <BlurView intensity={GLASS.blurIntensity} tint={GLASS.tintColor} style={styles.container}>
-          <View style={styles.inner}>
-            <MaterialCommunityIcons name={icon || ICONS.add} size={28} color={COLORS.onPrimaryContainer} />
+        <BlurView 
+          intensity={24} 
+          tint={isDark ? 'dark' : 'light'} 
+          style={[
+            styles.container, 
+            { 
+              borderRadius: SIZES.radiusFull,
+              backgroundColor: colors.glassSurface,
+              borderColor: colors.glassHighlight,
+            }
+          ]}
+        >
+          <View style={[styles.inner, { backgroundColor: colors.primaryContainer, borderRadius: SIZES.radiusFull }]}>
+            <MaterialCommunityIcons name={icon || ICONS.add} size={28} color={colors.primary} />
           </View>
         </BlurView>
       </Animated.View>
@@ -67,31 +94,20 @@ export default function GlassFAB({ onPress, icon, style, bottom = 24 }: { onPres
 const styles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
-    bottom: 24,
-    right: 24,
+    right: 21, // SPACING.md
     width: 64,
     height: 64,
-    borderRadius: SIZES.radiusFull,
-    shadowColor: COLORS.depthShadow,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 12,
+    borderRadius: 9999,
   },
   container: {
     width: 64,
     height: 64,
-    borderRadius: SIZES.radiusFull, 
-    backgroundColor: COLORS.surfaceContainerHigh, 
     borderWidth: 1.5,
-    borderColor: COLORS.glassHighlight,
     overflow: 'hidden',
   },
   inner: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.primaryContainer,
-    borderRadius: SIZES.radiusFull,
   }
 });

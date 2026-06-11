@@ -1,7 +1,7 @@
 import { HapticFeedback } from '../../src/utils/haptics';
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableWithoutFeedback, Animated } from 'react-native';
-import { COLORS, FONTS, SHADOWS, SIZES } from '../utils/theme';
+import { useTheme } from '../hooks/useTheme';
 
 interface MechanicalToggleProps {
   value: boolean;
@@ -10,7 +10,13 @@ interface MechanicalToggleProps {
   labelOn?: string;
 }
 
-export default function MechanicalToggle({ value, onValueChange, labelOff = 'OFF', labelOn = 'ON' }: MechanicalToggleProps) {
+export default function MechanicalToggle({
+  value,
+  onValueChange,
+  labelOff = 'OFF',
+  labelOn = 'ON',
+}: MechanicalToggleProps) {
+  const { colors, SIZES, SPACING, FONTS, shadows } = useTheme();
   const animatedValue = useRef(new Animated.Value(value ? 1 : 0)).current;
 
   useEffect(() => {
@@ -28,28 +34,61 @@ export default function MechanicalToggle({ value, onValueChange, labelOff = 'OFF
 
   const backgroundColor = animatedValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [COLORS.surfaceContainerHighest, COLORS.primaryLight]
+    outputRange: [colors.surfaceContainerHighest, colors.primaryLight],
   });
 
   const translateX = animatedValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [4, 56]
+    outputRange: [4, 56],
   });
 
   const shadowOpacity = animatedValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 0.5]
+    outputRange: [0, 0.5],
   });
 
   return (
     <TouchableWithoutFeedback onPress={handlePress}>
-      <Animated.View style={[styles.container, SHADOWS.inset, { backgroundColor }]}>
-        <Animated.View style={[styles.glow, { opacity: shadowOpacity, shadowColor: COLORS.primaryLight, borderColor: COLORS.primaryLight }]} />
-        <View style={styles.labels}>
-          <Text style={styles.label}>{labelOn}</Text>
-          <Text style={styles.label}>{labelOff}</Text>
+      <Animated.View
+        style={[
+          styles.container,
+          shadows.inset,
+          {
+            borderRadius: SIZES.radiusToggle,
+            backgroundColor,
+          },
+        ]}
+      >
+        <Animated.View
+          style={[
+            styles.glow,
+            {
+              borderRadius: SIZES.radiusToggle,
+              opacity: shadowOpacity,
+              shadowColor: colors.primaryLight,
+              borderColor: colors.primaryLight,
+            },
+          ]}
+        />
+        <View style={[styles.labels, { paddingHorizontal: SPACING.sm }]}>
+          <Text style={[styles.label, { fontFamily: FONTS.headingSemi, color: colors.textPrimary }]}>
+            {labelOn}
+          </Text>
+          <Text style={[styles.label, { fontFamily: FONTS.headingSemi, color: colors.textPrimary }]}>
+            {labelOff}
+          </Text>
         </View>
-        <Animated.View style={[styles.knob, { transform: [{ translateX }] }]} />
+        <Animated.View
+          style={[
+            styles.knob,
+            shadows.raised,
+            {
+              borderRadius: SIZES.radius, // 13px border-radius knob
+              backgroundColor: colors.bgWhite,
+              transform: [{ translateX }],
+            },
+          ]}
+        />
       </Animated.View>
     </TouchableWithoutFeedback>
   );
@@ -59,13 +98,11 @@ const styles = StyleSheet.create({
   container: {
     width: 100,
     height: 48,
-    borderRadius: SIZES.radiusToggle,
     justifyContent: 'center',
     overflow: 'hidden',
   },
   glow: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: SIZES.radiusToggle,
     shadowOffset: { width: 0, height: 0 },
     shadowRadius: 10,
     elevation: 5,
@@ -76,19 +113,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 14,
   },
   label: {
-    fontFamily: FONTS.headingSemi,
-    fontSize: 12,
-    color: COLORS.textPrimary,
+    fontSize: 10, // Modular scale text-caption
   },
   knob: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.bgWhite,
     position: 'absolute',
-    ...SHADOWS.raised,
-  }
+  },
 });

@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\SiswaProfile;
 use App\Models\ClassJoinRequest;
+use App\Models\Kelas;
+use App\Services\ExpoPushService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 
@@ -23,7 +25,12 @@ class AuthController extends Controller
         ]);
 
         try {
-            return DB::transaction(function () use ($request) {
+            $waliKelasId = null;
+            $kelasNama = '';
+            $siswaName = '';
+            $siswaId = null;
+
+            $result = DB::transaction(function () use ($request, &$waliKelasId, &$kelasNama, &$siswaName, &$siswaId) {
                 $user = User::create([
                     'name' => $request->name,
                     'email' => $request->email,
@@ -43,14 +50,42 @@ class AuthController extends Controller
                     'status' => 'pending',
                 ]);
 
+                $siswaId = $user->id;
+                $siswaName = $user->name;
+
+                $kelas = Kelas::find($request->kelas_id);
+                if ($kelas) {
+                    $kelasNama = $kelas->nama_kelas;
+                    $waliKelasId = $kelas->wali_kelas_id;
+                }
+
                 $token = $user->createToken('mobile-app-token')->plainTextToken;
 
-                return response()->json([
+                return [
                     'user' => $user->load('siswaProfile', 'kelasWali'),
                     'token' => $token,
-                    'message' => 'Registrasi berhasil. Silakan tunggu persetujuan kelas dari Wali Kelas.'
-                ], 201);
+                ];
             });
+
+            // Kirim notifikasi ke Wali Kelas di luar transaksi
+            if ($waliKelasId) {
+                $waliKelas = User::find($waliKelasId);
+                if ($waliKelas) {
+                    ExpoPushService::send(
+                        $waliKelas->device_token ?? [],
+                        '📝 Permintaan Gabung Kelas',
+                        "{$siswaName} mengajukan bergabung ke kelas {$kelasNama}.",
+                        ['type' => 'new_class_request', 'siswa_id' => $siswaId],
+                        [$waliKelasId]
+                    );
+                }
+            }
+
+            return response()->json([
+                'user' => $result['user'],
+                'token' => $result['token'],
+                'message' => 'Registrasi berhasil. Silakan tunggu persetujuan kelas dari Wali Kelas.'
+            ], 201);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Registrasi gagal: ' . $e->getMessage()], 500);
         }

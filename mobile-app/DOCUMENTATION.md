@@ -1,6 +1,6 @@
-# SiDispen Technical Documentation
+# Sistem Perizinan Siswa Technical Documentation
 
-Dokumentasi ini menjelaskan berbagai library, tool, dan teknologi yang digunakan dalam proyek SiDispen beserta kegunaannya masing-masing.
+Dokumentasi ini menjelaskan berbagai library, tool, dan teknologi yang digunakan dalam proyek Sistem Perizinan Siswa beserta kegunaannya masing-masing.
 
 ## 1. Core Frameworks & Platforms
 

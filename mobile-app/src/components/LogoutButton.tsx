@@ -1,7 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { COLORS, FONTS, SIZES, GLASS } from '../utils/theme';
+import { useTheme } from '../hooks/useTheme';
 import { HapticFeedback } from '../utils/haptics';
 
 interface LogoutButtonProps {
@@ -10,6 +10,8 @@ interface LogoutButtonProps {
 }
 
 export default function LogoutButton({ onPress, variant = 'pill' }: LogoutButtonProps) {
+  const { colors, isDark, SIZES, SPACING, FONTS } = useTheme();
+
   const handlePress = () => {
     HapticFeedback.medium();
     onPress();
@@ -17,15 +19,22 @@ export default function LogoutButton({ onPress, variant = 'pill' }: LogoutButton
 
   return (
     <TouchableOpacity onPress={handlePress} activeOpacity={0.8}>
-      <BlurView 
-        intensity={GLASS.blurIntensity} 
-        tint={GLASS.tintColor} 
+      <BlurView
+        intensity={24} // design.md blur(24px)
+        tint={isDark ? 'dark' : 'light'}
         style={[
           styles.logoutBtn,
-          variant === 'inline' && styles.logoutBtnInline
+          {
+            paddingHorizontal: SPACING.sm, // 13px spacing-sm
+            paddingVertical: SPACING.xs, // 8px spacing-xs
+            borderRadius: SIZES.radiusButton,
+            borderColor: colors.error,
+            backgroundColor: colors.errorBg,
+          },
+          variant === 'inline' && styles.logoutBtnInline,
         ]}
       >
-        <Text style={styles.logoutText}>Keluar</Text>
+        <Text style={[styles.logoutText, { fontFamily: FONTS.headingSemi, color: colors.error }]}>Keluar</Text>
       </BlurView>
     </TouchableOpacity>
   );
@@ -33,20 +42,13 @@ export default function LogoutButton({ onPress, variant = 'pill' }: LogoutButton
 
 const styles = StyleSheet.create({
   logoutBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: SIZES.radiusButton,
     borderWidth: 1,
-    borderColor: COLORS.error,
     overflow: 'hidden',
-    backgroundColor: COLORS.errorBg,
   },
   logoutBtnInline: {
     // Add specific styles if needed for inline version
   },
-  logoutText: { 
-    fontFamily: FONTS.headingSemi, 
-    color: COLORS.error,
-    fontSize: 12 
+  logoutText: {
+    fontSize: 10, // Modular scale text-caption
   },
 });

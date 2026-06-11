@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\ClassJoinRequest;
 use App\Models\SiswaProfile;
+use App\Models\User;
+use App\Services\ExpoPushService;
 use Illuminate\Support\Facades\DB;
 
 class WaliKelasController extends Controller
@@ -52,6 +54,23 @@ class WaliKelasController extends Controller
                 );
             }
         });
+
+        // Kirim notifikasi ke Siswa
+        $siswa = User::find($joinRequest->siswa_id);
+        if ($siswa) {
+            $title = $request->status === 'accepted' ? '✅ Permintaan Kelas Diterima' : '❌ Permintaan Kelas Ditolak';
+            $body = $request->status === 'accepted' 
+                ? "Permintaan bergabung ke kelas {$kelas->nama_kelas} telah disetujui." 
+                : "Permintaan bergabung ke kelas {$kelas->nama_kelas} ditolak.";
+
+            ExpoPushService::send(
+                $siswa->device_token ?? [],
+                $title,
+                $body,
+                ['type' => 'class_request_response', 'status' => $request->status],
+                [$siswa->id]
+            );
+        }
 
         return response()->json(['message' => 'Permintaan berhasil ditanggapi']);
     }

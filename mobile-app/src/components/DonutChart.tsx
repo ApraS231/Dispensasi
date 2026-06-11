@@ -1,15 +1,13 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet, Text, TextInput } from 'react-native';
 import Svg, { Circle, G } from 'react-native-svg';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedProps, 
-  withTiming, 
+import Animated, {
+  useSharedValue,
+  useAnimatedProps,
+  withTiming,
   Easing,
-  useDerivedValue,
-  useAnimatedStyle
 } from 'react-native-reanimated';
-import { COLORS, FONTS } from '../utils/theme';
+import { useTheme } from '../hooks/useTheme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
@@ -23,14 +21,15 @@ interface DonutChartProps {
   delay?: number;
 }
 
-export default function DonutChart({ 
-  total, 
-  present, 
-  absent, 
-  size = 160, 
+export default function DonutChart({
+  total,
+  present,
+  absent,
+  size = 160,
   strokeWidth = 20,
-  delay = 500
+  delay = 500,
 }: DonutChartProps) {
+  const { colors, FONTS } = useTheme();
   const center = size / 2;
   const radius = center - strokeWidth / 2;
   const circumference = 2 * Math.PI * radius;
@@ -50,7 +49,7 @@ export default function DonutChart({
 
   const animatedCircleProps = useAnimatedProps(() => {
     return {
-      strokeDashoffset: circumference - (progress.value * circumference),
+      strokeDashoffset: circumference - progress.value * circumference,
     };
   });
 
@@ -70,19 +69,19 @@ export default function DonutChart({
           cx={center}
           cy={center}
           r={radius}
-          stroke={COLORS.surfaceContainerHighest}
+          stroke={colors.surfaceContainerHighest}
           strokeWidth={strokeWidth}
           fill="none"
           opacity={0.3}
         />
-        
+
         {/* Present/Approved Circle */}
         <G rotation="-90" origin={`${center}, ${center}`}>
           <AnimatedCircle
             cx={center}
             cy={center}
             r={radius}
-            stroke={COLORS.primary}
+            stroke={colors.primary}
             strokeWidth={strokeWidth}
             strokeDasharray={circumference}
             animatedProps={animatedCircleProps}
@@ -93,19 +92,31 @@ export default function DonutChart({
       </Svg>
 
       {/* Center Text Wrapper */}
-      <View style={[styles.innerCircle, { 
-        width: size - (strokeWidth * 2), 
-        height: size - (strokeWidth * 2),
-        borderRadius: size / 2 
-      }]}>
+      <View
+        style={[
+          styles.innerCircle,
+          {
+            width: size - strokeWidth * 2,
+            height: size - strokeWidth * 2,
+            borderRadius: size / 2,
+          },
+        ]}
+      >
         <AnimatedTextInput
           underlineColorAndroid="transparent"
           editable={false}
           value="0%"
-          style={styles.centerValue}
+          style={[
+            styles.centerValue,
+            {
+              fontFamily: FONTS.heading,
+              fontSize: 26, // Modular scale text-h2
+              color: colors.primary,
+            },
+          ]}
           animatedProps={animatedTextProps}
         />
-        <Text style={styles.centerLabel}>Hadir</Text>
+        <Text style={[styles.centerLabel, { fontFamily: FONTS.labelCaps, color: colors.textMuted }]}>Hadir</Text>
       </View>
     </View>
   );
@@ -127,19 +138,14 @@ const styles = StyleSheet.create({
     zIndex: 3,
   },
   centerValue: {
-    fontFamily: FONTS.heading,
-    fontSize: 28,
-    color: COLORS.primary,
     textAlign: 'center',
     padding: 0,
     margin: 0,
     width: '100%',
   },
   centerLabel: {
-    fontFamily: FONTS.labelCaps,
     fontSize: 10,
-    color: COLORS.textMuted,
     letterSpacing: 1,
     marginTop: -4,
-  }
+  },
 });

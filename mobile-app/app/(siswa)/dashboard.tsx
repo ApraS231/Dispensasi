@@ -9,19 +9,23 @@ import SkeuCard from '../../src/components/SkeuCard';
 import TicketCard from '../../src/components/TicketCard';
 import GlassFAB from '../../src/components/GlassFAB';
 import TopAppBar from '../../src/components/TopAppBar';
-import LiquidBackground from '../../src/components/LiquidBackground';
 import AnimatedEntrance from '../../src/components/AnimatedEntrance';
 import AnimatedCounter from '../../src/components/AnimatedCounter';
 import RefreshableFlatList from '../../src/components/RefreshableFlatList';
 import LogoutButton from '../../src/components/LogoutButton';
-import { COLORS, FONTS, SIZES, SPACING, SHADOWS, GLASS } from '../../src/utils/theme';
-import { commonStyles } from '../../src/utils/commonStyles';
+import { FONTS, SIZES, SPACING, GLASS } from '../../src/utils/theme';
+import { createCommonStyles } from '../../src/utils/commonStyles';
+import { useTheme } from '../../src/hooks/useTheme';
 import { BlurView } from 'expo-blur';
 import { useSharedValue } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SiswaDashboard() {
   const { user, logout } = useAuthStore();
   const scrollY = useSharedValue(0);
+  const { colors, isDark, shadows } = useTheme();
+  const commonStyles = createCommonStyles(colors);
 
   const { data: ticketsData, isLoading, refetch } = useQuery({
     queryKey: ['dispensasi-me'],
@@ -57,29 +61,29 @@ export default function SiswaDashboard() {
         <View style={styles.topCardContainer}>
           {/* Header Background Blobs */}
           <View style={styles.headerBlobContainer} pointerEvents="none">
-            <View style={[styles.headerBlob, { backgroundColor: COLORS.primary, top: -20, left: -20 }]} />
-            <View style={[styles.headerBlob, { backgroundColor: COLORS.secondary, bottom: -40, right: -20 }]} />
+            <View style={[styles.headerBlob, { backgroundColor: colors.primary, top: -20, left: -20 }]} />
+            <View style={[styles.headerBlob, { backgroundColor: colors.secondary, bottom: -40, right: -20 }]} />
           </View>
           <SkeuCard style={styles.headerCard} isGlass>
             <View style={styles.headerRow}>
               <View style={styles.userInfo}>
-                <Text style={styles.greeting}>Halo,</Text>
-                <Text style={styles.name} numberOfLines={1}>{user?.name ?? 'Siswa'}!</Text>
-                <View style={styles.kelasBadge}>
-                  <Text style={styles.kelasBadgeText}>Kelas {(user as any)?.kelas?.nama_kelas || 'X'}</Text>
+                <Text style={[styles.greeting, { color: colors.textSecondary }]}>Halo,</Text>
+                <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>{user?.name ?? 'Siswa'}!</Text>
+                <View style={[styles.kelasBadge, { backgroundColor: colors.primaryContainer, borderColor: colors.glassHighlight }]}>
+                  <Text style={[styles.kelasBadgeText, { color: isDark ? '#7BBDE8' : colors.primary }]}>Kelas {(user as any)?.kelas?.nama_kelas || 'X'}</Text>
                 </View>
               </View>
               <LogoutButton onPress={handleLogout} />
             </View>
             
             <View style={styles.statsContainer}>
-              <BlurView intensity={GLASS.blurIntensity + 20} tint={GLASS.tintColor} style={[styles.badgeContainer, SHADOWS.inset]}>
+              <BlurView intensity={GLASS.blurIntensity + 20} tint={GLASS.tintColor} style={[styles.badgeContainer, shadows.inset]}>
                 <AnimatedCounter 
                   value={tickets.length} 
-                  style={styles.badgeText} 
+                  style={[styles.badgeText, { color: colors.textPrimary }]} 
                   delay={1000}
                 />
-                <Text style={styles.badgeLabel}>Izin Bulan Ini</Text>
+                <Text style={[styles.badgeLabel, { color: colors.textSecondary }]}>Izin Bulan Ini</Text>
               </BlurView>
             </View>
           </SkeuCard>
@@ -89,31 +93,33 @@ export default function SiswaDashboard() {
       {/* List Area Header */}
       <View style={styles.sectionHeaderContainer}>
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.historyTitle}>Riwayat Izin Terbaru</Text>
+          <Text style={[styles.historyTitle, { color: colors.textPrimary }]}>Riwayat Izin Terbaru</Text>
           <TouchableOpacity 
             onPress={() => expoRouter.push('/(siswa)/riwayat')}
             activeOpacity={0.6}
-            style={styles.seeAllButton}
+            style={[styles.seeAllButton, { backgroundColor: colors.primaryContainer, borderColor: colors.glassHighlight }]}
           >
-            <Text style={styles.seeAllText}>Lihat Semua</Text>
+            <Text style={[styles.seeAllText, { color: isDark ? '#7BBDE8' : colors.primary }]}>Lihat Semua</Text>
           </TouchableOpacity>
         </View>
       </View>
     </View>
-  ), [user, tickets.length]);
+  ), [user, tickets.length, colors, isDark, shadows]);
 
   return (
-    <View style={commonStyles.container}>
-      <LiquidBackground />
-      
-      <TopAppBar 
-        showAvatar={true} 
-        avatarLabel={user?.name?.charAt(0)?.toUpperCase() || 'S'} 
-        showNotification={true} 
-        scrollY={scrollY}
-      />
+    <LinearGradient
+      colors={[colors.bgPrimary, colors.bgSecondary]}
+      style={commonStyles.container}
+    >
+      <SafeAreaView style={commonStyles.safeArea} edges={['bottom', 'left', 'right']}>
+        <TopAppBar 
+          showAvatar={true} 
+          avatarLabel={user?.name?.charAt(0)?.toUpperCase() || 'S'} 
+          showNotification={true} 
+          scrollY={scrollY}
+        />
 
-      <View style={{ flex: 1, width: '100%' }}>
+        <View style={{ flex: 1, width: '100%' }}>
         <RefreshableFlatList
           data={tickets.slice(0, 5)} 
           keyExtractor={(item) => item.id}
@@ -139,11 +145,12 @@ export default function SiswaDashboard() {
         />
       </View>
 
-      <GlassFAB 
-        onPress={() => expoRouter.push('/(siswa)/pengajuan')} 
-        style={styles.fabPosition}
-      />
-    </View>
+        <GlassFAB 
+          onPress={() => expoRouter.push('/(siswa)/pengajuan')} 
+          style={styles.fabPosition}
+        />
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
@@ -191,21 +198,17 @@ const styles = StyleSheet.create({
   greeting: { 
     fontFamily: FONTS.bodyMedium, 
     fontSize: 16, 
-    color: COLORS.textPrimary
   },
   name: { 
     fontFamily: FONTS.heading, 
     fontSize: 24, 
-    color: COLORS.textPrimary,
     marginTop: 2,
   },
   kelasBadge: {
-    backgroundColor: COLORS.surfaceContainerLow,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: SIZES.radiusSm,
     borderWidth: 1,
-    borderColor: COLORS.glassHighlight,
     marginTop: SPACING.xs,
     alignSelf: 'flex-start',
     overflow: 'hidden',
@@ -213,7 +216,6 @@ const styles = StyleSheet.create({
   kelasBadgeText: {
     fontFamily: FONTS.labelCaps,
     fontSize: 11,
-    color: COLORS.primary,
     letterSpacing: 0.5,
   },
   statsContainer: {
@@ -231,13 +233,11 @@ const styles = StyleSheet.create({
   badgeText: { 
     fontFamily: FONTS.heading, 
     fontSize: 20, 
-    color: COLORS.textPrimary,
     marginRight: SPACING.sm,
   },
   badgeLabel: {
     fontFamily: FONTS.bodyMedium,
     fontSize: 13,
-    color: COLORS.textPrimary,
   },
   sectionHeaderContainer: {
     paddingHorizontal: SPACING.md,
@@ -252,20 +252,16 @@ const styles = StyleSheet.create({
   historyTitle: {
     fontFamily: FONTS.headingSemi,
     fontSize: 18,
-    color: COLORS.textPrimary,
   },
   seeAllButton: {
-    backgroundColor: COLORS.surfaceContainerLow,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: SIZES.radiusSm,
     borderWidth: 1,
-    borderColor: COLORS.glassHighlight,
   },
   seeAllText: {
     fontFamily: FONTS.headingSemi,
     fontSize: 12,
-    color: COLORS.primary,
   },
 });
 

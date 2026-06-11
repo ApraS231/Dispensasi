@@ -4,18 +4,21 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator }
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import api from '../src/utils/api';
+import { LinearGradient } from 'expo-linear-gradient';
 import NotificationBanner from '../src/components/NotificationBanner';
-import { COLORS, FONTS, SPACING, SIZES, GLASS } from '../src/utils/theme';
+import { FONTS, SPACING, SIZES, GLASS } from '../src/utils/theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ICONS } from '../src/utils/icons';
-import LiquidBackground from '../src/components/LiquidBackground';
-import { BlurView } from 'expo-blur';
 import TopAppBar from '../src/components/TopAppBar';
+import { useTheme } from '../src/hooks/useTheme';
+import { createCommonStyles } from '../src/utils/commonStyles';
 
 export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { colors, shadows, isDark } = useTheme();
+  const commonStyles = createCommonStyles(colors);
 
   const fetchNotifications = async () => {
     try {
@@ -82,8 +85,10 @@ export default function NotificationsScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <LiquidBackground />
+    <LinearGradient
+      colors={[colors.bgPrimary, colors.bgSecondary]}
+      style={styles.container}
+    >
       <SafeAreaView style={styles.safeArea}>
         
         <TopAppBar 
@@ -93,7 +98,7 @@ export default function NotificationsScreen() {
           rightComponent={
             notifications.some(n => !n.is_read) ? (
               <TouchableOpacity onPress={markAllAsRead}>
-                <Text style={styles.readAllText}>Baca Semua</Text>
+                <Text style={[styles.readAllText, { color: colors.primary }]}>Baca Semua</Text>
               </TouchableOpacity>
             ) : null
           }
@@ -102,7 +107,7 @@ export default function NotificationsScreen() {
         <View style={styles.content}>
           <View style={{ height: 88 + SPACING.statusBar }} />
           {loading ? (
-            <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: SPACING.xl }} />
+            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: SPACING.xl }} />
           ) : (
             <FlatList
               data={notifications}
@@ -126,8 +131,8 @@ export default function NotificationsScreen() {
               }}
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
-                  <MaterialCommunityIcons name="mailbox-open-outline" size={64} color={COLORS.textMuted} style={{ marginBottom: SPACING.md, opacity: 0.5 }} />
-                  <Text style={styles.emptyText}>Belum ada notifikasi saat ini.</Text>
+                  <MaterialCommunityIcons name="mailbox-open-outline" size={64} color={colors.textMuted} style={{ marginBottom: SPACING.md, opacity: 0.5 }} />
+                  <Text style={[styles.emptyText, { color: colors.textMuted }]}>Belum ada notifikasi saat ini.</Text>
                 </View>
               }
             />
@@ -135,22 +140,20 @@ export default function NotificationsScreen() {
         </View>
         
       </SafeAreaView>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bgWhite },
+  container: { flex: 1 },
   safeArea: { flex: 1 },
   headerTitle: {
     fontFamily: FONTS.heading,
     fontSize: 18,
-    color: COLORS.textPrimary,
   },
   readAllText: {
     fontFamily: FONTS.headingSemi,
     fontSize: 13,
-    color: COLORS.primary,
   },
   
   content: {
@@ -168,7 +171,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontFamily: FONTS.body,
-    color: COLORS.textMuted,
     fontSize: 15,
   }
 });

@@ -1,22 +1,25 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, Alert } from 'react-native';
+import { View, Text, StyleSheet, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router as expoRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import api from '../../src/utils/api';
-import { COLORS, FONTS, SIZES, SPACING } from '../../src/utils/theme';
+import { FONTS, SIZES, SPACING } from '../../src/utils/theme';
+import { useTheme } from '../../src/hooks/useTheme';
 import TopAppBar from '../../src/components/TopAppBar';
 import SkeuCard from '../../src/components/SkeuCard';
 import AvatarInitials from '../../src/components/AvatarInitials';
 import BouncyButton from '../../src/components/BouncyButton';
 import RefreshableFlatList from '../../src/components/RefreshableFlatList';
-import LiquidBackground from '../../src/components/LiquidBackground';
 import AnimatedEntrance from '../../src/components/AnimatedEntrance';
 import { useSharedValue } from 'react-native-reanimated';
 
 export default function ParentRequestsScreen() {
   const scrollY = useSharedValue(0);
   const queryClient = useQueryClient();
+  const { colors, isDark, shadows } = useTheme();
 
   const { data: requests = [], isLoading, refetch } = useQuery({
     queryKey: ['siswa-parent-requests'],
@@ -59,12 +62,12 @@ export default function ParentRequestsScreen() {
   const renderItem = ({ item, index }: { item: any, index: number }) => (
     <View style={styles.cardWrapper}>
       <AnimatedEntrance delay={100 + index * 100} direction="up">
-        <SkeuCard isGlass style={styles.requestCard}>
+        <SkeuCard isGlass style={[styles.requestCard, { borderColor: colors.glassHighlight }]}>
           <View style={styles.cardHeader}>
             <AvatarInitials name={item.parent?.name} size={50} />
             <View style={styles.headerInfo}>
-              <Text style={styles.parentName}>{item.parent?.name}</Text>
-              <Text style={styles.requestText}>Ingin terhubung sebagai Orang Tua/Wali Anda.</Text>
+              <Text style={[styles.parentName, { color: colors.textPrimary }]}>{item.parent?.name}</Text>
+              <Text style={[styles.requestText, { color: colors.textSecondary }]}>Ingin terhubung sebagai Orang Tua/Wali Anda.</Text>
             </View>
           </View>
 
@@ -90,9 +93,11 @@ export default function ParentRequestsScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      <LiquidBackground />
-      <SafeAreaView style={styles.safeArea}>
+    <LinearGradient
+      colors={[colors.bgPrimary, colors.bgSecondary]}
+      style={styles.container}
+    >
+      <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
         <TopAppBar 
           title="Permintaan Orang Tua" 
           onBack={() => expoRouter.back()} 
@@ -113,9 +118,9 @@ export default function ParentRequestsScreen() {
               <View style={styles.emptyContainer}>
                 <AnimatedEntrance delay={300} direction="up">
                   <View style={{ alignItems: 'center' }}>
-                    <MaterialCommunityIcons name="account-heart-outline" size={80} color={COLORS.textMuted} />
-                    <Text style={styles.emptyTitle}>Tidak Ada Permintaan</Text>
-                    <Text style={styles.emptySubtitle}>Saat ini tidak ada permintaan hubungan akun yang tertunda.</Text>
+                    <MaterialCommunityIcons name="account-heart-outline" size={80} color={colors.textMuted} />
+                    <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>Tidak Ada Permintaan</Text>
+                    <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>Saat ini tidak ada permintaan hubungan akun yang tertunda.</Text>
                   </View>
                 </AnimatedEntrance>
               </View>
@@ -123,20 +128,16 @@ export default function ParentRequestsScreen() {
           }
         />
       </SafeAreaView>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bgWhite },
+  container: { flex: 1 },
   safeArea: { flex: 1 },
   listContent: { paddingHorizontal: SPACING.md, paddingBottom: SPACING.xl },
   cardWrapper: { marginBottom: SPACING.md },
   requestCard: {
-    padding: SPACING.md,
-    borderRadius: SIZES.radiusCard,
-    borderWidth: 1,
-    borderColor: COLORS.glassHighlight,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -150,12 +151,10 @@ const styles = StyleSheet.create({
   parentName: {
     fontFamily: FONTS.heading,
     fontSize: 16,
-    color: COLORS.textPrimary,
   },
   requestText: {
     fontFamily: FONTS.body,
     fontSize: 13,
-    color: COLORS.textSecondary,
     marginTop: 2,
   },
   actionRow: {
@@ -174,13 +173,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontFamily: FONTS.headingSemi,
     fontSize: 18,
-    color: COLORS.textPrimary,
     marginTop: SPACING.md,
   },
   emptySubtitle: {
     fontFamily: FONTS.body,
     fontSize: 14,
-    color: COLORS.textMuted,
     textAlign: 'center',
     marginTop: SPACING.sm,
   },

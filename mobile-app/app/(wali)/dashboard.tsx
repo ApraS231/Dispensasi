@@ -3,6 +3,7 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router as expoRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
@@ -16,12 +17,12 @@ import RejectModal from '../../src/components/RejectModal';
 import TopAppBar from '../../src/components/TopAppBar';
 import AvatarInitials from '../../src/components/AvatarInitials';
 import DonutChart from '../../src/components/DonutChart';
-import LiquidBackground from '../../src/components/LiquidBackground';
 import AnimatedEntrance from '../../src/components/AnimatedEntrance';
 import RefreshableFlatList from '../../src/components/RefreshableFlatList';
 import LogoutButton from '../../src/components/LogoutButton';
-import { COLORS, FONTS, SIZES, SPACING, SHADOWS, GLASS } from '../../src/utils/theme';
-import { commonStyles } from '../../src/utils/commonStyles';
+import { FONTS, SIZES, SPACING, GLASS } from '../../src/utils/theme';
+import { createCommonStyles } from '../../src/utils/commonStyles';
+import { useTheme } from '../../src/hooks/useTheme';
 import { BlurView } from 'expo-blur';
 import { useSharedValue } from 'react-native-reanimated';
 
@@ -29,6 +30,8 @@ export default function WaliDashboard() {
   const { user, logout } = useAuthStore();
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const scrollY = useSharedValue(0);
+  const { colors, isDark, shadows } = useTheme();
+  const commonStyles = createCommonStyles(colors);
 
   const approveMutation = useApproveTicket();
   const rejectMutation = useRejectTicket();
@@ -124,14 +127,14 @@ export default function WaliDashboard() {
         <View style={commonStyles.headerContainer}>
           {/* Header Background Blobs */}
           <View style={styles.headerBlobContainer} pointerEvents="none">
-            <View style={[styles.headerBlob, { backgroundColor: COLORS.primary, top: -20, left: -20 }]} />
-            <View style={[styles.headerBlob, { backgroundColor: COLORS.secondary, bottom: -40, right: -20 }]} />
+            <View style={[styles.headerBlob, { backgroundColor: colors.primary, top: -20, left: -20 }]} />
+            <View style={[styles.headerBlob, { backgroundColor: colors.secondary, bottom: -40, right: -20 }]} />
           </View>
           <SkeuCard style={styles.headerCard}>
             <View style={styles.headerTop}>
               <View>
-                <Text style={styles.greeting}>Kehadiran Kelas Anda</Text>
-                <Text style={styles.dateText}>{todayDate}</Text>
+                <Text style={[styles.greeting, { color: colors.textSecondary }]}>Kehadiran Kelas Anda</Text>
+                <Text style={[styles.dateText, { color: colors.textPrimary }]}>{todayDate}</Text>
               </View>
               <LogoutButton onPress={handleLogout} />
             </View>
@@ -148,19 +151,19 @@ export default function WaliDashboard() {
               </View>
               
               <View style={styles.chartColRight}>
-                <View style={[styles.legendItem, SHADOWS.inset]}>
-                  <View style={[styles.legendColor, { backgroundColor: COLORS.primary }]} />
+                <View style={[styles.legendItem, shadows.inset, { backgroundColor: colors.glassSurface, borderColor: colors.glassHighlight }]}>
+                  <View style={[styles.legendColor, { backgroundColor: colors.primary }]} />
                   <View>
-                    <Text style={styles.legendTitle}>Hadir</Text>
-                    <Text style={styles.legendValue}>{presentStudents} Siswa</Text>
+                    <Text style={[styles.legendTitle, { color: colors.textMuted }]}>Hadir</Text>
+                    <Text style={[styles.legendValue, { color: colors.textPrimary }]}>{presentStudents} Siswa</Text>
                   </View>
                 </View>
                 
-                <View style={[styles.legendItem, SHADOWS.inset]}>
-                  <View style={[styles.legendColor, { backgroundColor: COLORS.textMuted }]} />
+                <View style={[styles.legendItem, shadows.inset, { backgroundColor: colors.glassSurface, borderColor: colors.glassHighlight }]}>
+                  <View style={[styles.legendColor, { backgroundColor: colors.textMuted }]} />
                   <View>
-                    <Text style={styles.legendTitle}>Izin/Sakit</Text>
-                    <Text style={styles.legendValue}>{absentStudents} Siswa</Text>
+                    <Text style={[styles.legendTitle, { color: colors.textMuted }]}>Izin/Sakit</Text>
+                    <Text style={[styles.legendValue, { color: colors.textPrimary }]}>{absentStudents} Siswa</Text>
                   </View>
                 </View>
               </View>
@@ -172,21 +175,21 @@ export default function WaliDashboard() {
       {classRequests.length > 0 && (
         <AnimatedEntrance delay={450} direction="up">
           <TouchableOpacity 
-            style={styles.notificationBanner}
+            style={[styles.notificationBanner, { backgroundColor: colors.primaryContainer, borderColor: colors.glassHighlight }]}
             onPress={() => expoRouter.push('/(wali)/kelola-anak')}
           >
-            <View style={styles.notificationIcon}>
-              <MaterialCommunityIcons name="account-plus" size={24} color={COLORS.primary} />
+            <View style={[styles.notificationIcon, shadows.elevation2, { backgroundColor: colors.bgPrimary }]}>
+              <MaterialCommunityIcons name="account-plus" size={24} color={colors.primary} />
             </View>
             <View style={styles.notificationTextContent}>
-              <Text style={styles.notificationTitle}>Permintaan Bergabung</Text>
-              <Text style={styles.notificationSub}>{classRequests.length} siswa menunggu persetujuan Anda</Text>
+              <Text style={[styles.notificationTitle, { color: colors.textPrimary }]}>Permintaan Bergabung</Text>
+              <Text style={[styles.notificationSub, { color: colors.textSecondary }]}>{classRequests.length} siswa menunggu persetujuan Anda</Text>
             </View>
-            <MaterialCommunityIcons name="chevron-right" size={24} color={COLORS.textMuted} />
+            <MaterialCommunityIcons name="chevron-right" size={24} color={colors.textMuted} />
           </TouchableOpacity>
         </AnimatedEntrance>
       )}
- 
+
       <View style={commonStyles.contentContainer}>
         <AnimatedEntrance delay={600} direction="up">
           <View style={commonStyles.sectionHeader}>
@@ -195,12 +198,14 @@ export default function WaliDashboard() {
         </AnimatedEntrance>
       </View>
     </View>
-  ), [totalStudents, presentStudents, absentStudents, classRequests.length]);
+  ), [totalStudents, presentStudents, absentStudents, classRequests.length, colors, shadows, isDark]);
 
   return (
-    <View style={commonStyles.container}>
-      <LiquidBackground />
-      <SafeAreaView style={commonStyles.safeArea}>
+    <LinearGradient
+      colors={[colors.bgPrimary, colors.bgSecondary]}
+      style={commonStyles.container}
+    >
+      <SafeAreaView style={commonStyles.safeArea} edges={['bottom', 'left', 'right']}>
         
         <TopAppBar 
           showAvatar={true} 
@@ -221,21 +226,61 @@ export default function WaliDashboard() {
           renderItem={({ item, index }) => (
             <View style={{ paddingHorizontal: SPACING.md }}>
               <AnimatedEntrance delay={index < 5 ? 800 + (index * 100) : 0} direction="up" offset={20}>
-                <SkeuCard style={styles.ticketWrapper}>
-                  <View style={styles.ticketHeaderRow}>
-                    <AvatarInitials name={item.siswa?.name || 'Siswa'} size={40} fontSize={16} />
-                    <View style={styles.ticketMeta}>
-                      <Text style={styles.ticketName}>{item.siswa?.name || 'Siswa'}</Text>
-                      <Text style={styles.ticketClass}>{item.kelas?.nama_kelas || 'Kelas'}</Text>
-                    </View>
-                    <View style={styles.ledDot} />
-                  </View>
-                  
-                  <TicketCard 
-                    item={item} 
+                <SkeuCard isGlass style={styles.ticketWrapper}>
+                  {/* Clickable details section */}
+                  <TouchableOpacity 
+                    activeOpacity={0.8}
                     onPress={() => expoRouter.push(`/ticket/${item.id}`)}
-                  />
-                  
+                  >
+                    <View style={styles.ticketHeaderRow}>
+                      <AvatarInitials name={item.siswa?.name || 'Siswa'} size={40} fontSize={16} />
+                      <View style={styles.ticketMeta}>
+                        <Text style={[styles.ticketName, { color: colors.textPrimary }]}>{item.siswa?.name || 'Siswa'}</Text>
+                        <Text style={[styles.ticketClass, { color: colors.textSecondary }]}>{item.kelas?.nama_kelas || 'Kelas'}</Text>
+                      </View>
+                      <View style={[styles.ledDot, { backgroundColor: colors.warning, shadowColor: colors.warning }]} />
+                    </View>
+
+                    {/* Divider */}
+                    <View style={[styles.divider, { backgroundColor: colors.glassHighlight }]} />
+
+                    {/* Permit Info */}
+                    <View style={[styles.permitHeaderRow, { marginBottom: SPACING.xs }]}>
+                      <View style={styles.headerItem}>
+                        <MaterialCommunityIcons name="calendar" size={14} color={colors.textSecondary} />
+                        <Text style={[styles.headerText, { fontFamily: FONTS.bodyMedium, color: colors.textSecondary }]}>
+                          {item.created_at ? new Date(item.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                        </Text>
+                      </View>
+                      <View style={styles.headerItem}>
+                        <MaterialCommunityIcons name="clock-outline" size={14} color={colors.textSecondary} />
+                        <Text style={[styles.headerText, { fontFamily: FONTS.bodyMedium, color: colors.textSecondary }]}>
+                          {item.created_at ? new Date(item.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : ''}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <Text style={[styles.typeText, { fontFamily: FONTS.heading, color: colors.primary }]}>
+                      {item.jenis_izin?.replace(/_/g, ' ')}
+                    </Text>
+                    
+                    <View style={[
+                      styles.reasonContainer, 
+                      { 
+                        backgroundColor: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.03)',
+                        borderRadius: SIZES.radiusSm || 8,
+                        borderWidth: 1,
+                        borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)'
+                      }
+                    ]}>
+                      <MaterialCommunityIcons name="format-quote-open" size={10} color={isDark ? '#7BBDE8' : colors.primaryMuted} style={{ marginRight: 4 }} />
+                      <Text style={[styles.reasonText, { fontFamily: FONTS.body, color: colors.textSecondary }]} numberOfLines={2}>
+                        {item.alasan}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Action buttons */}
                   <View style={styles.actionRow}>
                     <BouncyButton 
                       title="Tolak" 
@@ -262,7 +307,7 @@ export default function WaliDashboard() {
         onClose={() => setRejectingId(null)}
         onSubmit={confirmReject}
       />
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -277,7 +322,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 200,
     height: 200,
-    borderRadius: 100,
+    borderRadius: 9999,
   },
   headerCard: {
     padding: SPACING.lg,
@@ -288,8 +333,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start', 
     marginBottom: SPACING.md 
   },
-  greeting: { fontFamily: FONTS.bodyMedium, fontSize: 14, color: COLORS.textSecondary },
-  dateText: { fontFamily: FONTS.heading, fontSize: 18, color: COLORS.textPrimary, marginTop: 2 },
+  greeting: { fontFamily: FONTS.bodyMedium, fontSize: 14 },
+  dateText: { fontFamily: FONTS.heading, fontSize: 18, marginTop: 2 },
   chartContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -308,11 +353,9 @@ const styles = StyleSheet.create({
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.glassSurface,
     padding: SPACING.sm,
     borderRadius: SIZES.radiusMd,
     borderWidth: 1,
-    borderColor: COLORS.glassHighlight,
   },
   legendColor: {
     width: 8,
@@ -323,16 +366,46 @@ const styles = StyleSheet.create({
   legendTitle: {
     fontFamily: FONTS.labelCaps,
     fontSize: 9,
-    color: COLORS.textMuted,
   },
   legendValue: {
     fontFamily: FONTS.headingSemi,
     fontSize: 12,
-    color: COLORS.textPrimary,
   },
   ticketWrapper: {
     marginBottom: SPACING.lg,
-    padding: SPACING.md,
+  },
+  divider: {
+    height: 1,
+    marginVertical: SPACING.sm,
+    opacity: 0.15,
+  },
+  permitHeaderRow: {
+    flexDirection: 'row',
+    gap: 13,
+  },
+  headerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  headerText: {
+    fontSize: 10,
+  },
+  typeText: {
+    fontSize: 16,
+    textTransform: 'capitalize',
+    marginBottom: 4,
+  },
+  reasonContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 8,
+    marginTop: 2,
+  },
+  reasonText: {
+    fontSize: 10,
+    lineHeight: 14,
+    flex: 1,
   },
   ticketHeaderRow: {
     flexDirection: 'row',
@@ -347,19 +420,15 @@ const styles = StyleSheet.create({
   ticketName: {
     fontFamily: FONTS.headingSemi,
     fontSize: 15,
-    color: COLORS.textPrimary,
   },
   ticketClass: {
     fontFamily: FONTS.bodyMedium,
     fontSize: 12,
-    color: COLORS.textSecondary,
   },
   ledDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: COLORS.warning,
-    shadowColor: COLORS.warning,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 6,
@@ -378,22 +447,18 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACING.md,
     marginTop: SPACING.md,
     padding: SPACING.md,
-    backgroundColor: COLORS.primary + '10',
     borderRadius: SIZES.radiusMd,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.primary + '20',
   },
   notificationIcon: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: COLORS.bgWhite,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: SPACING.md,
-    ...SHADOWS.elevation2,
   },
   notificationTextContent: {
     flex: 1,
@@ -401,12 +466,10 @@ const styles = StyleSheet.create({
   notificationTitle: {
     fontFamily: FONTS.headingSemi,
     fontSize: 14,
-    color: COLORS.textPrimary,
   },
   notificationSub: {
     fontFamily: FONTS.body,
     fontSize: 12,
-    color: COLORS.textSecondary,
     marginTop: 2,
   },
 });

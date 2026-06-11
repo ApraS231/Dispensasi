@@ -1,23 +1,14 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Image } from 'expo-image';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withRepeat, 
-  withTiming, 
-  withSequence,
-  Easing,
-  interpolate,
-  Extrapolation,
-  SharedValue
-} from 'react-native-reanimated';
-import { COLORS, FONTS, SPACING, SIZES, SHADOWS, GLASS } from '../utils/theme';
+import { Image } from 'expo-image';
+import { useTheme } from '../hooks/useTheme';
 import { ICONS } from '../utils/icons';
+import { useHeaderStore } from '../stores/headerStore';
+import { useAuthStore } from '../stores/authStore';
+import api from '../utils/api';
 
 interface TopAppBarProps {
   showAvatar?: boolean;
@@ -27,96 +18,98 @@ interface TopAppBarProps {
   onNotificationPress?: () => void;
   onAvatarPress?: () => void;
   onBack?: () => void;
-  scrollY?: SharedValue<number>;
+  scrollY?: any;
   rightComponent?: React.ReactNode;
+  isGlobal?: boolean;
 }
-
-const AnimatedBlob = ({ color, size, top, left, bottom, right, duration, delay = 0 }: any) => {
-  const tx = useSharedValue(0);
-  const ty = useSharedValue(0);
-
-  useEffect(() => {
-    tx.value = withRepeat(
-      withSequence(
-        withTiming(30, { duration, easing: Easing.inOut(Easing.ease) }),
-        withTiming(-30, { duration, easing: Easing.inOut(Easing.ease) })
-      ),
-      -1,
-      true
-    );
-    ty.value = withRepeat(
-      withSequence(
-        withTiming(-20, { duration: duration * 1.2, easing: Easing.inOut(Easing.ease) }),
-        withTiming(20, { duration: duration * 1.2, easing: Easing.inOut(Easing.ease) })
-      ),
-      -1,
-      true
-    );
-  }, []);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: tx.value }, { translateY: ty.value }],
-  }));
-
-  return (
-    <Animated.View 
-      style={[
-        {
-          position: 'absolute',
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: color,
-          opacity: 0.15,
-          top, left, bottom, right,
-        },
-        animatedStyle
-      ]}
-    />
-  );
-};
 
 export default function TopAppBar({
   showAvatar = true,
   avatarLabel,
   showNotification = true,
-  title = 'SiDispen',
+  title = 'Sistem Perizinan Siswa',
   onNotificationPress,
   onAvatarPress,
   onBack,
   scrollY,
   rightComponent,
+  isGlobal = false,
 }: TopAppBarProps) {
-  const pulse = useSharedValue(1);
+  const { colors, isDark, SIZES, SPACING, FONTS, shadows } = useTheme();
+  
+  const setHeaderProps = useHeaderStore((state) => state.setHeaderProps);
+  const setHasGlobalHeader = useHeaderStore((state) => state.setHasGlobalHeader);
+  const hasGlobalHeader = useHeaderStore((state) => state.hasGlobalHeader);
+  const globalProps = useHeaderStore();
 
+  const [unreadCount, setUnreadCount] = useState(0);
+  const token = useAuthStore((state) => state.token);
+
+  const fetchUnreadCount = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await api.get('/notifications/unread-count');
+      setUnreadCount(res.data.count ?? 0);
+    } catch (e) {
+      console.log('Error fetching unread count', e);
+    }
+  }, [token]);
+
+  // Fetch immediately when screen is focused (for the active header)
+  useFocusEffect(
+    useCallback(() => {
+      // Only fetch in the instance that actually renders
+      const isRendered = isGlobal || !hasGlobalHeader;
+      if (!isRendered || !token) return;
+
+      fetchUnreadCount();
+
+      // Poll every 15 seconds
+      const interval = setInterval(fetchUnreadCount, 15000);
+
+      return () => {
+        clearInterval(interval);
+      };
+    }, [isGlobal, hasGlobalHeader, token, fetchUnreadCount])
+  );
+
+  // Set the global header active state
   useEffect(() => {
-    pulse.value = withRepeat(
-      withSequence(
-        withTiming(1.3, { duration: 1000, easing: Easing.out(Easing.ease) }),
-        withTiming(1, { duration: 1000, easing: Easing.in(Easing.ease) })
-      ),
-      -1,
-      false
-    );
-  }, []);
+    if (isGlobal) {
+      setHasGlobalHeader(true);
+      return () => {
+        setHasGlobalHeader(false);
+      };
+    }
+  }, [isGlobal]);
 
-  const pulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pulse.value }],
-    opacity: 1.5 - pulse.value,
-  }));
+  // If this is a local instance rendered inside a screen, portal the props to the global store and render nothing.
+  useFocusEffect(
+    useCallback(() => {
+      if (!isGlobal && hasGlobalHeader) {
+        setHeaderProps({
+          title,
+          showAvatar,
+          showNotification,
+          onBack,
+          rightComponent,
+        });
+      }
+    }, [isGlobal, hasGlobalHeader, title, showAvatar, showNotification, onBack, rightComponent])
+  );
 
-  const animatedContainerStyle = useAnimatedStyle(() => {
-    if (!scrollY) return {};
-    const height = interpolate(scrollY.value, [0, 100], [SPACING.statusBar + 88, SPACING.statusBar + 64], Extrapolation.CLAMP);
-    return { height };
-  });
+  if (!isGlobal && hasGlobalHeader) {
+    return null;
+  }
 
-  const animatedContentStyle = useAnimatedStyle(() => {
-    if (!scrollY) return {};
-    const opacity = interpolate(scrollY.value, [0, 80], [1, 0.9], Extrapolation.CLAMP);
-    const scale = interpolate(scrollY.value, [0, 80], [1, 0.95], Extrapolation.CLAMP);
-    return { opacity, transform: [{ scale }] };
-  });
+  // Determine active props depending on whether it is global or local
+  const activeProps = isGlobal ? globalProps : {
+    title,
+    showAvatar,
+    showNotification,
+    onBack,
+    rightComponent,
+  };
 
   const handleNotification = () => {
     if (onNotificationPress) {
@@ -135,95 +128,114 @@ export default function TopAppBar({
   };
 
   return (
-    <Animated.View style={[styles.outerContainer, animatedContainerStyle, SHADOWS.toolbarShadow]}>
-      {/* Background Gradient Base */}
+    <View
+      style={[
+        styles.outerContainer,
+        {
+          height: SPACING.statusBar + 88,
+          backgroundColor: isDark ? colors.bgPrimary : '#0A4174', // Fallback color
+          borderBottomWidth: isDark ? 1 : 0,
+          borderBottomColor: isDark ? colors.outlineVariant : 'transparent',
+        },
+        shadows.toolbarShadow,
+      ]}
+    >
+      {/* Opaque Solid Gradient Background */}
       <LinearGradient
-        colors={[COLORS.surfaceContainer, COLORS.surfaceContainerLow]}
+        colors={isDark ? [colors.bgPrimary, colors.bgSecondary] : ['#0A4174', '#062d52']}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Soft Blob Gradients */}
-      <View style={StyleSheet.absoluteFill}>
-        <AnimatedBlob 
-          color={COLORS.primary} 
-          size={120} 
-          top={-40} 
-          left={-20} 
-          duration={8000} 
-        />
-        <AnimatedBlob 
-          color={COLORS.secondary} 
-          size={150} 
-          bottom={-60} 
-          right={-30} 
-          duration={10000} 
-          delay={1000}
-        />
-      </View>
-
-      <BlurView intensity={GLASS.blurIntensity + 15} tint={GLASS.tintColor} style={StyleSheet.absoluteFill} />
-      
-      {/* Glossy Gradient Overlay */}
-      <LinearGradient
-        colors={['rgba(255,255,255,0.15)', 'transparent', 'rgba(0,0,0,0.02)']}
-        style={StyleSheet.absoluteFill}
-      />
-
-      {/* Top Lighting Highlight */}
-      <LinearGradient
-        colors={['rgba(255,255,255,0.4)', 'transparent']}
-        style={styles.topLight}
-      />
-
-      <Animated.View style={[styles.content, animatedContentStyle]}>
+      <View
+        style={[
+          styles.content,
+          {
+            paddingHorizontal: SPACING.md,
+            paddingTop: SPACING.statusBar,
+          },
+        ]}
+      >
         <View style={styles.leftSection}>
-          {onBack ? (
-            <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-              <MaterialCommunityIcons name={ICONS.back} size={24} color={COLORS.textPrimary} />
+          {activeProps.onBack && (
+            <TouchableOpacity
+              onPress={activeProps.onBack}
+              style={[
+                styles.backBtn,
+                {
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  borderColor: 'rgba(255, 255, 255, 0.2)',
+                  borderRadius: SIZES.radiusFull,
+                },
+              ]}
+            >
+              <MaterialCommunityIcons name={ICONS.back} size={24} color="#FFFFFF" />
             </TouchableOpacity>
-          ) : (
-            showAvatar && (
-              <TouchableOpacity style={styles.avatarWrapper} onPress={handleAvatar} activeOpacity={0.7}>
-                <View style={styles.avatarRing}>
-                  <View style={styles.avatarInner}>
-                    {avatarLabel ? (
-                      <Text style={styles.avatarText}>{avatarLabel}</Text>
-                    ) : (
-                      <MaterialCommunityIcons name="account" size={24} color={COLORS.primary} />
-                    )}
-                  </View>
-                </View>
-              </TouchableOpacity>
-            )
           )}
         </View>
 
         <View style={styles.centerSection}>
-          <Text style={styles.engravedTitle} numberOfLines={1}>{title}</Text>
+          <View style={styles.titleWrapper}>
+            <Image 
+              source={require('../../assets/images/logo.png')} 
+              style={styles.headerLogo}
+              contentFit="contain"
+            />
+            <Text
+              style={[
+                styles.titleText,
+                {
+                  fontFamily: FONTS.heading,
+                  fontSize: 21, // Modular scale text-h3
+                  color: '#FFFFFF',
+                },
+              ]}
+              numberOfLines={1}
+            >
+              {activeProps.title}
+            </Text>
+          </View>
         </View>
 
         <View style={styles.rightSection}>
-          {rightComponent ? rightComponent : (
-            showNotification && (
+          {activeProps.rightComponent ? (
+            activeProps.rightComponent
+          ) : (
+            activeProps.showNotification && (
               <TouchableOpacity style={styles.notificationBtn} onPress={handleNotification} activeOpacity={0.7}>
-                <View style={styles.iconHousing}>
-                  <MaterialCommunityIcons name={ICONS.notification} size={22} color={COLORS.textPrimary} />
-                  <View style={styles.dotWrapper}>
-                    <Animated.View style={[styles.notificationPulse, pulseStyle]} />
-                    <View style={styles.notificationDot} />
-                  </View>
+                <View
+                  style={[
+                    styles.iconHousing,
+                    {
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      borderColor: 'rgba(255, 255, 255, 0.2)',
+                      borderRadius: SIZES.radius, // 13px
+                    },
+                  ]}
+                >
+                  <MaterialCommunityIcons name={ICONS.notification} size={22} color="#FFFFFF" />
+                  {unreadCount > 0 && (
+                    <View style={styles.dotWrapper}>
+                      <View
+                        style={[
+                          styles.notificationDot,
+                          {
+                            backgroundColor: colors.error,
+                            borderColor: isDark ? colors.bgPrimary : '#0A4174',
+                            borderRadius: SIZES.radiusFull,
+                          },
+                        ]}
+                      />
+                    </View>
+                  )}
                 </View>
               </TouchableOpacity>
             )
           )}
         </View>
-      </Animated.View>
-
-      {/* Bottom Lip shadow */}
-      <View style={styles.bottomLip} />
-    </Animated.View>
+      </View>
+    </View>
   );
 }
 
@@ -234,27 +246,15 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 100,
-    height: SPACING.statusBar + 88,
-    backgroundColor: COLORS.surfaceContainer,
-    overflow: 'hidden',
-  },
-  topLight: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 4,
   },
   content: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.statusBar,
   },
   leftSection: {
-    width: 60 as any,
+    width: 60,
     alignItems: 'flex-start',
     justifyContent: 'center',
   },
@@ -264,57 +264,46 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   rightSection: {
-    width: 60 as any,
+    width: 60,
     alignItems: 'flex-end',
     justifyContent: 'center',
   },
   avatarWrapper: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    ...SHADOWS.elevation3,
   },
   avatarRing: {
     width: 44,
     height: 44,
-    borderRadius: 22,
     padding: 2,
-    backgroundColor: 'rgba(255,255,255,0.8)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
   },
   avatarInner: {
     flex: 1,
-    borderRadius: 20,
-    backgroundColor: COLORS.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.5)',
-  },
-  avatarText: {
-    fontFamily: FONTS.headingSemi,
-    fontSize: 18,
-    color: COLORS.onPrimaryContainer,
   },
   backBtn: {
-    ...SHADOWS.inset, // Recessed look
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.glassSurface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: COLORS.glassHighlight,
   },
-  engravedTitle: {
-    fontFamily: FONTS.heading,
-    fontSize: 20,
-    color: COLORS.textPrimary,
-    textShadowColor: 'rgba(255,255,255,0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1,
+  titleWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  headerLogo: {
+    width: 28,
+    height: 28,
+  },
+  titleText: {
+    textAlign: 'center',
   },
   notificationBtn: {
     width: 44,
@@ -323,15 +312,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconHousing: {
-    ...SHADOWS.raised,
     width: 40,
     height: 40,
-    borderRadius: 12,
-    backgroundColor: COLORS.glassSurface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: COLORS.glassHighlight,
   },
   dotWrapper: {
     position: 'absolute',
@@ -345,27 +330,6 @@ const styles = StyleSheet.create({
   notificationDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.error,
     borderWidth: 1.5,
-    borderColor: '#FFFFFF',
-  },
-  notificationPulse: {
-    position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: COLORS.error,
-  },
-  bottomLip: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 2,
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    borderTopWidth: 1,
-    borderTopColor: COLORS.glassHighlight,
   },
 });
-

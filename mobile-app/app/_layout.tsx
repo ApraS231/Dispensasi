@@ -14,7 +14,8 @@ import {
 } from '@expo-google-fonts/roboto';
 import * as SplashScreen from 'expo-splash-screen';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
-import LiquidBackground from '../src/components/LiquidBackground';
+import { useThemeStore } from '../src/stores/themeStore';
+import GradientBackground from '../src/components/GradientBackground';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -42,12 +43,18 @@ const queryClient = new QueryClient({
 export default function RootLayout() {
   const { setUser, setToken, setLoading } = useAuthStore();
   const { expoPushToken } = usePushNotifications();
+  const { resolvedMode, initialize } = useThemeStore();
   
   const [fontsLoaded] = useFonts({
     'Roboto-Regular': Roboto_400Regular,
     'Roboto-Medium': Roboto_500Medium,
     'Roboto-Bold': Roboto_700Bold,
   });
+
+  useEffect(() => {
+    const cleanup = initialize();
+    return () => cleanup();
+  }, []);
 
   useEffect(() => {
     if (fontsLoaded) {
@@ -81,8 +88,8 @@ export default function RootLayout() {
     <GestureHandlerRootView style={styles.container}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
-          <StatusBar style="dark" />
-          <LiquidBackground />
+          <StatusBar style={resolvedMode === 'dark' ? 'light' : 'dark'} />
+          <GradientBackground />
           <Slot />
         </QueryClientProvider>
       </SafeAreaProvider>

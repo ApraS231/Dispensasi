@@ -15,23 +15,28 @@ import TicketCard from '../../src/components/TicketCard';
 import MechanicalToggle from '../../src/components/MechanicalToggle';
 import TopAppBar from '../../src/components/TopAppBar';
 import GlassFAB from '../../src/components/GlassFAB';
+import AvatarInitials from '../../src/components/AvatarInitials';
 import BouncyButton from '../../src/components/BouncyButton';
 import RejectModal from '../../src/components/RejectModal';
-import LiquidBackground from '../../src/components/LiquidBackground';
 import AnimatedEntrance from '../../src/components/AnimatedEntrance';
 import AnimatedCounter from '../../src/components/AnimatedCounter';
 import RefreshableScrollView from '../../src/components/RefreshableScrollView';
 import LogoutButton from '../../src/components/LogoutButton';
-import { COLORS, FONTS, SIZES, SPACING, SHADOWS, GLASS } from '../../src/utils/theme';
-import { commonStyles } from '../../src/utils/commonStyles';
+import { FONTS, SIZES, SPACING, GLASS } from '../../src/utils/theme';
+import { createCommonStyles } from '../../src/utils/commonStyles';
+import { useTheme } from '../../src/hooks/useTheme';
 import { BlurView } from 'expo-blur';
 import { useSharedValue } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function PiketDashboard() {
   const { user, logout } = useAuthStore();
   const [isReady, setIsReady] = useState(false);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const scrollY = useSharedValue(0);
+  const { colors, isDark, shadows } = useTheme();
+  const commonStyles = createCommonStyles(colors);
 
   const approveMutation = useApproveTicket();
   const rejectMutation = useRejectTicket();
@@ -117,20 +122,18 @@ export default function PiketDashboard() {
   const todayDate = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
-    <View style={commonStyles.container}>
-      <LiquidBackground />
-      
-      {/* Header - Fixed container to ensure responsiveness */}
-      <View style={{ height: SPACING.statusBar + 88, zIndex: 100 }}>
+    <LinearGradient
+      colors={[colors.bgPrimary, colors.bgSecondary]}
+      style={commonStyles.container}
+    >
+      <SafeAreaView style={commonStyles.safeArea} edges={['bottom', 'left', 'right']}>
         <TopAppBar 
           showAvatar={true} 
           avatarLabel={user?.name?.charAt(0)?.toUpperCase() || 'P'} 
           showNotification={true} 
           scrollY={scrollY}
         />
-      </View>
 
-      <View style={commonStyles.safeArea}>
         <RefreshableScrollView 
           refreshing={refreshing} 
           onRefresh={onRefresh}
@@ -144,23 +147,23 @@ export default function PiketDashboard() {
               <View style={commonStyles.headerContainer}>
                 {/* Header Background Blobs */}
                 <View style={styles.headerBlobContainer} pointerEvents="none">
-                  <View style={[styles.headerBlob, { backgroundColor: COLORS.primary, top: -20, left: -20 }]} />
-                  <View style={[styles.headerBlob, { backgroundColor: COLORS.secondary, bottom: -40, right: -20 }]} />
+                  <View style={[styles.headerBlob, { backgroundColor: colors.primary, top: -20, left: -20 }]} />
+                  <View style={[styles.headerBlob, { backgroundColor: colors.secondary, bottom: -40, right: -20 }]} />
                 </View>
 
                 <SkeuCard style={styles.headerCard}>
                   <View style={styles.headerTop}>
                     <View>
-                      <Text style={styles.greeting}>Status Piket Hari Ini</Text>
-                      <Text style={styles.dateText}>{todayDate}</Text>
+                      <Text style={[styles.greeting, { color: colors.textSecondary }]}>Status Piket Hari Ini</Text>
+                      <Text style={[styles.dateText, { color: colors.textPrimary }]}>{todayDate}</Text>
                     </View>
                     <LogoutButton onPress={handleLogout} />
                   </View>
 
-                  <View style={[styles.toggleContainer, SHADOWS.inset]}>
+                  <View style={[styles.toggleContainer, shadows.inset, { backgroundColor: colors.glassSurface, borderColor: colors.glassHighlight }]}>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.toggleLabel}>Kehadiran</Text>
-                      <Text style={[styles.toggleStatus, { color: isReady ? COLORS.primary : COLORS.textMuted }]}>
+                      <Text style={[styles.toggleLabel, { color: colors.textMuted }]}>Kehadiran</Text>
+                      <Text style={[styles.toggleStatus, { color: isReady ? colors.primary : colors.textMuted }]}>
                         {isReady ? 'SEDANG BERTUGAS' : 'ISTIRAHAT'}
                       </Text>
                     </View>
@@ -182,9 +185,9 @@ export default function PiketDashboard() {
                     <AnimatedEntrance delay={300}>
                       <View style={styles.scanActionRow}>
                         <TouchableOpacity onPress={() => expoRouter.push('/scan-qr')} activeOpacity={0.8}>
-                          <View style={styles.scanBtn}>
-                            <MaterialCommunityIcons name="qrcode-scan" size={24} color={COLORS.onPrimary} />
-                            <Text style={styles.scanBtnText}>Pindai QR Siswa Keluar</Text>
+                          <View style={[styles.scanBtn, { backgroundColor: colors.primary, borderColor: colors.glassHighlight }]}>
+                            <MaterialCommunityIcons name="qrcode-scan" size={24} color={colors.onPrimary} />
+                            <Text style={[styles.scanBtnText, { color: colors.onPrimary }]}>Pindai QR Siswa Keluar</Text>
                           </View>
                         </TouchableOpacity>
                       </View>
@@ -198,8 +201,8 @@ export default function PiketDashboard() {
               <AnimatedEntrance delay={500} direction="up">
                 <View style={commonStyles.sectionHeader}>
                   <Text style={commonStyles.sectionTitle}>Antrean Persetujuan</Text>
-                  <View style={styles.badgeCount}>
-                    <Text style={styles.badgeCountText}>{pendingTickets.length}</Text>
+                  <View style={[styles.badgeCount, { backgroundColor: colors.warning }]}>
+                    <Text style={[styles.badgeCountText, { color: colors.textPrimary }]}>{pendingTickets.length}</Text>
                   </View>
                 </View>
               </AnimatedEntrance>
@@ -207,35 +210,84 @@ export default function PiketDashboard() {
               {useMemo(() => (
                 pendingTickets.length > 0 ? pendingTickets.map((item: any, index: number) => (
                   <AnimatedEntrance key={item.id} delay={index < 5 ? 600 + (index * 100) : 0} direction="up" offset={20}>
-                    <View style={styles.ticketWrapper}>
-                      <TicketCard 
-                        item={item} 
+                    <SkeuCard isGlass style={styles.ticketWrapper}>
+                      {/* Clickable details section */}
+                      <TouchableOpacity 
+                        activeOpacity={0.8}
                         onPress={() => expoRouter.push(`/ticket/${item.id}`)}
-                        showName={true}
-                      />
+                      >
+                        {/* Header Row: Student Info */}
+                        <View style={styles.ticketHeaderRow}>
+                          <AvatarInitials name={item.siswa?.name || 'S'} size={40} fontSize={16} />
+                          <View style={styles.ticketMeta}>
+                            <Text style={[styles.ticketName, { color: colors.textPrimary }]}>{item.siswa?.name || 'Siswa'}</Text>
+                            <Text style={[styles.ticketClass, { color: colors.textSecondary }]}>{item.kelas?.nama_kelas || item.siswa?.kelas?.nama_kelas || 'Kelas'}</Text>
+                          </View>
+                          <View style={[styles.ledDot, { backgroundColor: colors.warning, shadowColor: colors.warning }]} />
+                        </View>
+                        
+                        {/* Divider */}
+                        <View style={[styles.divider, { backgroundColor: colors.glassHighlight }]} />
+
+                        {/* Permit Info */}
+                        <View style={[styles.permitHeaderRow, { marginBottom: SPACING.xs }]}>
+                          <View style={styles.headerItem}>
+                            <MaterialCommunityIcons name="calendar" size={14} color={colors.textSecondary} />
+                            <Text style={[styles.headerText, { fontFamily: FONTS.bodyMedium, color: colors.textSecondary }]}>
+                              {item.created_at ? new Date(item.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                            </Text>
+                          </View>
+                          <View style={styles.headerItem}>
+                            <MaterialCommunityIcons name="clock-outline" size={14} color={colors.textSecondary} />
+                            <Text style={[styles.headerText, { fontFamily: FONTS.bodyMedium, color: colors.textSecondary }]}>
+                              {item.created_at ? new Date(item.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : ''}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <Text style={[styles.typeText, { fontFamily: FONTS.heading, color: colors.primary }]}>
+                          {item.jenis_izin?.replace(/_/g, ' ')}
+                        </Text>
+                        
+                        <View style={[
+                          styles.reasonContainer, 
+                          { 
+                            backgroundColor: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.03)',
+                            borderRadius: SIZES.radiusSm || 8,
+                            borderWidth: 1,
+                            borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)'
+                          }
+                        ]}>
+                          <MaterialCommunityIcons name="format-quote-open" size={10} color={isDark ? '#7BBDE8' : colors.primaryMuted} style={{ marginRight: 4 }} />
+                          <Text style={[styles.reasonText, { fontFamily: FONTS.body, color: colors.textSecondary }]} numberOfLines={2}>
+                            {item.alasan}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
                       
+                      {/* Action buttons */}
                       <View style={styles.actionRow}>
                         <TouchableOpacity 
-                          style={[styles.miniActionBtn, styles.miniReject]} 
+                          style={[styles.miniActionBtn, styles.miniReject, { backgroundColor: colors.errorBg }]} 
                           onPress={() => handleReject(item.id)}
                         >
-                          <MaterialCommunityIcons name="close" size={20} color={COLORS.error} />
-                          <Text style={styles.miniBtnTextReject}>Tolak</Text>
+                          <MaterialCommunityIcons name="close" size={20} color={colors.error} />
+                          <Text style={[styles.miniBtnTextReject, { color: colors.error }]}>Tolak</Text>
                         </TouchableOpacity>
                         <TouchableOpacity 
-                          style={[styles.miniActionBtn, styles.miniApprove]} 
+                          style={[styles.miniActionBtn, { backgroundColor: colors.primary }, shadows.raised]} 
                           onPress={() => handleApprove(item.id)}
                         >
                           <MaterialCommunityIcons name="check" size={20} color="#FFF" />
                           <Text style={styles.miniBtnTextApprove}>Setujui & Terbitkan</Text>
                         </TouchableOpacity>
                       </View>
-                    </View>
+                    </SkeuCard>
                   </AnimatedEntrance>
                 )) : (
                   <Text style={commonStyles.emptyText}>Tidak ada antrean persetujuan.</Text>
                 )
-              ), [pendingTickets])}
+              ), [pendingTickets, colors, shadows, isDark])}
             </View>
 
             <View style={[commonStyles.contentContainer, { marginTop: SPACING.xl }]}>
@@ -243,26 +295,26 @@ export default function PiketDashboard() {
                 <SkeuCard style={{ padding: SPACING.md }}>
                   <View style={[commonStyles.sectionHeader, { marginBottom: SPACING.lg }]}>
                     <View style={styles.sectionTitleRow}>
-                      <MaterialCommunityIcons name="history" size={20} color={COLORS.primary} />
+                      <MaterialCommunityIcons name="history" size={20} color={colors.primary} />
                       <Text style={commonStyles.sectionTitle}>Log Hari Ini</Text>
                     </View>
                     <TouchableOpacity onPress={() => expoRouter.push('/(piket)/history')}>
-                      <Text style={styles.seeAllText}>Lihat Semua</Text>
+                      <Text style={[styles.seeAllText, { color: colors.primary }]}>Lihat Semua</Text>
                     </TouchableOpacity>
                   </View>
 
                   <View style={styles.statsGrid}>
-                    <View style={[styles.statItem, SHADOWS.inset]}>
-                      <Text style={styles.statLabel}>TOTAL</Text>
-                      <AnimatedCounter value={dailyLogStats.total} style={styles.statValue} delay={1200} />
+                    <View style={[styles.statItem, shadows.inset, { backgroundColor: colors.glassSurface, borderColor: colors.glassHighlight }]}>
+                      <Text style={[styles.statLabel, { color: colors.textMuted }]}>TOTAL</Text>
+                      <AnimatedCounter value={dailyLogStats.total} style={[styles.statValue, { color: colors.textPrimary }]} delay={1200} />
                     </View>
-                    <View style={[styles.statItem, SHADOWS.inset]}>
-                      <Text style={[styles.statLabel, { color: COLORS.success }]}>EXIT</Text>
-                      <AnimatedCounter value={dailyLogStats.scanned} style={[styles.statValue, { color: COLORS.success }]} delay={1400} />
+                    <View style={[styles.statItem, shadows.inset, { backgroundColor: colors.glassSurface, borderColor: colors.glassHighlight }]}>
+                      <Text style={[styles.statLabel, { color: colors.success }]}>EXIT</Text>
+                      <AnimatedCounter value={dailyLogStats.scanned} style={[styles.statValue, { color: colors.success }]} delay={1400} />
                     </View>
-                    <View style={[styles.statItem, SHADOWS.inset]}>
-                      <Text style={[styles.statLabel, { color: COLORS.warning }]}>WAIT</Text>
-                      <AnimatedCounter value={dailyLogStats.total - dailyLogStats.scanned} style={[styles.statValue, { color: COLORS.warning }]} delay={1600} />
+                    <View style={[styles.statItem, shadows.inset, { backgroundColor: colors.glassSurface, borderColor: colors.glassHighlight }]}>
+                      <Text style={[styles.statLabel, { color: colors.warning }]}>WAIT</Text>
+                      <AnimatedCounter value={dailyLogStats.total - dailyLogStats.scanned} style={[styles.statValue, { color: colors.warning }]} delay={1600} />
                     </View>
                   </View>
 
@@ -274,11 +326,11 @@ export default function PiketDashboard() {
                         </AnimatedEntrance>
                       )) : (
                         <View style={styles.emptyLogContainer}>
-                          <MaterialCommunityIcons name="clipboard-text-outline" size={48} color={COLORS.textMuted} />
-                          <Text style={styles.emptyLogText}>Belum ada aktivitas hari ini</Text>
+                          <MaterialCommunityIcons name="clipboard-text-outline" size={48} color={colors.textMuted} />
+                          <Text style={[styles.emptyLogText, { color: colors.textMuted }]}>Belum ada aktivitas hari ini</Text>
                         </View>
                       )
-                    ), [dailyLogs])}
+                    ), [dailyLogs, colors])}
                   </View>
                 </SkeuCard>
               </AnimatedEntrance>
@@ -288,14 +340,14 @@ export default function PiketDashboard() {
         </RefreshableScrollView>
 
         <GlassFAB onPress={() => expoRouter.push('/scan-qr')} icon="qrcode-scan" style={{ bottom: 100 }} />
-      </View>
+      </SafeAreaView>
 
       <RejectModal
         visible={!!rejectingId}
         onClose={() => setRejectingId(null)}
         onSubmit={confirmReject}
       />
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -324,27 +376,22 @@ const styles = StyleSheet.create({
   greeting: {
     fontFamily: FONTS.bodyMedium,
     fontSize: 14,
-    color: COLORS.textSecondary,
   },
   dateText: {
     fontFamily: FONTS.heading,
     fontSize: 20,
-    color: COLORS.textPrimary,
     marginTop: 2,
   },
   toggleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.glassSurface,
     padding: SPACING.md,
     borderRadius: SIZES.radiusMd,
     borderWidth: 1,
-    borderColor: COLORS.glassHighlight,
   },
   toggleLabel: {
     fontFamily: FONTS.labelCaps,
     fontSize: 11,
-    color: COLORS.textMuted,
   },
   toggleStatus: {
     fontFamily: FONTS.headingSemi,
@@ -358,20 +405,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.primary,
     paddingVertical: SPACING.md,
     borderRadius: SIZES.radiusButton,
     gap: SPACING.sm,
     borderWidth: 1,
-    borderColor: COLORS.glassHighlight,
   },
   scanBtnText: {
     fontFamily: FONTS.headingSemi,
-    color: COLORS.onPrimary,
     fontSize: 16,
   },
   badgeCount: {
-    backgroundColor: COLORS.warning,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 12,
@@ -380,7 +423,6 @@ const styles = StyleSheet.create({
   badgeCountText: {
     fontFamily: FONTS.heading,
     fontSize: 12,
-    color: COLORS.textPrimary,
   },
   ticketWrapper: {
     marginBottom: SPACING.lg,
@@ -388,9 +430,67 @@ const styles = StyleSheet.create({
   actionRow: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: -8,
-    paddingHorizontal: 4,
-    marginBottom: 8,
+    marginTop: SPACING.md,
+  },
+  ticketHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+    position: 'relative',
+  },
+  ticketMeta: {
+    marginLeft: SPACING.sm,
+    flex: 1,
+  },
+  ticketName: {
+    fontFamily: FONTS.headingSemi,
+    fontSize: 15,
+  },
+  ticketClass: {
+    fontFamily: FONTS.bodyMedium,
+    fontSize: 12,
+  },
+  ledDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  divider: {
+    height: 1,
+    marginVertical: SPACING.sm,
+    opacity: 0.15,
+  },
+  permitHeaderRow: {
+    flexDirection: 'row',
+    gap: 13,
+  },
+  headerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  headerText: {
+    fontSize: 10,
+  },
+  typeText: {
+    fontSize: 16,
+    textTransform: 'capitalize',
+    marginBottom: 4,
+  },
+  reasonContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 8,
+    marginTop: 2,
+  },
+  reasonText: {
+    fontSize: 10,
+    lineHeight: 14,
+    flex: 1,
   },
   miniActionBtn: {
     flex: 1,
@@ -402,18 +502,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   miniReject: {
-    backgroundColor: COLORS.errorBg,
     borderWidth: 1,
     borderColor: 'rgba(239, 71, 111, 0.1)',
-  },
-  miniApprove: {
-    backgroundColor: COLORS.primary,
-    ...SHADOWS.raised,
   },
   miniBtnTextReject: {
     fontFamily: FONTS.headingSemi,
     fontSize: 13,
-    color: COLORS.error,
   },
   miniBtnTextApprove: {
     fontFamily: FONTS.headingSemi,
@@ -428,7 +522,6 @@ const styles = StyleSheet.create({
   seeAllText: {
     fontFamily: FONTS.headingSemi,
     fontSize: 12,
-    color: COLORS.primary,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -440,19 +533,15 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     alignItems: 'center',
     borderRadius: SIZES.radiusMd,
-    backgroundColor: COLORS.glassSurface,
     borderWidth: 1,
-    borderColor: COLORS.glassHighlight,
   },
   statValue: {
     fontFamily: FONTS.heading,
     fontSize: 24,
-    color: COLORS.textPrimary,
   },
   statLabel: {
     fontFamily: FONTS.labelCaps,
     fontSize: 9,
-    color: COLORS.textMuted,
     marginTop: 4,
     letterSpacing: 0.5,
   },
@@ -468,7 +557,6 @@ const styles = StyleSheet.create({
   emptyLogText: {
     fontFamily: FONTS.body,
     fontSize: 14,
-    color: COLORS.textMuted,
   },
 });
 

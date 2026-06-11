@@ -40,6 +40,6 @@ class DispensasiTest extends TestCase
         ]);
 
         $response2->assertStatus(400);
-        $response2->assertJson(['message' => 'Anda sudah mengajukan dispensasi hari ini.']);
+        $this->assertStringContainsString('Anda hanya dapat mengajukan 1 dispensasi setiap 12 jam', $response2->json('message'));
     }
 }

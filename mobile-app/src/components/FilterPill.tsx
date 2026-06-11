@@ -1,7 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { COLORS, FONTS, SIZES, GLASS } from '../utils/theme';
+import { useTheme } from '../hooks/useTheme';
 import { HapticFeedback } from '../utils/haptics';
 
 interface FilterPillProps {
@@ -12,23 +12,48 @@ interface FilterPillProps {
 }
 
 export default function FilterPill({ id, label, isActive, onPress }: FilterPillProps) {
+  const { colors, isDark, SIZES, SPACING, FONTS } = useTheme();
+
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       onPress={() => {
         HapticFeedback.light();
         onPress(id);
       }}
       activeOpacity={0.8}
     >
-      <BlurView 
-        intensity={GLASS.blurIntensity} 
-        tint={GLASS.tintColor} 
+      <BlurView
+        intensity={24} // design.md blur(24px)
+        tint={isDark ? 'dark' : 'light'}
         style={[
-          styles.filterPill, 
-          isActive ? styles.filterPillActive : null
+          styles.filterPill,
+          {
+            borderRadius: SIZES.radiusButton,
+            paddingHorizontal: SPACING.sm, // 13px golden ratio spacing
+            paddingVertical: SPACING.xs, // 8px golden ratio spacing
+            backgroundColor: isActive
+              ? (isDark ? 'rgba(123, 189, 232, 0.2)' : 'rgba(10, 65, 116, 0.15)')
+              : colors.glassSurface,
+            borderColor: isActive
+              ? (isDark ? '#7BBDE8' : '#0A4174')
+              : colors.glassBorder,
+          },
         ]}
       >
-        <Text style={[styles.filterText, isActive && styles.filterTextActive]}>{label}</Text>
+        <Text
+          style={[
+            styles.filterText,
+            {
+              fontFamily: FONTS.headingSemi,
+              fontSize: 10, // Modular scale text-caption
+              color: isActive
+                ? (isDark ? '#EAEEF3' : '#001D39')
+                : colors.textSecondary,
+            },
+          ]}
+        >
+          {label}
+        </Text>
       </BlurView>
     </TouchableOpacity>
   );
@@ -36,24 +61,8 @@ export default function FilterPill({ id, label, isActive, onPress }: FilterPillP
 
 const styles = StyleSheet.create({
   filterPill: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: SIZES.radiusButton,
-    backgroundColor: COLORS.surfaceContainerLow,
     borderWidth: 1,
-    borderColor: COLORS.glassHighlight,
     overflow: 'hidden',
   },
-  filterPillActive: {
-    backgroundColor: COLORS.primaryContainer,
-    borderColor: COLORS.primaryLight,
-  },
-  filterText: {
-    fontFamily: FONTS.headingSemi,
-    fontSize: 12,
-    color: COLORS.textSecondary,
-  },
-  filterTextActive: {
-    color: COLORS.onPrimaryContainer,
-  },
+  filterText: {},
 });

@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { COLORS, FONTS, SHADOWS } from '../utils/theme';
+import { StyleSheet } from 'react-native';
+import { useTheme } from '../hooks/useTheme';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface AvatarInitialsProps {
   name?: string;
@@ -9,45 +10,36 @@ interface AvatarInitialsProps {
   fontSize?: number;
 }
 
-function getInitials(name?: string): string {
-  if (!name) return '?';
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  }
-  return (parts[0]?.[0] || '?').toUpperCase();
-}
-
 export default function AvatarInitials({ name, size = 40, fontSize = 16 }: AvatarInitialsProps) {
-  const initials = getInitials(name);
+  const { colors, SIZES, shadows } = useTheme();
 
   return (
     <LinearGradient
-      colors={[COLORS.secondaryContainer, COLORS.surfaceContainer]}
+      colors={[colors.secondaryContainer, colors.surfaceContainer]}
       style={[
         styles.container,
+        shadows.glassPanel,
         {
           width: size,
           height: size,
-          borderRadius: size / 2, // Circular instead of boxy
+          borderRadius: SIZES.radiusFull, // Perfectly circular
+          borderColor: colors.glassHighlight,
         },
       ]}
     >
-      <Text style={[styles.text, { fontSize }]}>{initials}</Text>
+      <MaterialCommunityIcons 
+        name="account" 
+        size={size * 0.6} 
+        color={colors.textPrimary} 
+      />
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    ...SHADOWS.glassPanel,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: COLORS.glassHighlight,
-  },
-  text: {
-    fontFamily: FONTS.headingSemi,
-    color: COLORS.textPrimary,
   },
 });

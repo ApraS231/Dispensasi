@@ -1,16 +1,20 @@
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { View } from 'react-native';
 import BottomTabBar, { SISWA_TABS } from '../../src/components/BottomTabBar';
+import TopAppBar from '../../src/components/TopAppBar';
 
 export default function SiswaLayout() {
   const pathname = usePathname();
   const router = useRouter();
 
-  const hideTabBar = pathname.includes('/pengajuan') || pathname.includes('/qr/');
   const activeTab = pathname.split('/').pop() || 'dashboard';
+  const tabNames = SISWA_TABS.map(t => t.name);
+  const showTabBar = tabNames.includes(activeTab) && !pathname.includes('/qr/');
 
   return (
     <View style={{ flex: 1 }}>
+      <TopAppBar isGlobal={true} />
+      
       <Stack screenOptions={{ 
         headerShown: false, 
         animation: 'simple_push',
@@ -24,13 +28,18 @@ export default function SiswaLayout() {
         <Stack.Screen name="qr/[id]" options={{ animation: 'fade' }} />
       </Stack>
       
-      {!hideTabBar && (
+      {showTabBar && (
         <BottomTabBar 
           tabs={SISWA_TABS} 
           activeTab={activeTab} 
           onTabPress={(tab) => {
-            if (tab === 'pengajuan') router.push('/(siswa)/pengajuan');
-            else router.push(`/(siswa)/${tab}`);
+            if (activeTab !== tab) {
+              if (tab === 'pengajuan') {
+                router.push('/(siswa)/pengajuan');
+              } else {
+                router.replace(`/(siswa)/${tab}`);
+              }
+            }
           }} 
         />
       )}

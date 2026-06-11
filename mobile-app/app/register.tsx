@@ -1,47 +1,58 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import { View, Text, TextInput, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import api from '../src/utils/api';
 import { useAuthStore } from '../src/stores/authStore';
-import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../src/utils/theme';
-import { commonStyles } from '../src/utils/commonStyles';
+import { useTheme } from '../src/hooks/useTheme';
+import { FONTS, SIZES, SPACING } from '../src/utils/theme';
 import BouncyButton from '../src/components/BouncyButton';
 import SkeuCard from '../src/components/SkeuCard';
-import LiquidBackground from '../src/components/LiquidBackground';
 import AnimatedEntrance from '../src/components/AnimatedEntrance';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { HapticFeedback } from '../src/utils/haptics';
+import Animated, { SlideInRight, SlideInLeft } from 'react-native-reanimated';
 
-function TypewriterText({ text, delay = 50 }: { text: string; delay?: number }) {
-  const [displayedText, setDisplayedText] = useState('');
-  
-  useEffect(() => {
-    let index = 0;
-    setDisplayedText(''); 
-    const interval = setInterval(() => {
-      setDisplayedText(text.substring(0, index + 1));
-      index++;
-      if (index >= text.length) clearInterval(interval);
-    }, delay);
-    return () => clearInterval(interval);
-  }, [text]);
+// Custom components
+import FormInput from '../src/components/FormInput';
+import PasswordStrengthBar from '../src/components/PasswordStrengthBar';
+import StepIndicator from '../src/components/StepIndicator';
+import SuccessOverlay from '../src/components/SuccessOverlay';
+import BrandHeader from '../src/components/BrandHeader';
 
-  return <Text style={styles.title}>{displayedText}</Text>;
-}
+// Validation
+import { 
+  validateEmail, 
+  validatePassword, 
+  validateName, 
+  validateNIS, 
+  validatePasswordMatch, 
+  parseValidationErrors 
+} from '../src/utils/validation';
 
 export default function RegisterScreen() {
+  const { colors, isDark, SIZES, SPACING, FONTS, shadows } = useTheme();
+
+  const [step, setStep] = useState(1);
+  const [slideDirection, setSlideDirection] = useState<'forward' | 'backward'>('forward');
+  
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [nis, setNis] = useState('');
+  
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [selectedKelasId, setSelectedKelasId] = useState<string | null>(null);
   const [showKelasPicker, setShowKelasPicker] = useState(false);
+  
   const [loading, setLoading] = useState(false);
-  const [focusedInput, setFocusedInput] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [successVisible, setSuccessVisible] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  
   const { setUser, setToken } = useAuthStore();
 
   // Fetch Kelas list
@@ -53,13 +64,56 @@ export default function RegisterScreen() {
     }
   });
 
-  const handleRegister = async () => {
-    if (!name || !email || !password || !nis || !selectedKelasId) {
-      Alert.alert('Perhatian', 'Semua data harus diisi.');
+  const handleTextChange = (field: string, value: string, setter: (val: string) => void) => {
+    setter(value);
+    if (errors[field] || errors.general) {
+      setErrors(prev => ({ ...prev, [field]: '', general: '' }));
+    }
+  };
+
+  const handleNextStep = () => {
+    const nameVal = validateName(name);
+    const emailVal = validateEmail(email);
+    const nisVal = validateNIS(nis);
+
+    if (!nameVal.isValid || !emailVal.isValid || !nisVal.isValid) {
+      setErrors({
+        name: nameVal.error || '',
+        email: emailVal.error || '',
+        nis: nisVal.error || '',
+      });
+      HapticFeedback.error();
       return;
     }
+
+    setErrors({});
+    HapticFeedback.light();
+    setSlideDirection('forward');
+    setStep(2);
+  };
+
+  const handlePrevStep = () => {
+    HapticFeedback.light();
+    setSlideDirection('backward');
+    setStep(1);
+  };
+
+  const handleRegister = async () => {
+    const passwordVal = validatePassword(password);
+    const confirmVal = validatePasswordMatch(password, confirmPassword);
     
+    if (!passwordVal.isValid || !confirmVal.isValid || !selectedKelasId) {
+      setErrors({
+        password: passwordVal.error || '',
+        confirmPassword: confirmVal.error || '',
+        kelas: !selectedKelasId ? 'Kelas wajib dipilih' : '',
+      });
+      HapticFeedback.error();
+      return;
+    }
+
     setLoading(true);
+    setErrors({});
     HapticFeedback.medium();
     
     try {
@@ -72,335 +126,314 @@ export default function RegisterScreen() {
       });
 
       await SecureStore.setItemAsync('userToken', response.data.token);
-      setToken(response.data.token);
-      setUser(response.data.user);
+      setSuccessMessage(response.data.message || 'Registrasi berhasil. Silakan tunggu persetujuan dari Wali Kelas.');
+      setSuccessVisible(true);
 
-      Alert.alert('Sukses', response.data.message);
-      router.replace('/(siswa)/dashboard');
+      setTimeout(async () => {
+        setToken(response.data.token);
+        setUser(response.data.user);
+        router.replace('/(siswa)/dashboard');
+      }, 3500);
 
     } catch (error: any) {
-      const msg = error.response?.data?.message || 'Registrasi Gagal. Silakan coba lagi.';
-      Alert.alert('Error', msg);
+      const backendErrors = parseValidationErrors(error);
+      setErrors(backendErrors);
+      
+      if (backendErrors.name || backendErrors.email || backendErrors.nis) {
+        setSlideDirection('backward');
+        setStep(1);
+      }
+      
+      if (backendErrors.general) {
+        Alert.alert('Gagal Daftar', backendErrors.general);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <View style={commonStyles.container}>
-      <LiquidBackground />
+  const enteringAnimation = slideDirection === 'forward' ? SlideInRight : SlideInLeft;
 
-      <SafeAreaView style={commonStyles.safeArea}>
+  return (
+    <LinearGradient
+      colors={[colors.bgPrimary, colors.bgSecondary]}
+      style={styles.container}
+    >
+      <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <ScrollView 
-            contentContainerStyle={styles.scrollContent} 
+            contentContainerStyle={[styles.scrollContent, { padding: SPACING.lg, paddingBottom: SPACING.xl }]} 
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            <View style={styles.headerContainer}>
-              <View style={styles.titleContainer}>
-                <TypewriterText text="Daftar Akun Baru" />
-                <AnimatedEntrance delay={600}>
-                  <Text style={styles.subtitle}>Bergabunglah dengan ekosistem digital perizinan SMA Negeri 3.</Text>
-                </AnimatedEntrance>
-              </View>
-            </View>
+            <BrandHeader showLogo={true} subtitle="Bergabunglah dengan ekosistem perizinan SMAN 3" />
 
-            <AnimatedEntrance delay={800} offset={40}>
+            <AnimatedEntrance delay={300} offset={30}>
               <SkeuCard style={styles.card} isGlass>
-                <View style={styles.formLabelRow}>
-                  <Text style={styles.formLabel}>Data Siswa</Text>
-                </View>
+                
+                <StepIndicator currentStep={step} />
 
-                {/* Name */}
-                <View style={[
-                  styles.inputWrapper, 
-                  focusedInput === 'name' && styles.inputWrapperFocused,
-                  SHADOWS.inset
-                ]}>
-                  <View style={styles.inputIconContainer}>
-                    <MaterialCommunityIcons 
-                      name="account-outline" 
-                      size={18} 
-                      color={focusedInput === 'name' ? COLORS.primary : COLORS.textMuted} 
+                {step === 1 ? (
+                  <Animated.View entering={enteringAnimation.duration(250)} key="step1">
+                    <FormInput
+                      label="Nama Lengkap"
+                      icon="account-outline"
+                      placeholder="Masukkan nama lengkap Anda"
+                      value={name}
+                      onChangeText={(val) => handleTextChange('name', val, setName)}
+                      error={errors.name}
+                      isValid={name.length >= 3 && !errors.name}
                     />
-                  </View>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Nama Lengkap"
-                    placeholderTextColor={COLORS.textMuted}
-                    value={name}
-                    onChangeText={setName}
-                    onFocus={() => setFocusedInput('name')}
-                    onBlur={() => setFocusedInput(null)}
-                  />
-                </View>
 
-                {/* Email */}
-                <View style={[
-                  styles.inputWrapper, 
-                  focusedInput === 'email' && styles.inputWrapperFocused,
-                  SHADOWS.inset
-                ]}>
-                  <View style={styles.inputIconContainer}>
-                    <MaterialCommunityIcons 
-                      name="email-outline" 
-                      size={18} 
-                      color={focusedInput === 'email' ? COLORS.primary : COLORS.textMuted} 
+                    <FormInput
+                      label="Email"
+                      icon="email-outline"
+                      placeholder="Masukkan email aktif Anda"
+                      value={email}
+                      onChangeText={(val) => handleTextChange('email', val, setEmail)}
+                      error={errors.email}
+                      isValid={email.length > 0 && !errors.email}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
                     />
-                  </View>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Email"
-                    placeholderTextColor={COLORS.textMuted}
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                    onFocus={() => setFocusedInput('email')}
-                    onBlur={() => setFocusedInput(null)}
-                  />
-                </View>
 
-                {/* NIS */}
-                <View style={[
-                  styles.inputWrapper, 
-                  focusedInput === 'nis' && styles.inputWrapperFocused,
-                  SHADOWS.inset
-                ]}>
-                  <View style={styles.inputIconContainer}>
-                    <MaterialCommunityIcons 
-                      name="card-account-details-outline" 
-                      size={18} 
-                      color={focusedInput === 'nis' ? COLORS.primary : COLORS.textMuted} 
+                    <FormInput
+                      label="NIS (Nomor Induk Siswa)"
+                      icon="card-account-details-outline"
+                      placeholder="Masukkan NIS Anda"
+                      value={nis}
+                      onChangeText={(val) => handleTextChange('nis', val, setNis)}
+                      error={errors.nis}
+                      isValid={nis.length > 0 && !errors.nis}
+                      keyboardType="numeric"
                     />
-                  </View>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="NIS (Nomor Induk Siswa)"
-                    placeholderTextColor={COLORS.textMuted}
-                    value={nis}
-                    onChangeText={setNis}
-                    keyboardType="numeric"
-                    onFocus={() => setFocusedInput('nis')}
-                    onBlur={() => setFocusedInput(null)}
-                  />
-                </View>
 
-                {/* Password */}
-                <View style={[
-                  styles.inputWrapper, 
-                  focusedInput === 'password' && styles.inputWrapperFocused,
-                  SHADOWS.inset
-                ]}>
-                  <View style={styles.inputIconContainer}>
-                    <MaterialCommunityIcons 
-                      name="lock-outline" 
-                      size={18} 
-                      color={focusedInput === 'password' ? COLORS.primary : COLORS.textMuted} 
+                    <BouncyButton 
+                      title="Lanjutkan" 
+                      onPress={handleNextStep} 
+                      icon="arrow-right"
+                      style={{ marginTop: SPACING.md }}
                     />
-                  </View>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Password (Min 8 Karakter)"
-                    placeholderTextColor={COLORS.textMuted}
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                    onFocus={() => setFocusedInput('password')}
-                    onBlur={() => setFocusedInput(null)}
-                  />
-                  <TouchableOpacity 
-                    onPress={() => setShowPassword(!showPassword)} 
-                    style={styles.eyeButton}
-                  >
-                    <MaterialCommunityIcons 
-                      name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                      size={20} 
-                      color={COLORS.textMuted} 
+                    
+                    <TouchableOpacity 
+                      onPress={() => router.back()} 
+                      style={[styles.backToLogin, { marginTop: SPACING.lg }]}
+                    >
+                      <Text style={[styles.backToLoginText, { fontFamily: FONTS.body, color: colors.textSecondary }]}>
+                        Sudah punya akun? <Text style={{ color: colors.primary, fontFamily: FONTS.headingSemi }}>Masuk</Text>
+                      </Text>
+                    </TouchableOpacity>
+                  </Animated.View>
+                ) : (
+                  <Animated.View entering={enteringAnimation.duration(250)} key="step2">
+                    <FormInput
+                      label="Password"
+                      icon="lock-outline"
+                      placeholder="Masukkan password Anda"
+                      value={password}
+                      onChangeText={(val) => handleTextChange('password', val, setPassword)}
+                      error={errors.password}
+                      isValid={password.length >= 8 && !errors.password}
+                      isPassword
                     />
-                  </TouchableOpacity>
-                </View>
 
-                {/* Kelas Picker */}
-                <TouchableOpacity 
-                  style={[styles.inputWrapper, SHADOWS.inset]} 
-                  onPress={() => setShowKelasPicker(!showKelasPicker)}
-                >
-                  <View style={styles.inputIconContainer}>
-                    <MaterialCommunityIcons name="google-classroom" size={18} color={COLORS.textMuted} />
-                  </View>
-                  <Text style={[styles.input, { textAlignVertical: 'center', paddingTop: 18 }]}>
-                    {selectedKelasId 
-                      ? kelasList.find((k: any) => k.id === selectedKelasId)?.nama_kelas 
-                      : 'Pilih Kelas'}
-                  </Text>
-                  <MaterialCommunityIcons name={showKelasPicker ? "chevron-up" : "chevron-down"} size={20} color={COLORS.textMuted} />
-                </TouchableOpacity>
+                    <PasswordStrengthBar password={password} />
 
-                {showKelasPicker && (
-                  <SkeuCard isGlass style={styles.dropdownCard}>
-                    {isLoadingKelas ? (
-                      <ActivityIndicator color={COLORS.primary} style={{ padding: 20 }} />
-                    ) : (
-                      <ScrollView style={{ maxHeight: 180 }}>
-                        {kelasList.map((kelas: any) => (
-                          <TouchableOpacity 
-                            key={kelas.id} 
-                            style={styles.dropdownItem}
-                            onPress={() => {
-                              setSelectedKelasId(kelas.id);
-                              setShowKelasPicker(false);
-                              HapticFeedback.light();
-                            }}
-                          >
-                            <Text style={[
-                              styles.dropdownItemText,
-                              selectedKelasId === kelas.id && { color: COLORS.primary, fontFamily: FONTS.headingSemi }
-                            ]}>
-                              {kelas.nama_kelas}
-                            </Text>
-                            {selectedKelasId === kelas.id && (
-                              <MaterialCommunityIcons name="check" size={18} color={COLORS.primary} />
-                            )}
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
+                    <FormInput
+                      label="Konfirmasi Password"
+                      icon="lock-check-outline"
+                      placeholder="Ulangi password Anda"
+                      value={confirmPassword}
+                      onChangeText={(val) => handleTextChange('confirmPassword', val, setConfirmPassword)}
+                      error={errors.confirmPassword}
+                      isValid={confirmPassword.length > 0 && password === confirmPassword && !errors.confirmPassword}
+                      isPassword
+                    />
+
+                    <Text style={[styles.formLabelSmall, { fontFamily: FONTS.bodyMedium, color: colors.textPrimary }]}>Pilih Kelas</Text>
+                    <TouchableOpacity 
+                      style={[
+                        styles.pickerTrigger, 
+                        shadows.inset,
+                        errors.kelas && { borderTopColor: colors.error, borderLeftColor: colors.error, borderBottomColor: colors.error, borderRightColor: colors.error }
+                      ]} 
+                      onPress={() => {
+                        HapticFeedback.light();
+                        setShowKelasPicker(!showKelasPicker);
+                      }}
+                    >
+                      <MaterialCommunityIcons 
+                        name="google-classroom" 
+                        size={20} 
+                        color={selectedKelasId ? colors.primary : colors.textMuted} 
+                        style={styles.pickerIcon} 
+                      />
+                      <Text style={[
+                        styles.pickerText, 
+                        { fontFamily: FONTS.body, color: colors.textPrimary },
+                        !selectedKelasId ? { color: colors.textMuted } : null
+                      ]}>
+                        {selectedKelasId 
+                          ? kelasList.find((k: any) => k.id === selectedKelasId)?.nama_kelas 
+                          : 'Pilih Kelas Anda'}
+                      </Text>
+                      <MaterialCommunityIcons 
+                        name={showKelasPicker ? "chevron-up" : "chevron-down"} 
+                        size={20} 
+                        color={colors.textMuted} 
+                      />
+                    </TouchableOpacity>
+
+                    {errors.kelas ? (
+                      <View style={[styles.pickerErrorContainer, { marginBottom: SPACING.md }]}>
+                        <MaterialCommunityIcons name="alert-circle-outline" size={14} color={colors.error} style={styles.errorIcon} />
+                        <Text style={[styles.pickerErrorText, { fontFamily: FONTS.body, color: colors.error }]}>{errors.kelas}</Text>
+                      </View>
+                    ) : null}
+
+                    {showKelasPicker && (
+                      <Animated.View entering={SlideInRight.duration(200)}>
+                        <SkeuCard isGlass style={styles.dropdownCard}>
+                          {isLoadingKelas ? (
+                            <ActivityIndicator color={colors.primary} style={{ padding: 20 }} />
+                          ) : (
+                            <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled>
+                              {kelasList.map((kelas: any) => (
+                                <TouchableOpacity 
+                                  key={kelas.id} 
+                                  style={[styles.dropdownItem, { padding: SPACING.md }]}
+                                  onPress={() => {
+                                    setSelectedKelasId(kelas.id);
+                                    setShowKelasPicker(false);
+                                    setErrors(prev => ({ ...prev, kelas: '' }));
+                                    HapticFeedback.light();
+                                  }}
+                                >
+                                  <Text style={[
+                                    styles.dropdownItemText,
+                                    { fontFamily: FONTS.body, color: colors.textPrimary },
+                                    selectedKelasId === kelas.id && { color: colors.primary, fontFamily: FONTS.headingSemi }
+                                  ]}>
+                                    {kelas.nama_kelas}
+                                  </Text>
+                                  {selectedKelasId === kelas.id && (
+                                    <MaterialCommunityIcons name="check" size={18} color={colors.primary} />
+                                  )}
+                                </TouchableOpacity>
+                              ))}
+                            </ScrollView>
+                          )}
+                        </SkeuCard>
+                      </Animated.View>
                     )}
-                  </SkeuCard>
+
+                    <View style={[styles.stepButtonsRow, { marginTop: SPACING.md }]}>
+                      <BouncyButton 
+                        title="Kembali" 
+                        onPress={handlePrevStep}
+                        variant="outlined"
+                        icon="arrow-left"
+                        style={styles.backButton}
+                      />
+                      <BouncyButton 
+                        title={loading ? 'Memproses...' : 'Daftar Akun'} 
+                        onPress={handleRegister} 
+                        loading={loading}
+                        icon="account-plus-outline"
+                        style={styles.submitButton}
+                      />
+                    </View>
+                  </Animated.View>
                 )}
 
-                <BouncyButton 
-                  title={loading ? 'Memproses...' : 'Daftar Akun'} 
-                  onPress={handleRegister} 
-                  loading={loading}
-                  icon="account-plus-outline"
-                  style={{ marginTop: SPACING.lg }}
-                />
-
-                <TouchableOpacity 
-                  onPress={() => router.back()} 
-                  style={styles.backToLogin}
-                >
-                  <Text style={styles.backToLoginText}>Sudah punya akun? <Text style={{ color: COLORS.primary }}>Masuk</Text></Text>
-                </TouchableOpacity>
               </SkeuCard>
             </AnimatedEntrance>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </View>
+      <SuccessOverlay 
+        visible={successVisible} 
+        title="Registrasi Berhasil" 
+        message={successMessage} 
+        isRegister
+      />
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  safeArea: {
+    flex: 1,
+  },
   scrollContent: { 
     flexGrow: 1, 
     justifyContent: 'center', 
-    padding: SPACING.lg,
-    paddingBottom: SPACING.xxl 
-  },
-  headerContainer: { 
-    marginBottom: SPACING.lg, 
-    alignItems: 'center' 
-  },
-  titleContainer: {
-    alignItems: 'center',
-    width: '100%',
-    marginTop: SPACING.xl,
-  },
-  title: { 
-    fontFamily: FONTS.heading, 
-    fontSize: 28, 
-    color: COLORS.textPrimary, 
-    marginBottom: SPACING.xs,
-    textAlign: 'center',
-  },
-  subtitle: { 
-    fontFamily: FONTS.body, 
-    fontSize: 14, 
-    color: COLORS.textSecondary, 
-    lineHeight: 20, 
-    textAlign: 'center',
-    paddingHorizontal: SPACING.lg,
   },
   card: { 
-    padding: SPACING.lg,
-    borderRadius: SIZES.radiusXl,
   },
-  formLabelRow: {
-    marginBottom: SPACING.md,
-    borderLeftWidth: 3,
-    borderLeftColor: COLORS.primary,
-    paddingLeft: SPACING.sm,
+  formLabelSmall: {
+    fontSize: 13,
+    marginBottom: 6,
+    paddingLeft: 4,
   },
-  formLabel: {
-    fontFamily: FONTS.headingSemi,
-    fontSize: 14,
-    color: COLORS.textPrimary,
-  },
-  inputWrapper: {
+  pickerTrigger: {
     flexDirection: 'row', 
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.4)',
-    borderRadius: SIZES.radiusMd,
-    paddingHorizontal: SPACING.sm,
-    height: 56,
-    marginBottom: SPACING.sm,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.6)',
+    height: 55,
+    borderRadius: SIZES.radiusInput,
+    paddingHorizontal: SPACING.md,
   },
-  inputWrapperFocused: {
-    borderColor: COLORS.primaryLight,
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+  pickerIcon: {
+    marginRight: 10,
   },
-  inputIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: SIZES.radiusSm,
-    backgroundColor: 'rgba(0,0,0,0.03)',
+  pickerText: {
+    flex: 1,
+    fontSize: 14,
+  },
+  pickerErrorContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: SPACING.sm,
+    marginTop: -8,
+    paddingLeft: 4,
   },
-  input: { 
-    flex: 1, 
-    fontFamily: FONTS.bodyMedium, 
-    fontSize: 14, 
-    color: COLORS.textPrimary,
-    height: '100%',
+  errorIcon: {
+    marginRight: 4,
   },
-  eyeButton: {
-    padding: SPACING.sm,
+  pickerErrorText: {
+    fontSize: 12,
   },
   dropdownCard: {
-    marginTop: -SPACING.sm,
+    marginTop: -8,
     marginBottom: SPACING.md,
-    padding: SPACING.xs,
-    borderRadius: SIZES.radiusMd,
-    borderWidth: 1,
-    borderColor: COLORS.glassHighlight,
   },
   dropdownItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: SPACING.md,
     borderBottomWidth: 0.5,
-    borderBottomColor: COLORS.glassHighlight,
+    borderBottomColor: 'rgba(10, 65, 116, 0.08)',
   },
   dropdownItemText: {
-    fontFamily: FONTS.body,
     fontSize: 13,
-    color: COLORS.textPrimary,
+  },
+  stepButtonsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  backButton: {
+    flex: 1,
+    marginRight: 13, // SPACING.sm
+  },
+  submitButton: {
+    flex: 2,
   },
   backToLogin: {
-    marginTop: SPACING.lg,
     alignItems: 'center',
   },
   backToLoginText: {
-    fontFamily: FONTS.bodyMedium,
     fontSize: 13,
-    color: COLORS.textSecondary,
-  }
+  },
 });

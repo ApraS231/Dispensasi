@@ -4,8 +4,9 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useValidateQR } from '../../src/hooks/usePiketQueries';
-import { COLORS, FONTS, SPACING, SIZES, GLASS } from '../../src/utils/theme';
-import { commonStyles } from '../../src/utils/commonStyles';
+import { FONTS, SPACING, SIZES, GLASS } from '../../src/utils/theme';
+import { createCommonStyles } from '../../src/utils/commonStyles';
+import { useTheme } from '../../src/hooks/useTheme';
 import { BlurView } from 'expo-blur';
 import { ICONS } from '../../src/utils/icons';
 
@@ -15,15 +16,17 @@ export default function QRScannerScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const validateMutation = useValidateQR();
+  const { colors, isDark } = useTheme();
+  const commonStyles = createCommonStyles(colors);
 
   if (!permission) return <View style={commonStyles.container} />;
 
   if (!permission.granted) {
     return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.permissionText}>Kami membutuhkan akses kamera untuk memindai QR Code.</Text>
-        <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
-          <Text style={styles.permissionButtonText}>Beri Akses Kamera</Text>
+      <View style={[styles.centerContainer, { backgroundColor: colors.bgPrimary }]}>
+        <Text style={[styles.permissionText, { color: colors.textSecondary }]}>Kami membutuhkan akses kamera untuk memindai QR Code.</Text>
+        <TouchableOpacity style={[styles.permissionButton, { backgroundColor: colors.primary }]} onPress={requestPermission}>
+          <Text style={[styles.permissionButtonText, { color: colors.onPrimary }]}>Beri Akses Kamera</Text>
         </TouchableOpacity>
       </View>
     );
@@ -48,7 +51,7 @@ export default function QRScannerScreen() {
       <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
             <BlurView intensity={GLASS.blurIntensity} tint="dark" style={styles.backBtn}>
-              <MaterialCommunityIcons name={ICONS.back} size={24} color={COLORS.bgWhite} />
+              <MaterialCommunityIcons name={ICONS.back} size={24} color="#FFFFFF" />
               <Text style={styles.backText}>Kembali</Text>
             </BlurView>
           </TouchableOpacity>
@@ -68,10 +71,10 @@ export default function QRScannerScreen() {
             </BlurView>
 
             <View style={styles.scanAreaWrapper}>
-                <View style={styles.cornerTL} />
-                <View style={styles.cornerTR} />
-                <View style={styles.cornerBL} />
-                <View style={styles.cornerBR} />
+                <View style={[styles.cornerTL, { borderColor: colors.primary }]} />
+                <View style={[styles.cornerTR, { borderColor: colors.primary }]} />
+                <View style={[styles.cornerBL, { borderColor: colors.primary }]} />
+                <View style={[styles.cornerBR, { borderColor: colors.primary }]} />
                 <View style={styles.scanArea} />
             </View>
         </View>
@@ -86,23 +89,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: SPACING.xl,
-    backgroundColor: COLORS.bgWhite,
   },
   permissionText: {
     fontFamily: FONTS.body,
     textAlign: 'center',
-    color: COLORS.textSecondary,
     marginBottom: SPACING.xl,
   },
   permissionButton: {
-    backgroundColor: COLORS.primary,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.xl,
     borderRadius: SIZES.radius,
   },
   permissionButtonText: {
     fontFamily: FONTS.headingSemi,
-    color: COLORS.onPrimary,
   },
   header: {
       position: 'absolute',
@@ -121,7 +120,7 @@ const styles = StyleSheet.create({
       borderColor: 'rgba(255,255,255,0.2)',
   },
   backText: {
-      color: COLORS.bgWhite,
+      color: '#FFFFFF',
       fontFamily: FONTS.headingSemi,
       marginLeft: 4,
   },
@@ -141,7 +140,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.1)',
   },
   instructionText: {
-      color: COLORS.bgWhite,
+      color: '#FFFFFF',
       fontFamily: FONTS.headingSemi,
       fontSize: 14,
       textAlign: 'center',
@@ -155,8 +154,8 @@ const styles = StyleSheet.create({
       flex: 1,
       backgroundColor: 'transparent',
   },
-  cornerTL: { position: 'absolute', top: 0, left: 0, width: 40, height: 40, borderTopWidth: 4, borderLeftWidth: 4, borderColor: COLORS.primary, borderTopLeftRadius: 16 },
-  cornerTR: { position: 'absolute', top: 0, right: 0, width: 40, height: 40, borderTopWidth: 4, borderRightWidth: 4, borderColor: COLORS.primary, borderTopRightRadius: 16 },
-  cornerBL: { position: 'absolute', bottom: 0, left: 0, width: 40, height: 40, borderBottomWidth: 4, borderLeftWidth: 4, borderColor: COLORS.primary, borderBottomLeftRadius: 16 },
-  cornerBR: { position: 'absolute', bottom: 0, right: 0, width: 40, height: 40, borderBottomWidth: 4, borderRightWidth: 4, borderColor: COLORS.primary, borderBottomRightRadius: 16 },
+  cornerTL: { position: 'absolute', top: 0, left: 0, width: 40, height: 40, borderTopWidth: 4, borderLeftWidth: 4, borderTopLeftRadius: 16 },
+  cornerTR: { position: 'absolute', top: 0, right: 0, width: 40, height: 40, borderTopWidth: 4, borderRightWidth: 4, borderTopRightRadius: 16 },
+  cornerBL: { position: 'absolute', bottom: 0, left: 0, width: 40, height: 40, borderBottomWidth: 4, borderLeftWidth: 4, borderBottomLeftRadius: 16 },
+  cornerBR: { position: 'absolute', bottom: 0, right: 0, width: 40, height: 40, borderBottomWidth: 4, borderRightWidth: 4, borderBottomRightRadius: 16 },
 });

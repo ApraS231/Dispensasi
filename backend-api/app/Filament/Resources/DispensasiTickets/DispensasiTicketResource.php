@@ -28,6 +28,18 @@ class DispensasiTicketResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Tiket Dispensasi';
 
+    protected static string|\UnitEnum|null $navigationGroup = 'Dispensasi';
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::where('status', 'pending')->count();
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'warning';
+    }
+
     public static function form(Schema $schema): Schema
     {
         return DispensasiTicketForm::configure($schema);

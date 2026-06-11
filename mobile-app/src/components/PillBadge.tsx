@@ -1,20 +1,21 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withRepeat, 
-  withTiming, 
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
   interpolate,
-  Easing
+  Easing,
 } from 'react-native-reanimated';
-import { COLORS, FONTS, SIZES } from '../utils/theme';
+import { useTheme } from '../hooks/useTheme';
 
 interface PillBadgeProps {
   status: string;
 }
 
 export default function PillBadge({ status }: PillBadgeProps) {
+  const { colors, SIZES, SPACING, FONTS } = useTheme();
   const pulse = useSharedValue(1);
 
   const isPending = ['pending', 'waiting_piket', 'approved_by_wali'].includes(status);
@@ -41,30 +42,30 @@ export default function PillBadge({ status }: PillBadgeProps) {
   const getBadgeConfig = () => {
     switch (status) {
       case 'approved_final':
-        return { 
-          color: COLORS.success, 
-          label: 'DISETUJUI', 
-          bg: COLORS.successBg 
+        return {
+          color: colors.success,
+          label: 'DISETUJUI',
+          bg: colors.successBg,
         };
       case 'rejected':
-        return { 
-          color: COLORS.error, 
-          label: 'DITOLAK', 
-          bg: COLORS.errorBg 
+        return {
+          color: colors.error,
+          label: 'DITOLAK',
+          bg: colors.errorBg,
         };
       case 'pending':
       case 'waiting_piket':
       case 'approved_by_wali':
-        return { 
-          color: COLORS.warning, 
-          label: 'PROSES', 
-          bg: COLORS.warningBg 
+        return {
+          color: colors.warning,
+          label: 'PROSES',
+          bg: colors.warningBg,
         };
       default:
-        return { 
-          color: COLORS.textMuted, 
-          label: status.toUpperCase().replace('_', ' '), 
-          bg: 'rgba(0,0,0,0.05)' 
+        return {
+          color: colors.textMuted,
+          label: status.toUpperCase().replace('_', ' '),
+          bg: 'rgba(0,0,0,0.05)',
         };
     }
   };
@@ -73,13 +74,26 @@ export default function PillBadge({ status }: PillBadgeProps) {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.badge, { borderColor: config.color + '40', backgroundColor: config.color + '15' }]}>
-        <Animated.View style={[
-          styles.dot, 
-          { backgroundColor: config.color },
-          isPending && animatedStyle
-        ]} />
-        <Text style={[styles.text, { color: config.color }]}>{config.label}</Text>
+      <View
+        style={[
+          styles.badge,
+          {
+            borderColor: config.color + '40',
+            backgroundColor: config.color + '15',
+            borderRadius: SIZES.radiusBadge,
+            paddingHorizontal: SPACING.xs, // 8px golden ratio xs
+            paddingVertical: 4, // micro spacing allowed as per tolerance
+          },
+        ]}
+      >
+        <Animated.View
+          style={[
+            styles.dot,
+            { backgroundColor: config.color, borderRadius: SIZES.radiusFull },
+            isPending && animatedStyle,
+          ]}
+        />
+        <Text style={[styles.text, { fontFamily: FONTS.headingSemi, color: config.color }]}>{config.label}</Text>
       </View>
     </View>
   );
@@ -92,21 +106,15 @@ const styles = StyleSheet.create({
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: SIZES.radiusBadge,
     borderWidth: 1,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.4)',
   },
   dot: {
     width: 6,
     height: 6,
-    borderRadius: 3,
     marginRight: 6,
   },
   text: {
-    fontFamily: FONTS.headingSemi,
     fontSize: 10,
     letterSpacing: 0.5,
   },

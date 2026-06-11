@@ -1,10 +1,10 @@
 import { StyleSheet } from 'react-native';
 import { COLORS, FONTS, SPACING } from './theme';
 
-export const commonStyles = StyleSheet.create({
+export const createCommonStyles = (colors: typeof COLORS) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.bgWhite,
+    backgroundColor: colors.bgWhite,
   },
   safeArea: {
     flex: 1,
@@ -28,8 +28,8 @@ export const commonStyles = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: FONTS.headingSemi,
-    fontSize: 18,
-    color: COLORS.textPrimary,
+    fontSize: 21,
+    color: colors.textPrimary,
   },
   listContent: {
     paddingBottom: 100,
@@ -37,8 +37,11 @@ export const commonStyles = StyleSheet.create({
   emptyText: {
     fontFamily: FONTS.body,
     textAlign: 'center',
-    color: COLORS.textMuted,
+    color: colors.textMuted,
     marginTop: SPACING.xl,
-    fontSize: 14,
+    fontSize: 16,
   },
 });
+
+// For backward compatibility during migration
+export const commonStyles = createCommonStyles(COLORS);

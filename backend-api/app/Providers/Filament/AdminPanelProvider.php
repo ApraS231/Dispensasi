@@ -28,8 +28,15 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            ->brandName('SiDispen')
+            ->brandName('SISPENSI')
             ->brandLogo(fn () => view('filament.logo'))
+            ->favicon(asset('images/logo.png'))
+            ->sidebarCollapsibleOnDesktop()
+            ->maxContentWidth('full')
+            ->navigationGroups([
+                'Dispensasi',
+                'Manajemen',
+            ])
             ->font('Plus Jakarta Sans')
             ->colors([
                 'primary' => '#0A4174',

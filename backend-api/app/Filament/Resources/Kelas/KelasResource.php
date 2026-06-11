@@ -18,9 +18,11 @@ class KelasResource extends Resource
 {
     protected static ?string $model = Kelas::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedAcademicCap;
 
     protected static ?string $recordTitleAttribute = 'nama_kelas';
+
+    protected static string|\UnitEnum|null $navigationGroup = 'Manajemen';
 
     public static function form(Schema $schema): Schema
     {

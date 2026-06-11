@@ -19,12 +19,13 @@ import BouncyButton from '../../src/components/BouncyButton';
 import RejectModal from '../../src/components/RejectModal';
 import PillBadge from '../../src/components/PillBadge';
 import ChatBubble from '../../src/components/ChatBubble';
-import LiquidBackground from '../../src/components/LiquidBackground';
 import TicketCard from '../../src/components/TicketCard';
-import { COLORS, FONTS, SPACING, SIZES, SHADOWS, GLASS } from '../../src/utils/theme';
+import { FONTS, SPACING, SIZES, GLASS } from '../../src/utils/theme';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import ImageZoomModal from '../../src/components/ImageZoomModal';
+import { useTheme } from '../../src/hooks/useTheme';
+import { createCommonStyles } from '../../src/utils/commonStyles';
 
 interface ChatMessage {
   id: string;
@@ -40,6 +41,9 @@ interface ChatMessage {
 export default function TicketDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuthStore();
+  const { colors, shadows, isDark } = useTheme();
+  const commonStyles = createCommonStyles(colors);
+
   const { data: ticket, isLoading: loading, refetch: refetchTicket } = useQuery({
     queryKey: ['dispensasi', id],
     queryFn: async () => {
@@ -58,6 +62,7 @@ export default function TicketDetailScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMsg, setNewMsg] = useState('');
   const [selectedImage, setSelectedImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   
   // Pagination state
@@ -224,9 +229,12 @@ export default function TicketDetailScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-      </View>
+      <LinearGradient
+        colors={[colors.bgPrimary, colors.bgSecondary]}
+        style={[commonStyles.container, { justifyContent: 'center', alignItems: 'center' }]}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+      </LinearGradient>
     );
   }
 
@@ -235,8 +243,10 @@ export default function TicketDetailScreen() {
     : false;
 
   return (
-    <View style={styles.container}>
-        <LiquidBackground />
+    <LinearGradient
+      colors={[colors.bgPrimary, colors.bgSecondary]}
+      style={styles.container}
+    >
         {/* Header - Fixed container to ensure responsiveness */}
         <View style={{ height: SPACING.statusBar + 88, zIndex: 100 }}>
           <TopAppBar title="Detail Dispensasi" onBack={() => router.back()} />
@@ -244,7 +254,7 @@ export default function TicketDetailScreen() {
         
         <KeyboardAvoidingView 
           style={{ flex: 1 }} 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
         >
           <FlatList
@@ -288,23 +298,23 @@ export default function TicketDetailScreen() {
 
           {/* Quick Action Bar for Staff (Integrated in Chat) */}
           {!isExpired && (user?.role === 'wali_kelas' || user?.role === 'guru_piket' || user?.role === 'admin') && ticket?.status === 'pending' && (
-            <BlurView intensity={30} tint="light" style={styles.quickActionContainer}>
+            <BlurView intensity={30} tint={isDark ? 'dark' : 'light'} style={[styles.quickActionContainer, { borderTopColor: colors.glassHighlight, backgroundColor: colors.glassSurface }]}>
               <View style={styles.quickActionRow}>
                 <View style={styles.quickActionTextCol}>
-                  <Text style={styles.quickActionLabel}>Keputusan Izin</Text>
-                  <Text style={styles.quickActionSub}>Tinjau diskusi sebelum menyetujui</Text>
+                  <Text style={[styles.quickActionLabel, { color: colors.textPrimary }]}>Keputusan Izin</Text>
+                  <Text style={[styles.quickActionSub, { color: colors.textMuted }]}>Tinjau diskusi sebelum menyetujui</Text>
                 </View>
                 <View style={styles.quickActionBtnRow}>
                   <TouchableOpacity 
-                    style={[styles.quickBtn, styles.quickReject]} 
+                    style={[styles.quickBtn, styles.quickReject, { backgroundColor: colors.errorBg, borderColor: colors.error }]} 
                     onPress={() => setIsRejecting(true)}
                     disabled={actionLoading}
                   >
-                    <MaterialCommunityIcons name="close" size={20} color={COLORS.error} />
+                    <MaterialCommunityIcons name="close" size={20} color={colors.error} />
                   </TouchableOpacity>
                   
                   <TouchableOpacity 
-                    style={[styles.quickBtn, styles.quickApprove]} 
+                    style={[styles.quickBtn, styles.quickApprove, { backgroundColor: colors.primary }, shadows.raised]} 
                     onPress={handleApprove}
                     disabled={actionLoading}
                   >
@@ -325,34 +335,42 @@ export default function TicketDetailScreen() {
           )}
 
           {!isExpired ? (
-            <View style={[styles.inputArea, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+            <View style={[styles.inputArea, { backgroundColor: colors.bgSecondary, borderTopColor: colors.glassHighlight, paddingBottom: Math.max(insets.bottom, 20) }]}>
               <View style={styles.inputContainer}>
                 {selectedImage && (
-                  <View style={styles.imagePreviewContainer}>
+                  <View style={[styles.imagePreviewContainer, { backgroundColor: colors.surface }]}>
                     <Image source={{ uri: selectedImage.uri }} style={styles.imagePreview} />
                     <View style={styles.previewMeta}>
-                      <Text style={styles.previewText}>Lampiran siap kirim</Text>
+                      <Text style={[styles.previewText, { color: colors.textPrimary }]}>Lampiran siap kirim</Text>
                       <TouchableOpacity onPress={() => setSelectedImage(null)}>
-                        <Text style={styles.removeText}>Batalkan</Text>
+                        <Text style={[styles.removeText, { color: colors.error }]}>Batalkan</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
                 )}
                 
-                <View style={styles.simpleInputRow}>
+                <View style={[
+                  styles.simpleInputRow, 
+                  { 
+                    backgroundColor: isInputFocused ? colors.inputBgFocused : colors.inputBg,
+                    borderColor: isInputFocused ? colors.inputBorderFocused : colors.inputBorder,
+                  }
+                ]}>
                   {(user?.role === 'siswa' || user?.role === 'orang_tua') && (
                     <TouchableOpacity style={styles.simpleAttachBtn} onPress={handlePickChatImage}>
-                      <MaterialCommunityIcons name="camera-outline" size={24} color={COLORS.primary} />
+                      <MaterialCommunityIcons name="camera-outline" size={24} color={colors.primary} />
                     </TouchableOpacity>
                   )}
                   
                   <TextInput
-                    style={styles.simpleInput}
+                    style={[styles.simpleInput, { color: colors.textPrimary }]}
                     placeholder="Tulis pesan diskusi..."
-                    placeholderTextColor={COLORS.textMuted}
+                    placeholderTextColor={colors.textMuted}
                     value={newMsg}
                     onChangeText={setNewMsg}
                     multiline
+                    onFocus={() => setIsInputFocused(true)}
+                    onBlur={() => setIsInputFocused(false)}
                   />
                   
                   <TouchableOpacity 
@@ -363,16 +381,16 @@ export default function TicketDetailScreen() {
                     <MaterialCommunityIcons 
                       name="send" 
                       size={24} 
-                      color={(!newMsg.trim() && !selectedImage) ? COLORS.textMuted : COLORS.primary} 
+                      color={(!newMsg.trim() && !selectedImage) ? colors.textMuted : colors.primary} 
                     />
                   </TouchableOpacity>
                 </View>
               </View>
             </View>
           ) : (
-            <View style={[styles.expiredContainer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
-              <Text style={styles.expiredTitle}>Sesi Diskusi Berakhir</Text>
-              <Text style={styles.expiredSubtitle}>Tiket telah kadaluarsa (melebihi 12 jam).</Text>
+            <View style={[styles.expiredContainer, { backgroundColor: colors.bgSecondary, paddingBottom: Math.max(insets.bottom, 20) }]}>
+              <Text style={[styles.expiredTitle, { color: colors.textMuted }]}>Sesi Diskusi Berakhir</Text>
+              <Text style={[styles.expiredSubtitle, { color: colors.textMuted }]}>Tiket telah kadaluarsa (melebihi 12 jam).</Text>
             </View>
           )}
         </KeyboardAvoidingView>
@@ -388,52 +406,82 @@ export default function TicketDetailScreen() {
           imageUrl={zoomImage}
           onClose={() => setZoomVisible(false)}
         />
-      </View>
+    </LinearGradient>
   );
 }
 
 // MEMOIZED COMPONENTS TO PREVENT RE-RENDERS
 const TicketHeader = memo(({ ticket, isExpired, user, actionLoading, onApprove, onReject, onZoom }: any) => {
   if (!ticket) return null;
+  const { colors, shadows, isDark, SIZES, SPACING, FONTS } = useTheme();
   
+  const dateObj = ticket.created_at ? new Date(ticket.created_at) : new Date();
+  const formattedDate = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+  const formattedTime = dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
   return (
     <View style={styles.headerContent}>
-      <View style={{ height: 10 + SPACING.statusBar }} />
+      <View style={{ height: SPACING.sm }} />
       
       <SkeuCard isGlass style={styles.ticketCard}>
-        <TicketCard item={ticket} />
-        
-        <View style={styles.infoGrid}>
-          <View style={styles.infoItem}>
-            <MaterialCommunityIcons name="clock-start" size={16} color={COLORS.primary} />
-            <View>
-              <Text style={styles.infoLabel}>Mulai</Text>
-              <Text style={styles.infoValue}>{new Date(ticket.waktu_mulai).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</Text>
+        {/* Date and Time Header */}
+        <View style={[styles.ticketHeaderRow, { marginBottom: SPACING.sm }]}>
+          <View style={styles.headerItem}>
+            <MaterialCommunityIcons name="calendar" size={14} color={colors.textSecondary} />
+            <Text style={[styles.headerText, { fontFamily: FONTS.bodyMedium, color: colors.textSecondary }]}>{formattedDate}</Text>
+          </View>
+          <View style={styles.headerItem}>
+            <MaterialCommunityIcons name="clock-outline" size={14} color={colors.textSecondary} />
+            <Text style={[styles.headerText, { fontFamily: FONTS.bodyMedium, color: colors.textSecondary }]}>{formattedTime}</Text>
+          </View>
+        </View>
+
+        {/* Main Info */}
+        <View style={styles.cardMainContent}>
+          <View style={[styles.infoCol, { marginRight: SPACING.sm }]}>
+            {ticket.siswa && (
+              <Text style={[styles.studentName, { fontFamily: FONTS.headingSemi, color: colors.textPrimary }]}>{ticket.siswa.name}</Text>
+            )}
+            <Text style={[styles.typeText, { fontFamily: FONTS.heading, color: colors.primary }]}>{ticket.jenis_izin?.replace(/_/g, ' ')}</Text>
+            <View style={styles.ticketReasonContainer}>
+              <MaterialCommunityIcons name="format-quote-open" size={10} color={isDark ? '#7BBDE8' : colors.primaryMuted} style={{ marginRight: 4 }} />
+              <Text style={[styles.ticketReasonText, { fontFamily: FONTS.body, color: colors.textSecondary }]} numberOfLines={2}>{ticket.alasan}</Text>
             </View>
           </View>
-          <View style={styles.infoItem}>
-            <MaterialCommunityIcons name="clock-end" size={16} color={COLORS.primary} />
+          <PillBadge status={ticket.status} />
+        </View>
+        
+        <View style={styles.infoGrid}>
+          <View style={[styles.infoItem, { backgroundColor: colors.surface }]}>
+            <MaterialCommunityIcons name="clock-start" size={16} color={colors.primary} />
             <View>
-              <Text style={styles.infoLabel}>Selesai</Text>
-              <Text style={styles.infoValue}>{new Date(ticket.waktu_selesai).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</Text>
+              <Text style={[styles.infoLabel, { color: colors.textMuted }]}>Mulai</Text>
+              <Text style={[styles.infoValue, { color: colors.textPrimary }]}>{new Date(ticket.waktu_mulai).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</Text>
+            </View>
+          </View>
+          <View style={[styles.infoItem, { backgroundColor: colors.surface }]}>
+            <MaterialCommunityIcons name="clock-end" size={16} color={colors.primary} />
+            <View>
+              <Text style={[styles.infoLabel, { color: colors.textMuted }]}>Selesai</Text>
+              <Text style={[styles.infoValue, { color: colors.textPrimary }]}>{new Date(ticket.waktu_selesai).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</Text>
             </View>
           </View>
         </View>
 
         <View style={styles.infoGrid}>
-          <View style={styles.infoItem}>
-            <MaterialCommunityIcons name="account-tie" size={16} color={COLORS.primary} />
+          <View style={[styles.infoItem, { backgroundColor: colors.surface }]}>
+            <MaterialCommunityIcons name="account-tie" size={16} color={colors.primary} />
             <View>
-              <Text style={styles.infoLabel}>Wali Kelas</Text>
-              <Text style={styles.infoValue}>{ticket.wali_kelas?.name || '-'}</Text>
+              <Text style={[styles.infoLabel, { color: colors.textMuted }]}>Wali Kelas</Text>
+              <Text style={[styles.infoValue, { color: colors.textPrimary }]}>{ticket.wali_kelas?.name || '-'}</Text>
             </View>
           </View>
           {ticket.guru_piket && (
-            <View style={styles.infoItem}>
-              <MaterialCommunityIcons name="shield-account" size={16} color={COLORS.primary} />
+            <View style={[styles.infoItem, { backgroundColor: colors.surface }]}>
+              <MaterialCommunityIcons name="shield-account" size={16} color={colors.primary} />
               <View>
-                <Text style={styles.infoLabel}>Guru Piket</Text>
-                <Text style={styles.infoValue}>{ticket.guru_piket?.name || '-'}</Text>
+                <Text style={[styles.infoLabel, { color: colors.textMuted }]}>Guru Piket</Text>
+                <Text style={[styles.infoValue, { color: colors.textPrimary }]}>{ticket.guru_piket?.name || '-'}</Text>
               </View>
             </View>
           )}
@@ -441,23 +489,23 @@ const TicketHeader = memo(({ ticket, isExpired, user, actionLoading, onApprove, 
         
         {ticket.lampiran_bukti ? (
           <View style={styles.attachmentSection}>
-            <Text style={styles.attachmentLabel}>Foto Bukti Lampiran:</Text>
+            <Text style={[styles.attachmentLabel, { color: colors.textSecondary }]}>Foto Bukti Lampiran:</Text>
             <TouchableOpacity activeOpacity={0.9} onPress={() => onZoom(ticket.lampiran_bukti)}>
-              <SkeuCard style={styles.attachmentCard}>
+              <View style={[styles.attachmentPreviewContainer, { borderColor: colors.glassHighlight }]}>
                 <Image 
                   source={{ uri: ticket.lampiran_bukti }} 
                   style={styles.attachmentPreview} 
                   contentFit="cover"
                   transition={300}
                 />
-                <LinearGradient colors={['transparent', 'rgba(0,0,0,0.1)']} style={StyleSheet.absoluteFill} />
-              </SkeuCard>
+                <LinearGradient colors={['transparent', 'rgba(0,0,0,0.15)']} style={StyleSheet.absoluteFill} />
+              </View>
             </TouchableOpacity>
           </View>
         ) : (
-          <View style={styles.noAttachment}>
-            <MaterialCommunityIcons name="image-off-outline" size={24} color={COLORS.textMuted} />
-            <Text style={styles.noAttachmentText}>Tidak ada foto lampiran</Text>
+          <View style={[styles.noAttachment, { backgroundColor: colors.surface, borderColor: colors.glassHighlight }]}>
+            <MaterialCommunityIcons name="image-off-outline" size={24} color={colors.textMuted} />
+            <Text style={[styles.noAttachmentText, { color: colors.textMuted }]}>Tidak ada foto lampiran</Text>
           </View>
         )}
 
@@ -470,9 +518,9 @@ const TicketHeader = memo(({ ticket, isExpired, user, actionLoading, onApprove, 
 
         {ticket.status === 'approved_final' && (
           <View style={styles.summarySection}>
-            <View style={[styles.statusBanner, { backgroundColor: COLORS.successBg, borderColor: COLORS.success }]}>
-              <MaterialCommunityIcons name="check-decagram" size={20} color={COLORS.success} />
-              <Text style={[styles.statusBannerText, { color: COLORS.success }]}>IZIN DISETUJUI</Text>
+            <View style={[styles.statusBanner, { backgroundColor: colors.successBg, borderColor: colors.success }]}>
+              <MaterialCommunityIcons name="check-decagram" size={20} color={colors.success} />
+              <Text style={[styles.statusBannerText, { color: colors.success }]}>IZIN DISETUJUI</Text>
             </View>
             {user?.role === 'siswa' && (
               <BouncyButton title="Lihat QR Code" onPress={() => router.push(`/(siswa)/qr/${ticket.id}`)} style={styles.qrBtn} />
@@ -482,25 +530,25 @@ const TicketHeader = memo(({ ticket, isExpired, user, actionLoading, onApprove, 
 
         {ticket.status === 'rejected' && (
           <View style={styles.summarySection}>
-            <View style={[styles.statusBanner, { backgroundColor: COLORS.errorBg, borderColor: COLORS.error }]}>
-              <MaterialCommunityIcons name="close-circle" size={20} color={COLORS.error} />
-              <Text style={[styles.statusBannerText, { color: COLORS.error }]}>IZIN DITOLAK</Text>
+            <View style={[styles.statusBanner, { backgroundColor: colors.errorBg, borderColor: colors.error }]}>
+              <MaterialCommunityIcons name="close-circle" size={20} color={colors.error} />
+              <Text style={[styles.statusBannerText, { color: colors.error }]}>IZIN DITOLAK</Text>
             </View>
-            <View style={[styles.reasonCard, SHADOWS.inset]}>
+            <View style={[styles.reasonCard, shadows.inset, { backgroundColor: colors.errorBg, borderColor: colors.error }]}>
               <View style={styles.reasonHeader}>
-                <MaterialCommunityIcons name="alert-circle-outline" size={16} color={COLORS.error} />
-                <Text style={styles.reasonLabel}>Alasan Penolakan:</Text>
+                <MaterialCommunityIcons name="alert-circle-outline" size={16} color={colors.error} />
+                <Text style={[styles.reasonLabel, { color: colors.error }]}>Alasan Penolakan:</Text>
               </View>
-              <Text style={styles.reasonText}>{ticket.catatan_penolakan || 'Tidak ada alasan spesifik yang diberikan.'}</Text>
+              <Text style={[styles.reasonText, { color: colors.textPrimary }]}>{ticket.catatan_penolakan || 'Tidak ada alasan spesifik yang diberikan.'}</Text>
             </View>
           </View>
         )}
       </SkeuCard>
 
       <View style={styles.chatHeaderSection}>
-        <View style={[styles.chatHeaderLine, SHADOWS.inset]} />
-        <Text style={styles.chatTitle}>Diskusi Terkait Tiket</Text>
-        <View style={[styles.chatHeaderLine, SHADOWS.inset]} />
+        <View style={[styles.chatHeaderLine, shadows.inset, { backgroundColor: colors.glassHighlight }]} />
+        <Text style={[styles.chatTitle, { color: colors.textMuted }]}>Diskusi Terkait Tiket</Text>
+        <View style={[styles.chatHeaderLine, shadows.inset, { backgroundColor: colors.glassHighlight }]} />
       </View>
     </View>
   );
@@ -511,6 +559,7 @@ const MessageItem = memo(({ item, index, messages, user, onImagePress }: any) =>
   const currentDate = new Date(item.created_at).toDateString();
   const nextDate = messages[index + 1] ? new Date(messages[index + 1].created_at).toDateString() : null;
   const showDivider = currentDate !== nextDate;
+  const { colors } = useTheme();
 
   return (
     <View>
@@ -529,31 +578,34 @@ const MessageItem = memo(({ item, index, messages, user, onImagePress }: any) =>
       </View>
       {showDivider && (
         <View style={styles.dateDivider}>
-          <View style={styles.dateLine} />
-          <View style={styles.datePill}>
-            <Text style={styles.dateDividerText}>
+          <View style={[styles.dateLine, { backgroundColor: colors.glassHighlight }]} />
+          <View style={[styles.datePill, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.dateDividerText, { color: colors.textMuted }]}>
               {currentDate === new Date().toDateString() ? 'Hari Ini' : 
                currentDate === new Date(Date.now() - 86400000).toDateString() ? 'Kemarin' : 
                new Date(item.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
             </Text>
           </View>
-          <View style={styles.dateLine} />
+          <View style={[styles.dateLine, { backgroundColor: colors.glassHighlight }]} />
         </View>
       )}
     </View>
   );
 });
 
-const EmptyChat = memo(() => (
-  <View style={styles.emptyContainer}>
-    <MaterialCommunityIcons name="chat-outline" size={48} color="rgba(0,0,0,0.05)" />
-    <Text style={styles.emptyChatText}>Belum ada pesan diskusi.</Text>
-    <Text style={styles.emptyChatSub}>Mulai percakapan di bawah ini.</Text>
-  </View>
-));
+const EmptyChat = memo(() => {
+  const { colors } = useTheme();
+  return (
+    <View style={styles.emptyContainer}>
+      <MaterialCommunityIcons name="chat-outline" size={48} color={colors.textMuted} style={{ opacity: 0.3 }} />
+      <Text style={[styles.emptyChatText, { color: colors.textPrimary }]}>Belum ada pesan diskusi.</Text>
+      <Text style={[styles.emptyChatSub, { color: colors.textMuted }]}>Mulai percakapan di bawah ini.</Text>
+    </View>
+  );
+});
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bgWhite },
+  container: { flex: 1 },
   safeArea: { flex: 1 },
   listContent: {
     paddingTop: SPACING.md,
@@ -563,17 +615,56 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
   },
   ticketCard: {
-    padding: SPACING.lg,
     marginBottom: SPACING.lg,
   },
-  attachmentCard: {
-    padding: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.glassHighlight,
+  ticketHeaderRow: {
+    flexDirection: 'row',
+    gap: 13,
+  },
+  headerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  headerText: {
+    fontSize: 10,
+  },
+  cardMainContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginTop: SPACING.md,
+  },
+  infoCol: {
+    flex: 1,
+  },
+  studentName: {
+    fontSize: 16,
+    marginBottom: 2,
+  },
+  typeText: {
+    fontSize: 16,
+    textTransform: 'capitalize',
+    marginBottom: 4,
+  },
+  ticketReasonContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 4,
+  },
+  ticketReasonText: {
+    fontSize: 10,
+    lineHeight: 14,
+    flex: 1,
+  },
+  attachmentPreviewContainer: {
+    borderWidth: 1.5,
+    borderRadius: SIZES.radiusCard,
+    overflow: 'hidden',
     marginTop: SPACING.md,
     marginBottom: SPACING.md,
-    overflow: 'hidden',
-    alignItems: 'center',
+    width: '100%',
+    height: 200,
   },
   infoGrid: {
     flexDirection: 'row',
@@ -585,32 +676,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(0,0,0,0.03)',
     padding: 8,
     borderRadius: SIZES.radius,
   },
   infoLabel: {
     fontFamily: FONTS.body,
     fontSize: 10,
-    color: COLORS.textMuted,
     textTransform: 'uppercase',
   },
   infoValue: {
     fontFamily: FONTS.headingSemi,
     fontSize: 12,
-    color: COLORS.textPrimary,
   },
   attachmentText: {
     fontFamily: FONTS.bodyMedium,
-    color: COLORS.textSecondary,
     fontSize: 13,
     alignSelf: 'flex-start',
     marginBottom: SPACING.sm,
   },
   attachmentPreview: {
     width: '100%',
-    height: 200,
-    borderRadius: SIZES.radiusMd,
+    height: '100%',
   },
   actionRow: {
     flexDirection: 'row',
@@ -644,10 +730,8 @@ const styles = StyleSheet.create({
   },
   reasonCard: {
     padding: SPACING.md,
-    backgroundColor: COLORS.errorBg,
-    borderRadius: SIZES.radius,
     borderWidth: 1,
-    borderColor: 'rgba(239, 71, 111, 0.1)',
+    borderRadius: SIZES.radius,
   },
   reasonHeader: {
     flexDirection: 'row',
@@ -658,12 +742,10 @@ const styles = StyleSheet.create({
   reasonLabel: {
     fontFamily: FONTS.headingSemi,
     fontSize: 13,
-    color: COLORS.error,
   },
   reasonText: {
     fontFamily: FONTS.body,
     fontSize: 14,
-    color: COLORS.textPrimary,
     lineHeight: 20,
     paddingLeft: 22, // Align with icon
   },
@@ -677,12 +759,10 @@ const styles = StyleSheet.create({
   chatHeaderLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(0,0,0,0.05)',
   },
   chatTitle: {
     fontFamily: FONTS.headingSemi,
     fontSize: 13,
-    color: COLORS.textMuted,
     marginHorizontal: SPACING.md,
     letterSpacing: 1,
     textTransform: 'uppercase',
@@ -693,7 +773,6 @@ const styles = StyleSheet.create({
   senderName: {
     fontFamily: FONTS.headingSemi,
     fontSize: 11,
-    color: COLORS.textMuted,
     marginBottom: 4,
     marginLeft: 58, // Align with bubble when avatar is present
   },
@@ -706,12 +785,10 @@ const styles = StyleSheet.create({
   emptyChatText: {
     fontFamily: FONTS.headingSemi,
     fontSize: 15,
-    color: COLORS.textPrimary,
   },
   emptyChatSub: {
     fontFamily: FONTS.body,
     fontSize: 13,
-    color: COLORS.textMuted,
     textAlign: 'center',
   },
   attachmentSection: {
@@ -723,16 +800,13 @@ const styles = StyleSheet.create({
   attachmentLabel: {
     fontFamily: FONTS.headingSemi,
     fontSize: 13,
-    color: COLORS.textSecondary,
     marginBottom: 8,
   },
   noAttachment: {
     marginTop: SPACING.lg,
     padding: SPACING.md,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.02)',
+    borderRadius: 13,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -740,12 +814,9 @@ const styles = StyleSheet.create({
   noAttachmentText: {
     fontFamily: FONTS.bodyMedium,
     fontSize: 12,
-    color: COLORS.textMuted,
   },
   inputArea: {
-    backgroundColor: COLORS.bgWhite,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
   },
   inputContainer: {
     paddingHorizontal: 12,
@@ -755,8 +826,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 8,
-    backgroundColor: 'rgba(0,0,0,0.02)',
-    borderRadius: 12,
+    borderRadius: 13,
     marginBottom: 8,
     gap: 12,
   },
@@ -771,21 +841,19 @@ const styles = StyleSheet.create({
   previewText: {
     fontFamily: FONTS.headingSemi,
     fontSize: 12,
-    color: COLORS.textPrimary,
   },
   removeText: {
     fontFamily: FONTS.bodyMedium,
     fontSize: 11,
-    color: COLORS.error,
   },
   simpleInputRow: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.03)',
+    alignItems: 'center',
     borderRadius: 24,
     paddingHorizontal: 12,
     paddingVertical: 4,
     minHeight: 48,
+    borderWidth: 1,
   },
   simpleAttachBtn: {
     padding: 8,
@@ -797,7 +865,6 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
     fontSize: 15,
     maxHeight: 100,
-    color: COLORS.textPrimary,
   },
   simpleSendBtn: {
     padding: 8,
@@ -805,17 +872,14 @@ const styles = StyleSheet.create({
   expiredContainer: {
     padding: 20,
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.02)',
   },
   expiredTitle: {
     fontFamily: FONTS.headingSemi,
     fontSize: 14,
-    color: COLORS.textMuted,
   },
   expiredSubtitle: {
     fontFamily: FONTS.body,
     fontSize: 12,
-    color: COLORS.textMuted,
   },
   dateDivider: {
     flexDirection: 'row',
@@ -827,29 +891,24 @@ const styles = StyleSheet.create({
   dateLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(0,0,0,0.05)',
   },
   datePill: {
-    backgroundColor: 'rgba(0,0,0,0.04)',
     paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 13,
     marginHorizontal: 12,
   },
   dateDividerText: {
     fontFamily: FONTS.headingSemi,
     fontSize: 10,
-    color: COLORS.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   // QUICK ACTION STYLES
   quickActionContainer: {
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
     paddingHorizontal: SPACING.md,
     paddingVertical: 10,
-    backgroundColor: 'rgba(255,255,255,0.8)',
   },
   quickActionRow: {
     flexDirection: 'row',
@@ -862,12 +921,10 @@ const styles = StyleSheet.create({
   quickActionLabel: {
     fontFamily: FONTS.headingSemi,
     fontSize: 13,
-    color: COLORS.textPrimary,
   },
   quickActionSub: {
     fontFamily: FONTS.body,
     fontSize: 10,
-    color: COLORS.textMuted,
   },
   quickActionBtnRow: {
     flexDirection: 'row',
@@ -875,7 +932,7 @@ const styles = StyleSheet.create({
   },
   quickBtn: {
     height: 40,
-    borderRadius: 20,
+    borderRadius: 21,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -883,15 +940,11 @@ const styles = StyleSheet.create({
   },
   quickReject: {
     width: 40,
-    backgroundColor: COLORS.errorBg,
     borderWidth: 1,
-    borderColor: 'rgba(239, 71, 111, 0.2)',
   },
   quickApprove: {
-    backgroundColor: COLORS.primary,
     gap: 6,
     minWidth: 100,
-    ...SHADOWS.raised,
   },
   quickBtnTextApprove: {
     fontFamily: FONTS.headingSemi,

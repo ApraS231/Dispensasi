@@ -1,14 +1,16 @@
 import { useState, useMemo } from 'react';
-import { View, Text, FlatList, StyleSheet, SafeAreaView, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router as expoRouter } from 'expo-router';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import api from '../../src/utils/api';
 import TopAppBar from '../../src/components/TopAppBar';
 import TicketCard from '../../src/components/TicketCard';
 import SearchBar from '../../src/components/SearchBar';
-import LiquidBackground from '../../src/components/LiquidBackground';
-import { COLORS, SPACING, GLASS, FONTS } from '../../src/utils/theme';
-import { commonStyles } from '../../src/utils/commonStyles';
+import { FONTS, SPACING, GLASS } from '../../src/utils/theme';
+import { createCommonStyles } from '../../src/utils/commonStyles';
+import { useTheme } from '../../src/hooks/useTheme';
 import { BlurView } from 'expo-blur';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -17,6 +19,8 @@ export default function PiketHistoryScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const { colors, isDark } = useTheme();
+  const commonStyles = createCommonStyles(colors);
 
   const { 
     data, 
@@ -36,10 +40,16 @@ export default function PiketHistoryScreen() {
       return data;
     },
     initialPageParam: 1,
-    getNextPageParam: (lastPage) => lastPage.current_page < lastPage.last_page ? lastPage.current_page + 1 : undefined,
+    getNextPageParam: (lastPage) => {
+      if (!lastPage || Array.isArray(lastPage)) return undefined;
+      return lastPage.current_page < lastPage.last_page ? lastPage.current_page + 1 : undefined;
+    },
   });
 
-  const allTickets = data?.pages.flatMap(page => page.data) || [];
+  const allTickets = data?.pages.flatMap(page => {
+    if (Array.isArray(page)) return page;
+    return page?.data || [];
+  }) || [];
 
   const filteredTickets = useMemo(() => {
     let result = allTickets;
@@ -64,15 +74,17 @@ export default function PiketHistoryScreen() {
   };
 
   return (
-    <View style={commonStyles.container}>
-      <LiquidBackground />
-      <SafeAreaView style={commonStyles.safeArea}>
+    <LinearGradient
+      colors={[colors.bgPrimary, colors.bgSecondary]}
+      style={commonStyles.container}
+    >
+      <SafeAreaView style={commonStyles.safeArea} edges={['bottom', 'left', 'right']}>
         
         <TopAppBar showAvatar={false} title="Riwayat Izin" showNotification={true} />
 
         <View style={commonStyles.mainContent}>
           <View style={{ height: 88 + SPACING.statusBar }} />
-          <BlurView intensity={GLASS.blurIntensity + 20} tint={GLASS.tintColor} style={styles.searchSection}>
+          <BlurView intensity={GLASS.blurIntensity + 20} tint={isDark ? 'dark' : 'light'} style={[styles.searchSection, { borderBottomColor: colors.glassHighlight }]}>
             <SearchBar 
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -82,21 +94,27 @@ export default function PiketHistoryScreen() {
             <View style={styles.filterRow}>
               <TouchableOpacity 
                 onPress={() => setShowDatePicker(true)}
-                style={[styles.datePickerBtn, selectedDate && styles.datePickerBtnActive]}
+                style={[
+                  styles.datePickerBtn, 
+                  { 
+                    backgroundColor: selectedDate ? colors.primary : (isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF'),
+                    borderColor: selectedDate ? colors.primary : colors.primary + '30'
+                  }
+                ]}
               >
                 <MaterialCommunityIcons 
                   name="calendar" 
                   size={20} 
-                  color={selectedDate ? '#FFFFFF' : COLORS.primary} 
+                  color={selectedDate ? '#FFFFFF' : colors.primary} 
                 />
-                <Text style={[styles.datePickerText, selectedDate && { color: '#FFFFFF' }]}>
+                <Text style={[styles.datePickerText, { color: selectedDate ? '#FFFFFF' : colors.primary }]}>
                   {selectedDate ? selectedDate.toLocaleDateString('id-ID') : 'Pilih Tanggal'}
                 </Text>
               </TouchableOpacity>
 
               {selectedDate && (
                 <TouchableOpacity onPress={() => setSelectedDate(null)} style={styles.clearDateBtn}>
-                  <MaterialCommunityIcons name="close-circle" size={24} color={COLORS.error} />
+                  <MaterialCommunityIcons name="close-circle" size={24} color={colors.error} />
                 </TouchableOpacity>
               )}
             </View>
@@ -113,7 +131,7 @@ export default function PiketHistoryScreen() {
 
           <View style={styles.listContainer}>
             {isLoading ? (
-              <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: SPACING.xl }} />
+              <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: SPACING.xl }} />
             ) : (
               <FlatList
                 data={filteredTickets}
@@ -133,7 +151,7 @@ export default function PiketHistoryScreen() {
                 onEndReachedThreshold={0.5}
                 ListFooterComponent={() => 
                   isFetchingNextPage ? (
-                    <ActivityIndicator size="small" color={COLORS.primary} style={{ marginVertical: SPACING.md }} />
+                    <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: SPACING.md }} />
                   ) : null
                 }
                 ListEmptyComponent={<Text style={commonStyles.emptyText}>Tidak ditemukan riwayat izin.</Text>}
@@ -145,7 +163,7 @@ export default function PiketHistoryScreen() {
         </View>
 
       </SafeAreaView>
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -155,7 +173,6 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.md,
     paddingBottom: SPACING.md,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.glassHighlight,
   },
   filterRow: {
     flexDirection: 'row',
@@ -165,22 +182,15 @@ const styles = StyleSheet.create({
   datePickerBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     paddingHorizontal: 15,
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.primary + '30',
     gap: 8,
-  },
-  datePickerBtnActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
   },
   datePickerText: {
     fontFamily: FONTS.bodyMedium,
     fontSize: 13,
-    color: COLORS.primary,
   },
   clearDateBtn: {
     padding: 4,

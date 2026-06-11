@@ -1,58 +1,75 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
-import { View, Text, TextInput, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../src/utils/api';
 import { useAuthStore } from '../src/stores/authStore';
-import { COLORS, FONTS, SIZES, SPACING, SHADOWS } from '../src/utils/theme';
-import { commonStyles } from '../src/utils/commonStyles';
+import { useTheme } from '../src/hooks/useTheme';
 import BouncyButton from '../src/components/BouncyButton';
 import SkeuCard from '../src/components/SkeuCard';
-import LiquidBackground from '../src/components/LiquidBackground';
 import AnimatedEntrance from '../src/components/AnimatedEntrance';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-
-function TypewriterText({ text, delay = 50 }: { text: string; delay?: number }) {
-  const [displayedText, setDisplayedText] = useState('');
-  
-  useEffect(() => {
-    let index = 0;
-    setDisplayedText(''); // Reset on text change
-    const interval = setInterval(() => {
-      setDisplayedText(text.substring(0, index + 1));
-      index++;
-      if (index >= text.length) clearInterval(interval);
-    }, delay);
-    return () => clearInterval(interval);
-  }, [text]);
-
-  return <Text style={styles.title}>{displayedText}</Text>;
-}
+import FormInput from '../src/components/FormInput';
+import SuccessOverlay from '../src/components/SuccessOverlay';
+import BrandHeader from '../src/components/BrandHeader';
+import { validateEmail, validatePassword, parseValidationErrors } from '../src/utils/validation';
 
 export default function LoginScreen() {
+  const { colors, isDark, SIZES, SPACING, FONTS, shadows } = useTheme();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [focusedInput, setFocusedInput] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [successVisible, setSuccessVisible] = useState(false);
   const { setUser, setToken } = useAuthStore();
 
+  const handleEmailChange = (val: string) => {
+    setEmail(val);
+    if (errors.email || errors.general) {
+      setErrors(prev => ({ ...prev, email: '', general: '' }));
+    }
+  };
+
+  const handlePasswordChange = (val: string) => {
+    setPassword(val);
+    if (errors.password || errors.general) {
+      setErrors(prev => ({ ...prev, password: '', general: '' }));
+    }
+  };
+
+  const handleForgotPassword = () => {
+    Alert.alert(
+      'Lupa Password',
+      'Fitur pemulihan password belum tersedia secara mandiri. Silakan hubungi Administrator atau Wali Kelas Anda untuk mengatur ulang password.'
+    );
+  };
+
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Perhatian', 'Email dan password harus diisi.');
+    const emailVal = validateEmail(email);
+    const passwordVal = validatePassword(password);
+
+    if (!emailVal.isValid || !passwordVal.isValid) {
+      setErrors({
+        email: emailVal.error || '',
+        password: passwordVal.error || '',
+      });
       return;
     }
+
     setLoading(true);
+    setErrors({});
+    
     try {
       let deviceToken: string | undefined;
       try {
         const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
         if (projectId) {
-            const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
-            deviceToken = data;
+          const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
+          deviceToken = data;
         }
       } catch (e) {
         console.log('Error getting push token during login', e);
@@ -65,252 +82,145 @@ export default function LoginScreen() {
       });
 
       await SecureStore.setItemAsync('userToken', response.data.token);
-      setToken(response.data.token);
-      setUser(response.data.user);
+      setSuccessVisible(true);
 
-      const role = response.data.user.role;
-      if (role === 'siswa') router.replace('/(siswa)/dashboard');
-      else if (role === 'guru_piket' || role === 'piket') router.replace('/(piket)/dashboard');
-      else if (role === 'wali_kelas') router.replace('/(wali)/dashboard');
-      else if (role === 'orang_tua') router.replace('/(ortu)/dashboard');
-      else {
-        Alert.alert('Akses Ditolak', 'Akun admin atau role tidak valid hanya dapat diakses melalui web panel.');
-        setToken(null);
-        setUser(null);
-        await SecureStore.deleteItemAsync('userToken');
-      }
+      setTimeout(async () => {
+        setToken(response.data.token);
+        setUser(response.data.user);
+
+        const role = response.data.user.role;
+        if (role === 'siswa') router.replace('/(siswa)/dashboard');
+        else if (role === 'guru_piket' || role === 'piket') router.replace('/(piket)/dashboard');
+        else if (role === 'wali_kelas') router.replace('/(wali)/dashboard');
+        else if (role === 'orang_tua') router.replace('/(ortu)/dashboard');
+        else {
+          setSuccessVisible(false);
+          Alert.alert('Akses Ditolak', 'Akun admin atau role tidak valid hanya dapat diakses melalui web panel.');
+          setToken(null);
+          setUser(null);
+          await SecureStore.deleteItemAsync('userToken');
+        }
+      }, 1800);
 
     } catch (error: any) {
-      const msg = error.response?.data?.message || 'Login Gagal. Periksa kembali email dan password.';
-      Alert.alert('Error', msg);
+      const backendErrors = parseValidationErrors(error);
+      setErrors(backendErrors);
+      if (backendErrors.general) {
+        Alert.alert('Gagal Masuk', backendErrors.general);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View style={commonStyles.container}>
-      <LiquidBackground />
-
-      <SafeAreaView style={commonStyles.safeArea}>
+    <LinearGradient
+      colors={[colors.bgPrimary, colors.bgSecondary]}
+      style={styles.container}
+    >
+      <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <ScrollView 
-            contentContainerStyle={styles.scrollContent} 
+            contentContainerStyle={[styles.scrollContent, { padding: SPACING.lg, paddingBottom: SPACING.xl }]} 
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            <View style={styles.headerContainer}>
-              <View style={styles.titleContainer}>
-                <TypewriterText text="Selamat Datang!" />
-                <AnimatedEntrance delay={600}>
-                  <Text style={styles.subtitle}>Masuk ke gerbang digital SMA Negeri 3 untuk mengelola perizinanmu.</Text>
-                </AnimatedEntrance>
-              </View>
-            </View>
-
-            <AnimatedEntrance delay={1000} offset={40}>
+            <BrandHeader showLogo={true} subtitle="Masuk ke gerbang digital SMAN 3" />
+ 
+            <AnimatedEntrance delay={300} offset={30}>
               <SkeuCard style={styles.card} isGlass>
-                <View style={styles.formLabelRow}>
-                  <Text style={styles.formLabel}>Informasi Akun</Text>
-                </View>
-
-                <View style={[
-                  styles.inputWrapper, 
-                  focusedInput === 'email' && styles.inputWrapperFocused,
-                  SHADOWS.inset
-                ]}>
-                  <View style={styles.inputIconContainer}>
-                    <MaterialCommunityIcons 
-                      name="email-outline" 
-                      size={18} 
-                      color={focusedInput === 'email' ? COLORS.primary : COLORS.textMuted} 
-                    />
-                  </View>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Email Sekolah / Username"
-                    placeholderTextColor={COLORS.textMuted}
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                    onFocus={() => setFocusedInput('email')}
-                    onBlur={() => setFocusedInput(null)}
-                  />
-                </View>
-
-                <View style={[
-                  styles.inputWrapper, 
-                  focusedInput === 'password' && styles.inputWrapperFocused,
-                  SHADOWS.inset
-                ]}>
-                  <View style={styles.inputIconContainer}>
-                    <MaterialCommunityIcons 
-                      name="lock-outline" 
-                      size={18} 
-                      color={focusedInput === 'password' ? COLORS.primary : COLORS.textMuted} 
-                    />
-                  </View>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Password"
-                    placeholderTextColor={COLORS.textMuted}
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                    onFocus={() => setFocusedInput('password')}
-                    onBlur={() => setFocusedInput(null)}
-                  />
-                  <TouchableOpacity 
-                    onPress={() => setShowPassword(!showPassword)} 
-                    style={styles.eyeButton}
-                    activeOpacity={0.6}
-                  >
-                    <MaterialCommunityIcons 
-                      name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                      size={20} 
-                      color={COLORS.textMuted} 
-                    />
+                <FormInput
+                  label="Email Sekolah"
+                  icon="email-outline"
+                  placeholder="Masukkan email Anda"
+                  value={email}
+                  onChangeText={handleEmailChange}
+                  error={errors.email}
+                  isValid={email.length > 0 && !errors.email}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+ 
+                <FormInput
+                  label="Password"
+                  icon="lock-outline"
+                  placeholder="Masukkan password Anda"
+                  value={password}
+                  onChangeText={handlePasswordChange}
+                  error={errors.password}
+                  isValid={password.length >= 8 && !errors.password}
+                  isPassword
+                />
+ 
+                <View style={[styles.forgotPasswordRow, { marginBottom: SPACING.md }]}>
+                  <TouchableOpacity activeOpacity={0.6} onPress={handleForgotPassword}>
+                    <Text style={[styles.forgotPasswordText, { fontFamily: FONTS.headingSemi, color: colors.primary }]}>Lupa Password?</Text>
                   </TouchableOpacity>
                 </View>
-
-                <View style={styles.forgotPasswordRow}>
-                  <TouchableOpacity activeOpacity={0.6}>
-                    <Text style={styles.forgotPasswordText}>Lupa Password?</Text>
-                  </TouchableOpacity>
-                </View>
-
+ 
                 <BouncyButton 
                   title={loading ? 'Memvalidasi...' : 'Masuk Sekarang'} 
                   onPress={handleLogin} 
                   loading={loading}
                   icon="login-variant"
-                  style={{ marginTop: SPACING.md }}
+                  style={{ marginTop: SPACING.xs }}
                 />
               </SkeuCard>
               
-              <View style={styles.footerContainer}>
-                <Text style={styles.footerText}>SiDispen v2.0 • SMAN 3 Digital Team</Text>
-                
-                <TouchableOpacity 
-                  onPress={() => router.push('/register')} 
-                  style={{ marginTop: SPACING.md }}
-                >
-                  <Text style={styles.footerLinkText}>Belum punya akun? <Text style={{ color: COLORS.primary, fontFamily: FONTS.headingSemi }}>Daftar di sini</Text></Text>
+              <View style={[styles.footerContainer, { marginTop: SPACING.lg }]}>
+                <TouchableOpacity onPress={() => router.push('/register')}>
+                  <Text style={[styles.signupText, { fontFamily: FONTS.body, color: colors.textSecondary }]}>
+                    Belum punya akun? <Text style={{ color: colors.primary, fontFamily: FONTS.headingSemi }}>Daftar</Text>
+                  </Text>
                 </TouchableOpacity>
+
+                <Text style={[styles.footerText, { fontFamily: FONTS.labelCaps, color: colors.textMuted, marginTop: SPACING.xl }]}>
+                  Sistem Perizinan Siswa v2.0 • SMAN 3 Digital Team
+                </Text>
               </View>
             </AnimatedEntrance>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </View>
+ 
+      <SuccessOverlay 
+        visible={successVisible} 
+        title="Masuk Berhasil" 
+        message="Selamat datang kembali di Sistem Perizinan Siswa SMAN 3" 
+      />
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  safeArea: {
+    flex: 1,
+  },
   scrollContent: { 
     flexGrow: 1, 
     justifyContent: 'center', 
-    padding: SPACING.lg,
-    paddingBottom: SPACING.xxl 
-  },
-  headerContainer: { 
-    marginBottom: SPACING.xl, 
-    alignItems: 'center' 
-  },
-  titleContainer: {
-    alignItems: 'center',
-    width: '100%',
-    marginTop: SPACING.xxl, // Add space since logo is gone
-  },
-  title: { 
-    fontFamily: FONTS.heading, 
-    fontSize: 32, 
-    color: COLORS.textPrimary, 
-    marginBottom: SPACING.xs,
-    textAlign: 'center',
-  },
-  subtitle: { 
-    fontFamily: FONTS.body, 
-    fontSize: 15, 
-    color: COLORS.textSecondary, 
-    lineHeight: 22, 
-    textAlign: 'center',
-    paddingHorizontal: SPACING.lg,
   },
   card: { 
-    padding: SPACING.lg,
-    borderRadius: SIZES.radiusXl,
-  },
-  formLabelRow: {
-    marginBottom: SPACING.md,
-    borderLeftWidth: 3,
-    borderLeftColor: COLORS.primary,
-    paddingLeft: SPACING.sm,
-  },
-  formLabel: {
-    fontFamily: FONTS.headingSemi,
-    fontSize: 14,
-    color: COLORS.textPrimary,
-    letterSpacing: 0.2,
-  },
-  inputWrapper: {
-    flexDirection: 'row', 
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.4)',
-    borderRadius: SIZES.radiusMd,
-    paddingHorizontal: SPACING.sm,
-    height: 60,
-    marginBottom: SPACING.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.6)',
-  },
-  inputWrapperFocused: {
-    borderColor: COLORS.primaryLight,
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
-  },
-  inputIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: SIZES.radiusSm,
-    backgroundColor: 'rgba(0,0,0,0.03)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: SPACING.sm,
-  },
-  input: { 
-    flex: 1, 
-    fontFamily: FONTS.bodyMedium, 
-    fontSize: 15, 
-    color: COLORS.textPrimary,
-    height: '100%',
-  },
-  eyeButton: {
-    padding: SPACING.sm,
   },
   forgotPasswordRow: {
     alignItems: 'flex-end',
-    marginBottom: SPACING.lg,
   },
   forgotPasswordText: {
-    fontFamily: FONTS.headingSemi,
     fontSize: 13,
-    color: COLORS.primary,
+  },
+  signupText: {
+    fontSize: 14,
+    textAlign: 'center',
   },
   footerContainer: {
-    marginTop: SPACING.xl,
     alignItems: 'center',
+    width: '100%',
   },
   footerText: {
-    fontFamily: FONTS.labelCaps,
     fontSize: 10,
-    color: COLORS.textMuted,
     letterSpacing: 0.5,
   },
-  footerLinkText: {
-    fontFamily: FONTS.body,
-    fontSize: 13,
-    color: COLORS.textSecondary,
-  }
 });
-

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SiDispen - Sistem Informasi Dispensasi SMA Negeri 3</title>
+    <title>SISPENSI - Sistem Informasi Perizinan Siswa SMA Negeri 3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -85,6 +85,28 @@
             background: rgba(255, 255, 255, 0.7);
             border-color: rgba(10, 65, 116, 0.1);
         }
+        .animate-fade-in-up {
+            opacity: 0;
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .animate-fade-in-down {
+            opacity: 0;
+            animation: fadeInDown 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes fadeInUp {
+            0% { opacity: 0; transform: translateY(25px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInDown {
+            0% { opacity: 0; transform: translateY(-25px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .feature-card svg {
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .feature-card:hover svg {
+            transform: rotate(15deg) scale(1.15);
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between antialiased">
@@ -97,14 +119,10 @@
     <!-- Header Navigation -->
     <header class="glass-header w-full py-4 px-6 md:px-12 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-[#0A4174] rounded-xl flex items-center justify-center text-white shadow-md">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                </div>
+            <div class="flex items-center gap-3 animate-fade-in-down">
+                <img src="{{ asset('images/logo.png') }}" alt="SISPENSI Logo" class="w-10 h-10 object-contain transition-transform duration-300 hover:scale-110">
                 <div>
-                    <h1 class="text-xl font-extrabold text-[#0A4174] tracking-tight leading-none">SiDispen</h1>
+                    <h1 class="text-xl font-extrabold text-[#0A4174] tracking-tight leading-none">SISPENSI</h1>
                     <span class="text-[10px] font-bold text-[#49769F] uppercase tracking-wider">SMA Negeri 3</span>
                 </div>
             </div>
@@ -122,15 +140,15 @@
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
                 
                 <!-- Welcome Copy / Title Info -->
-                <div class="lg:col-span-5 space-y-6 text-left">
+                <div class="lg:col-span-5 space-y-6 text-left animate-fade-in-up">
                     <span class="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-semibold bg-[#0A4174]/10 text-[#0A4174] uppercase tracking-wider">
                         Sistem Layanan Sekolah
                     </span>
                     <h2 class="text-4xl md:text-5xl font-extrabold text-[#001D39] leading-tight tracking-tight">
-                        Efisiensi Dispensasi Siswa Secara Mandiri
+                        Efisiensi Perizinan Siswa Secara Mandiri
                     </h2>
                     <p class="text-base text-[#49769F] font-medium leading-relaxed">
-                        Selamat datang di SiDispen, sistem informasi dispensasi online SMA Negeri 3. Aplikasi ini dirancang untuk mempermudah orang tua dalam memantau dan mengajukan dispensasi siswa, serta membantu guru piket dan manajemen sekolah melakukan pencatatan secara transparan dan akurat.
+                        Selamat datang di <strong>SISPENSI</strong> (Sistem Perizinan Siswa), sistem informasi perizinan online SMA Negeri 3. Aplikasi ini dirancang untuk mempermudah orang tua dalam memantau dan mengajukan dispensasi serta izin siswa, serta membantu guru piket dan manajemen sekolah melakukan pencatatan secara transparan dan akurat.
                     </p>
                     <div class="pt-4 flex flex-wrap gap-4">
                         <div class="flex items-center gap-3">
@@ -153,7 +171,7 @@
                 </div>
 
                 <!-- Portal Access Cards -->
-                <div class="lg:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="lg:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in-up" style="animation-delay: 0.2s;">
                     
                     <!-- Parent / Ortu Portal Card -->
                     <div class="glass-card rounded-[32px] p-8 flex flex-col justify-between min-h-[340px]">
@@ -245,7 +263,7 @@
     <footer class="w-full py-8 text-center text-xs text-[#49769F] border-t border-gray-200/50 bg-white/20">
         <div class="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p>&copy; {{ date('Y') }} SMA Negeri 3. Hak Cipta Dilindungi.</p>
-            <p class="font-semibold uppercase tracking-widest text-[10px] text-[#0A4174]">SiDispen Sistem Dispensasi</p>
+            <p class="font-semibold uppercase tracking-widest text-[10px] text-[#0A4174]">SISPENSI Sistem Perizinan</p>
         </div>
     </footer>
 </body>

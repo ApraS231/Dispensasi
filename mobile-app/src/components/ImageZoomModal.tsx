@@ -3,13 +3,12 @@ import { Modal, StyleSheet, View, TouchableOpacity, Dimensions } from 'react-nat
 import { Image } from 'expo-image';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
   withSpring,
-  runOnJS
 } from 'react-native-reanimated';
-import { COLORS } from '../utils/theme';
+import { useTheme } from '../hooks/useTheme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -20,6 +19,7 @@ interface ImageZoomModalProps {
 }
 
 export default function ImageZoomModal({ visible, imageUrl, onClose }: ImageZoomModalProps) {
+  const { SIZES, SPACING } = useTheme();
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const translateX = useSharedValue(0);
@@ -90,8 +90,18 @@ export default function ImageZoomModal({ visible, imageUrl, onClose }: ImageZoom
     >
       <GestureHandlerRootView style={styles.container}>
         <View style={styles.backdrop} />
-        
-        <TouchableOpacity style={styles.closeBtn} onPress={handleClose}>
+
+        <TouchableOpacity
+          style={[
+            styles.closeBtn,
+            {
+              right: SPACING.md, // 21px
+              padding: SPACING.xs, // 8px
+              borderRadius: SIZES.radiusLg, // 21px
+            },
+          ]}
+          onPress={handleClose}
+        >
           <MaterialCommunityIcons name="close" size={28} color="#FFF" />
         </TouchableOpacity>
 
@@ -123,10 +133,7 @@ const styles = StyleSheet.create({
   closeBtn: {
     position: 'absolute',
     top: 50,
-    right: 20,
     zIndex: 10,
-    padding: 10,
-    borderRadius: 20,
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   imageWrapper: {

@@ -1,6 +1,7 @@
+import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS, FONTS, SIZES, SPACING, SHADOWS, GLASS } from '../utils/theme';
+import { useTheme } from '../hooks/useTheme';
 import { BlurView } from 'expo-blur';
 
 interface NotificationBannerProps {
@@ -12,48 +13,107 @@ interface NotificationBannerProps {
   onPress?: () => void;
 }
 
-export default function NotificationBanner({ 
-  title, 
-  message, 
-  type = 'info', 
-  time, 
+export default function NotificationBanner({
+  title,
+  message,
+  type = 'info',
+  time,
   isRead = false,
-  onPress 
+  onPress,
 }: NotificationBannerProps) {
-  
+  const { colors, isDark, SIZES, SPACING, FONTS, shadows } = useTheme();
+
   const getStyleByType = () => {
     switch (type) {
-      case 'success': return { icon: 'check', color: COLORS.success, bg: COLORS.successBg };
-      case 'warning': return { icon: 'alert', color: COLORS.warning, bg: COLORS.warningBg };
-      case 'error': return { icon: 'close-circle-outline', color: COLORS.error, bg: COLORS.errorBg };
+      case 'success':
+        return { icon: 'check', color: colors.success, bg: colors.successBg };
+      case 'warning':
+        return { icon: 'alert', color: colors.warning, bg: colors.warningBg };
+      case 'error':
+        return { icon: 'close-circle-outline', color: colors.error, bg: colors.errorBg };
       case 'info':
-      default: return { icon: 'information', color: COLORS.info, bg: COLORS.infoBg };
+      default:
+        return { icon: 'information', color: colors.info, bg: colors.infoBg };
     }
   };
 
   const styleConfig = getStyleByType();
 
   const content = (
-    <BlurView intensity={GLASS.blurIntensity} tint={GLASS.tintColor} style={[
-      styles.container, 
-      !isRead && styles.containerUnread
-    ]}>
-      <View style={[styles.iconBox, SHADOWS.inset, { backgroundColor: styleConfig.bg }]}>
+    <BlurView
+      intensity={24} // design.md blur(24px)
+      tint={isDark ? 'dark' : 'light'}
+      style={[
+        styles.container,
+        {
+          borderRadius: SIZES.radiusLg,
+          padding: SPACING.md,
+          borderColor: isRead ? colors.glassHighlight : colors.primaryLight,
+          backgroundColor: isRead ? colors.glassSurface : colors.surfaceContainerHighest,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.iconBox,
+          shadows.inset,
+          {
+            backgroundColor: styleConfig.bg,
+            borderRadius: SIZES.radiusLg, // 21px
+            marginRight: SPACING.md,
+          },
+        ]}
+      >
         <MaterialCommunityIcons name={styleConfig.icon as any} size={24} color={styleConfig.color} />
       </View>
-      
+
       <View style={styles.content}>
         <View style={styles.headerRow}>
-          <Text style={[styles.title, !isRead && styles.textBold]}>{title}</Text>
-          <Text style={styles.time}>{time}</Text>
+          <Text
+            style={[
+              styles.title,
+              {
+                fontFamily: isRead ? FONTS.headingSemi : FONTS.heading,
+                fontSize: 16, // Modular scale text-body
+                color: colors.textPrimary,
+                paddingRight: SPACING.sm,
+              },
+            ]}
+          >
+            {title}
+          </Text>
+          <Text
+            style={[
+              styles.time,
+              {
+                fontFamily: FONTS.code,
+                fontSize: 10, // Modular scale text-caption
+                color: colors.textMuted,
+              },
+            ]}
+          >
+            {time}
+          </Text>
         </View>
-        <Text style={styles.message} numberOfLines={2}>{message}</Text>
+        <Text
+          style={[
+            styles.message,
+            {
+              fontFamily: FONTS.bodyMedium,
+              fontSize: 16, // Modular scale text-body
+              color: colors.textSecondary,
+            },
+          ]}
+          numberOfLines={2}
+        >
+          {message}
+        </Text>
       </View>
 
       {!isRead && (
-        <View style={styles.unreadDotContainer}>
-          <View style={styles.unreadDotGlow} />
-          <View style={styles.unreadDot} />
+        <View style={[styles.unreadDotContainer, { marginLeft: SPACING.sm }]}>
+          <View style={[styles.unreadDotGlow, { backgroundColor: colors.primary, borderRadius: SIZES.radiusSm }]} />
+          <View style={[styles.unreadDot, { backgroundColor: colors.primary, borderRadius: SIZES.radiusSm }]} />
         </View>
       )}
     </BlurView>
@@ -61,41 +121,52 @@ export default function NotificationBanner({
 
   if (onPress) {
     return (
-      <TouchableOpacity activeOpacity={0.7} onPress={onPress} style={styles.shadowWrapper}>
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={onPress}
+        style={[
+          styles.shadowWrapper,
+          shadows.glassPanel,
+          {
+            marginBottom: SPACING.sm,
+            borderRadius: SIZES.radiusLg,
+          },
+        ]}
+      >
         {content}
       </TouchableOpacity>
     );
   }
 
-  return <View style={styles.shadowWrapper}>{content}</View>;
+  return (
+    <View
+      style={[
+        styles.shadowWrapper,
+        shadows.glassPanel,
+        {
+          marginBottom: SPACING.sm,
+          borderRadius: SIZES.radiusLg,
+        },
+      ]}
+    >
+      {content}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  shadowWrapper: {
-    marginBottom: SPACING.sm,
-    borderRadius: SIZES.radiusLg,
-    ...SHADOWS.glassPanel,
-  },
+  shadowWrapper: {},
   container: {
     flexDirection: 'row',
-    padding: SPACING.md,
-    borderRadius: SIZES.radiusLg,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.glassHighlight,
     overflow: 'hidden',
   },
-  containerUnread: {
-    borderColor: COLORS.primaryLight,
-    backgroundColor: COLORS.surfaceContainerHighest,
-  },
   iconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: SPACING.md,
   },
   content: {
     flex: 1,
@@ -104,48 +175,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   title: {
-    fontFamily: FONTS.headingSemi,
-    fontSize: 14,
-    color: COLORS.textPrimary,
     flex: 1,
-    paddingRight: SPACING.sm,
   },
-  textBold: {
-    fontFamily: FONTS.heading,
-  },
-  time: {
-    fontFamily: FONTS.code,
-    fontSize: 11,
-    color: COLORS.textMuted,
-  },
+  time: {},
   message: {
-    fontFamily: FONTS.bodyMedium,
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    lineHeight: 18,
+    lineHeight: 20,
   },
   unreadDotContainer: {
-    marginLeft: SPACING.sm,
     justifyContent: 'center',
     alignItems: 'center',
   },
   unreadDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.primary,
     zIndex: 2,
   },
   unreadDotGlow: {
     position: 'absolute',
     width: 16,
     height: 16,
-    borderRadius: 8,
-    backgroundColor: COLORS.primary,
     opacity: 0.3,
     zIndex: 1,
-  }
+  },
 });

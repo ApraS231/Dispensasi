@@ -1,12 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import TopAppBar from './TopAppBar';
 import SkeuCard from './SkeuCard';
 import AvatarInitials from './AvatarInitials';
 import BouncyButton from './BouncyButton';
-import LiquidBackground from './LiquidBackground';
-import { COLORS, FONTS, SPACING, SHADOWS } from '../utils/theme';
-import { commonStyles } from '../utils/commonStyles';
+import ThemeSelector from './ThemeSelector';
+import OptionMenuItem from './OptionMenuItem';
+import { useTheme } from '../hooks/useTheme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router as expoRouter } from 'expo-router';
 
 export interface ProfileSection {
   title: string;
@@ -34,113 +36,165 @@ export default function ProfileLayout({
   version = "v1.0.0",
   fab
 }: ProfileLayoutProps) {
+  const { colors, isDark, SIZES, SPACING, FONTS, shadows } = useTheme();
+
   return (
-    <View style={commonStyles.container}>
-      <LiquidBackground />
+    <LinearGradient
+      colors={[colors.bgPrimary, colors.bgSecondary]}
+      style={styles.container}
+    >
       <TopAppBar showAvatar={false} title={title} showNotification={true} />
 
-      <View style={commonStyles.mainContent}>
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <View style={styles.mainContent}>
+        <ScrollView contentContainerStyle={[styles.content, { padding: SPACING.md }]} showsVerticalScrollIndicator={false}>
           
           <View style={{ height: 88 + SPACING.statusBar }} />
-          <View style={styles.profileHeader}>
-            <View style={styles.avatarWrapper}>
+          <View style={[styles.profileHeader, { marginBottom: SPACING.xl, marginTop: SPACING.lg }]}>
+            <View style={[
+              styles.avatarWrapper, 
+              { 
+                marginBottom: SPACING.md,
+                borderColor: colors.glassHighlight,
+                backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.3)',
+                borderRadius: SIZES.radiusFull
+              },
+              shadows.glassPanel
+            ]}>
               <AvatarInitials name={userName} size={100} fontSize={40} />
             </View>
-            <Text style={styles.name}>{userName}</Text>
-            <Text style={styles.email}>{userEmail}</Text>
-            <View style={styles.roleBadge}>
-              <Text style={styles.roleText}>{userRole.replace(/_/g, ' ')}</Text>
+            <Text style={[styles.name, { fontFamily: FONTS.heading, color: colors.textPrimary }]}>{userName}</Text>
+            <Text style={[styles.email, { fontFamily: FONTS.bodyMedium, color: colors.textSecondary, marginBottom: SPACING.sm }]}>{userEmail}</Text>
+            <View style={[
+              styles.roleBadge, 
+              { 
+                backgroundColor: colors.primaryContainer,
+                borderColor: colors.glassHighlight,
+                borderRadius: SIZES.radiusFull,
+                paddingHorizontal: SPACING.md,
+              }
+            ]}>
+              <Text style={[styles.roleText, { fontFamily: FONTS.labelCaps, color: isDark ? '#7BBDE8' : colors.primary }]}>
+                {userRole.replace(/_/g, ' ')}
+              </Text>
             </View>
           </View>
 
           {sections.map((section, index) => (
-            <SkeuCard key={index} style={styles.menuCard} isGlass>
-              <Text style={styles.sectionTitle}>{section.title}</Text>
+            <SkeuCard key={index} style={[styles.menuCard, { marginBottom: SPACING.lg }]} isGlass>
+              <Text style={[
+                styles.sectionTitle, 
+                { 
+                  fontFamily: FONTS.headingSemi, 
+                  color: colors.textSecondary,
+                  marginBottom: SPACING.md,
+                  marginLeft: SPACING.xs
+                }
+              ]}>{section.title}</Text>
               {section.items}
             </SkeuCard>
           ))}
+
+          {/* Dukungan & Informasi Card */}
+          <SkeuCard style={[styles.menuCard, { marginBottom: SPACING.lg }]} isGlass>
+            <Text style={[
+              styles.sectionTitle, 
+              { 
+                fontFamily: FONTS.headingSemi, 
+                color: colors.textSecondary,
+                marginBottom: SPACING.md,
+                marginLeft: SPACING.xs
+              }
+            ]}>Dukungan & Informasi</Text>
+            
+            <OptionMenuItem 
+              icon="help-circle-outline" 
+              label="Pusat Bantuan" 
+              onPress={() => expoRouter.push('/help')} 
+            />
+            <OptionMenuItem 
+              icon="information-outline" 
+              label="Tentang Aplikasi" 
+              onPress={() => expoRouter.push('/about')} 
+            />
+          </SkeuCard>
+
+          {/* Theme Mode Segmented Controller */}
+          <SkeuCard style={[styles.menuCard, { marginBottom: SPACING.lg }]} isGlass>
+            <Text style={[
+              styles.sectionTitle, 
+              { 
+                fontFamily: FONTS.headingSemi, 
+                color: colors.textSecondary,
+                marginBottom: SPACING.xs,
+                marginLeft: SPACING.xs
+              }
+            ]}>Tema Aplikasi</Text>
+            <ThemeSelector />
+          </SkeuCard>
 
           <BouncyButton 
             title="Keluar / Logout" 
             variant="danger" 
             onPress={onLogout} 
-            style={styles.logoutBtn}
+            style={[styles.logoutBtn, { marginTop: SPACING.md }]}
           />
           
-          <Text style={styles.versionText}>SiDispen App {version}</Text>
+          <Text style={[styles.versionText, { fontFamily: FONTS.code, color: colors.textMuted, marginTop: SPACING.xl }]}>
+            Sistem Perizinan Siswa {version}
+          </Text>
 
         </ScrollView>
       </View>
 
       {fab}
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  mainContent: {
+    flex: 1,
+  },
   content: {
-    padding: SPACING.md,
-    paddingBottom: 100,
+    paddingBottom: 120,
   },
   profileHeader: {
     alignItems: 'center',
-    marginBottom: SPACING.xl,
-    marginTop: SPACING.lg,
   },
   avatarWrapper: {
-    marginBottom: SPACING.md,
-    ...SHADOWS.glassPanel,
-    borderRadius: 50,
-    backgroundColor: 'transparent',
-    padding: 4,
+    borderWidth: 1.5,
+    padding: 8,
   },
   name: {
-    fontFamily: FONTS.heading,
-    fontSize: 24,
-    color: COLORS.textPrimary,
+    fontSize: 26,
     marginBottom: 4,
   },
   email: {
-    fontFamily: FONTS.bodyMedium,
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.sm,
+    fontSize: 16,
   },
   roleBadge: {
-    backgroundColor: COLORS.surfaceContainerLow,
-    paddingHorizontal: SPACING.md,
     paddingVertical: 6,
-    borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.primaryLight,
   },
   roleText: {
-    fontFamily: FONTS.labelCaps,
-    fontSize: 11,
-    color: COLORS.primary,
+    fontSize: 10,
     textTransform: 'uppercase',
   },
   menuCard: {
-    padding: SPACING.md,
-    marginBottom: SPACING.lg,
+    padding: 0,
   },
   sectionTitle: {
-    fontFamily: FONTS.headingSemi,
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.md,
-    marginLeft: SPACING.xs,
+    fontSize: 16,
   },
   logoutBtn: {
-    marginTop: SPACING.md,
+    width: '100%',
   },
   versionText: {
-    fontFamily: FONTS.code,
-    fontSize: 11,
-    color: COLORS.textMuted,
+    fontSize: 10,
     textAlign: 'center',
-    marginTop: SPACING.xl,
     opacity: 0.5,
   }
 });

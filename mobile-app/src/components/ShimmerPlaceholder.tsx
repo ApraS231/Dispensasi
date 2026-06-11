@@ -1,15 +1,15 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withRepeat, 
-  withTiming, 
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
   interpolate,
-  Easing
+  Easing,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, SIZES } from '../utils/theme';
+import { useTheme } from '../hooks/useTheme';
 
 interface ShimmerPlaceholderProps {
   width?: number | string;
@@ -18,19 +18,22 @@ interface ShimmerPlaceholderProps {
   style?: ViewStyle;
 }
 
-export default function ShimmerPlaceholder({ 
-  width = '100%', 
-  height = 20, 
-  borderRadius = SIZES.radius,
-  style 
+export default function ShimmerPlaceholder({
+  width = '100%',
+  height = 20,
+  borderRadius,
+  style,
 }: ShimmerPlaceholderProps) {
+  const { colors, SIZES } = useTheme();
   const shimmerValue = useSharedValue(0);
+
+  const resolvedBorderRadius = borderRadius !== undefined ? borderRadius : SIZES.radius;
 
   useEffect(() => {
     shimmerValue.value = withRepeat(
-      withTiming(1, { 
-        duration: 1500, 
-        easing: Easing.bezier(0.4, 0, 0.6, 1) 
+      withTiming(1, {
+        duration: 1500,
+        easing: Easing.bezier(0.4, 0, 0.6, 1),
       }),
       -1,
       false
@@ -38,11 +41,7 @@ export default function ShimmerPlaceholder({
   }, []);
 
   const animatedStyle = useAnimatedStyle(() => {
-    const translateX = interpolate(
-      shimmerValue.value,
-      [0, 1],
-      [-200, 200]
-    );
+    const translateX = interpolate(shimmerValue.value, [0, 1], [-200, 200]);
 
     return {
       transform: [{ translateX }],
@@ -50,11 +49,18 @@ export default function ShimmerPlaceholder({
   });
 
   return (
-    <View style={[
-      styles.container, 
-      { width: width as any, height, borderRadius },
-      style
-    ]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.surfaceDim || 'rgba(255, 255, 255, 0.04)',
+          width: width as any,
+          height,
+          borderRadius: resolvedBorderRadius,
+        },
+        style,
+      ]}
+    >
       <Animated.View style={[StyleSheet.absoluteFill, animatedStyle]}>
         <LinearGradient
           colors={['transparent', 'rgba(255, 255, 255, 0.2)', 'transparent']}
@@ -69,7 +75,6 @@ export default function ShimmerPlaceholder({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     overflow: 'hidden',
   },
 });

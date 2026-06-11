@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, Animated, Dimensions, LayoutChangeEvent } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS, FONTS, SPACING, SIZES, SHADOWS, GLASS } from '../utils/theme';
+import { useTheme } from '../hooks/useTheme';
 import { HapticFeedback } from './../utils/haptics';
 import { BlurView } from 'expo-blur';
 
@@ -21,6 +21,8 @@ interface BottomTabBarProps {
 const { width } = Dimensions.get('window');
 
 export default function BottomTabBar({ tabs, activeTab, onTabPress }: BottomTabBarProps) {
+  const { colors, isDark, SIZES, SPACING, FONTS, shadows } = useTheme();
+  
   const [containerWidth, setContainerWidth] = useState(width - SPACING.md * 2);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
@@ -34,7 +36,7 @@ export default function BottomTabBar({ tabs, activeTab, onTabPress }: BottomTabB
       bounciness: 12,
       speed: 14,
     }).start();
-  }, [activeTab, containerWidth]);
+  }, [activeTab, containerWidth, tabWidth]);
 
   const handlePress = (tabName: string) => {
     HapticFeedback.light();
@@ -45,21 +47,42 @@ export default function BottomTabBar({ tabs, activeTab, onTabPress }: BottomTabB
     setContainerWidth(event.nativeEvent.layout.width);
   };
 
+  const resolvedRadius = SIZES.radiusGlassPanel || 21;
+
   return (
-    <View style={styles.outerContainer}>
-      <BlurView intensity={GLASS.blurIntensity + 30} tint={GLASS.tintColor} style={styles.container} onLayout={onLayout}>
-        <View style={styles.grooveBackground} />
+    <View style={[
+      styles.outerContainer,
+      {
+        bottom: Platform.OS === 'ios' ? 32 : 24,
+        left: SPACING.md,
+        right: SPACING.md,
+        borderRadius: resolvedRadius,
+        borderColor: colors.glassHighlight,
+      },
+      shadows.skeuShadow
+    ]}>
+      <BlurView 
+        intensity={95} 
+        tint={isDark ? 'dark' : 'light'} 
+        style={[styles.container, { borderRadius: resolvedRadius }]} 
+        onLayout={onLayout}
+      >
+        <View style={[styles.grooveBackground, { borderRadius: resolvedRadius }]} />
         
         <Animated.View
           style={[
             styles.slider,
             {
               width: tabWidth - 16, // padding adjustment
+              backgroundColor: colors.glassSurface,
+              borderColor: colors.glassHighlight,
+              borderRadius: SIZES.radiusToggle || 21,
               transform: [{ translateX: slideAnim }],
             },
+            shadows.raised
           ]}
         >
-          <View style={styles.sliderHighlight} />
+          <View style={[styles.sliderHighlight, { backgroundColor: colors.innerGlow }]} />
         </Animated.View>
         
         {tabs.map((tab) => {
@@ -75,11 +98,11 @@ export default function BottomTabBar({ tabs, activeTab, onTabPress }: BottomTabB
                 <MaterialCommunityIcons
                   name={isActive ? tab.activeIcon : tab.icon}
                   size={24}
-                  color={isActive ? COLORS.primary : COLORS.textMuted}
+                  color={isActive ? colors.primary : colors.textMuted}
                 />
               </View>
               {isActive && (
-                <Text style={styles.activeLabel}>
+                <Text style={[styles.activeLabel, { fontFamily: FONTS.headingSemi, color: colors.primary }]}>
                   {tab.label}
                 </Text>
               )}
@@ -119,45 +142,31 @@ export const ORTU_TABS: TabItem[] = [
 
 const styles = StyleSheet.create({
   outerContainer: {
-    ...SHADOWS.skeuShadow,
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 32 : 24,
-    left: SPACING.md,
-    right: SPACING.md,
-    borderRadius: SIZES.radiusGlassPanel,
     overflow: 'hidden',
     borderWidth: 1.5,
-    borderColor: COLORS.glassHighlight,
   },
   container: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surfaceContainer,
-    borderRadius: SIZES.radiusGlassPanel,
     paddingVertical: 10,
     paddingHorizontal: 8,
   },
   grooveBackground: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.02)',
-    borderRadius: SIZES.radiusGlassPanel,
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.05)',
   },
   slider: {
-    ...SHADOWS.raised,
     position: 'absolute',
     top: 10,
     bottom: 10,
     left: 8,
-    backgroundColor: COLORS.glassSurface,
-    borderRadius: SIZES.radiusToggle,
     borderWidth: 1,
-    borderColor: COLORS.glassHighlight,
     overflow: 'hidden',
   },
   sliderHighlight: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: COLORS.innerGlow,
     borderTopWidth: 1,
     borderTopColor: '#FFFFFF',
   },
@@ -174,9 +183,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   activeLabel: {
-    fontFamily: FONTS.headingSemi,
     fontSize: 11,
-    color: COLORS.primary,
     marginLeft: 6,
     letterSpacing: 0.5,
   },

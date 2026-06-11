@@ -1,16 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router as expoRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import api from '../../src/utils/api';
-import { COLORS, FONTS, SIZES, SPACING, SHADOWS, GLASS } from '../../src/utils/theme';
+import { FONTS, SIZES, SPACING, GLASS } from '../../src/utils/theme';
+import { useTheme } from '../../src/hooks/useTheme';
 import TopAppBar from '../../src/components/TopAppBar';
 import SkeuCard from '../../src/components/SkeuCard';
-import LiquidBackground from '../../src/components/LiquidBackground';
 import AnimatedEntrance from '../../src/components/AnimatedEntrance';
 import BouncyButton from '../../src/components/BouncyButton';
 import { useSharedValue } from 'react-native-reanimated';
@@ -20,6 +21,7 @@ import { HapticFeedback } from '../../src/utils/haptics';
 export default function LaporanIzinScreen() {
   const scrollY = useSharedValue(0);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const { colors, isDark } = useTheme();
 
   const bulan = selectedDate.getMonth() + 1;
   const tahun = selectedDate.getFullYear();
@@ -76,15 +78,17 @@ export default function LaporanIzinScreen() {
   };
 
   const getPercentageColor = (percent: number) => {
-    if (percent >= 90) return COLORS.success;
-    if (percent >= 75) return COLORS.warning;
-    return COLORS.error;
+    if (percent >= 90) return colors.success;
+    if (percent >= 75) return colors.warning;
+    return colors.error;
   };
 
   return (
-    <View style={styles.container}>
-      <LiquidBackground />
-      <SafeAreaView style={styles.safeArea}>
+    <LinearGradient
+      colors={[colors.bgPrimary, colors.bgSecondary]}
+      style={styles.container}
+    >
+      <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
         <TopAppBar 
           title="Laporan Persentase" 
           onBack={() => expoRouter.back()} 
@@ -99,63 +103,67 @@ export default function LaporanIzinScreen() {
 
           {/* Month Picker */}
           <AnimatedEntrance delay={100} direction="up">
-            <SkeuCard isGlass style={styles.monthPicker}>
-              <TouchableOpacity onPress={handlePrevMonth} style={styles.pickerBtn}>
-                <MaterialCommunityIcons name="chevron-left" size={24} color={COLORS.primary} />
-              </TouchableOpacity>
-              <View style={styles.monthInfo}>
-                <Text style={styles.monthName}>{data?.bulan_nama || selectedDate.toLocaleString('id-ID', { month: 'long' })}</Text>
-                <Text style={styles.yearName}>{tahun}</Text>
+            <SkeuCard isGlass style={{ marginBottom: SPACING.md, borderColor: colors.glassHighlight }}>
+              <View style={styles.cardRow}>
+                <TouchableOpacity onPress={handlePrevMonth} style={[styles.pickerBtn, { backgroundColor: colors.glassSurface, borderColor: colors.glassHighlight }]}>
+                  <MaterialCommunityIcons name="chevron-left" size={24} color={colors.primary} />
+                </TouchableOpacity>
+                <View style={styles.monthInfo}>
+                  <Text style={[styles.monthName, { color: colors.textPrimary }]}>{data?.bulan_nama || selectedDate.toLocaleString('id-ID', { month: 'long' })}</Text>
+                  <Text style={[styles.yearName, { color: colors.textSecondary }]}>{tahun}</Text>
+                </View>
+                <TouchableOpacity onPress={handleNextMonth} style={[styles.pickerBtn, { backgroundColor: colors.glassSurface, borderColor: colors.glassHighlight }]}>
+                  <MaterialCommunityIcons name="chevron-right" size={24} color={colors.primary} />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity onPress={handleNextMonth} style={styles.pickerBtn}>
-                <MaterialCommunityIcons name="chevron-right" size={24} color={COLORS.primary} />
-              </TouchableOpacity>
             </SkeuCard>
           </AnimatedEntrance>
 
           {/* Summary Card */}
           <AnimatedEntrance delay={200} direction="up">
-            <SkeuCard isGlass style={styles.summaryCard}>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Kelas</Text>
-                <Text style={styles.summaryValue}>{data?.kelas || '-'}</Text>
-              </View>
-              <View style={styles.summaryDivider} />
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Hari Efektif</Text>
-                <Text style={styles.summaryValue}>{data?.hari_efektif || 0} Hari</Text>
+            <SkeuCard isGlass style={{ marginBottom: SPACING.md, borderColor: colors.glassHighlight }}>
+              <View style={[styles.cardRow, { justifyContent: 'space-around' }]}>
+                <View style={styles.summaryItem}>
+                  <Text style={[styles.summaryLabel, { color: colors.textMuted }]}>Kelas</Text>
+                  <Text style={[styles.summaryValue, { color: colors.textPrimary }]}>{data?.kelas || '-'}</Text>
+                </View>
+                <View style={[styles.summaryDivider, { backgroundColor: colors.glassHighlight }]} />
+                <View style={styles.summaryItem}>
+                  <Text style={[styles.summaryLabel, { color: colors.textMuted }]}>Hari Efektif</Text>
+                  <Text style={[styles.summaryValue, { color: colors.textPrimary }]}>{data?.hari_efektif || 0} Hari</Text>
+                </View>
               </View>
             </SkeuCard>
           </AnimatedEntrance>
 
           {/* Table */}
           <AnimatedEntrance delay={300} direction="up">
-            <SkeuCard isGlass style={styles.tableCard}>
-              <View style={styles.tableHeader}>
-                <Text style={[styles.headerText, { width: 30 }]}>No</Text>
-                <Text style={[styles.headerText, { flex: 1 }]}>Nama Siswa</Text>
-                <Text style={[styles.headerText, { width: 40, textAlign: 'center' }]}>Izin</Text>
-                <Text style={[styles.headerText, { width: 60, textAlign: 'right' }]}>% Hadir</Text>
+            <SkeuCard isGlass style={{ marginBottom: SPACING.lg, borderColor: colors.glassHighlight }}>
+              <View style={[styles.tableHeader, { borderBottomColor: colors.glassHighlight }]}>
+                <Text style={[styles.headerText, { width: 30, color: colors.textSecondary }]}>No</Text>
+                <Text style={[styles.headerText, { flex: 1, color: colors.textSecondary }]}>Nama Siswa</Text>
+                <Text style={[styles.headerText, { width: 40, textAlign: 'center', color: colors.textSecondary }]}>Izin</Text>
+                <Text style={[styles.headerText, { width: 60, textAlign: 'right', color: colors.textSecondary }]}>% Hadir</Text>
               </View>
 
               {isLoading ? (
-                <ActivityIndicator color={COLORS.primary} style={{ marginVertical: SPACING.xl }} />
+                <ActivityIndicator color={colors.primary} style={{ marginVertical: SPACING.xl }} />
               ) : data?.siswa?.length === 0 ? (
-                <Text style={styles.emptyText}>Tidak ada data siswa.</Text>
+                <Text style={[styles.emptyText, { color: colors.textMuted }]}>Tidak ada data siswa.</Text>
               ) : (
                 data?.siswa.map((item: any, index: number) => (
-                  <View key={item.id} style={styles.tableRow}>
-                    <Text style={[styles.rowText, { width: 30, color: COLORS.textMuted }]}>{index + 1}</Text>
+                  <View key={item.id} style={[styles.tableRow, { borderBottomColor: colors.outlineVariant }]}>
+                    <Text style={[styles.rowText, { width: 30, color: colors.textMuted }]}>{index + 1}</Text>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.studentName} numberOfLines={1}>{item.name}</Text>
-                      <Text style={styles.studentNis}>NIS: {item.nis || '-'}</Text>
+                      <Text style={[styles.studentName, { color: colors.textPrimary }]} numberOfLines={1}>{item.name}</Text>
+                      <Text style={[styles.studentNis, { color: colors.textSecondary }]}>NIS: {item.nis || '-'}</Text>
                     </View>
                     <View style={[styles.izinBadge, { width: 40 }]}>
-                      <Text style={styles.izinCount}>{item.total_izin}</Text>
+                      <Text style={[styles.izinCount, { color: colors.textPrimary }]}>{item.total_izin}</Text>
                     </View>
                     <View style={{ width: 60, alignItems: 'flex-end' }}>
-                      <Text style={[styles.percentText, { color: getPercentageColor(item.persen_hadir) }]}>
-                        {item.persen_hadir}%
+                      <Text style={[styles.percentText, { color: getPercentageColor(item.percent_hadir || item.persen_hadir) }]}>
+                        {item.percent_hadir || item.persen_hadir}%
                       </Text>
                     </View>
                   </View>
@@ -174,66 +182,47 @@ export default function LaporanIzinScreen() {
                 variant="primary"
                 disabled={!data || data.siswa.length === 0}
               />
-              <Text style={styles.footerNote}>* Persentase dihitung dari hari efektif (Senin-Jumat) dikurangi izin yang disetujui.</Text>
+              <Text style={[styles.footerNote, { color: colors.textMuted }]}>* Persentase dihitung dari hari efektif (Senin-Jumat) dikurangi izin yang disetujui.</Text>
             </View>
           </AnimatedEntrance>
 
           <View style={{ height: SPACING.xl }} />
         </ScrollView>
       </SafeAreaView>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bgWhite },
+  container: { flex: 1 },
   safeArea: { flex: 1 },
   scrollContent: { paddingHorizontal: SPACING.md, paddingBottom: SPACING.xl },
   
-  monthPicker: {
+  cardRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: SPACING.md,
-    borderRadius: SIZES.radiusCard,
-    marginBottom: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.glassHighlight,
   },
   pickerBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.glassSurface,
+    width: 34,
+    height: 34,
+    borderRadius: SIZES.radiusFull,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: COLORS.glassHighlight,
   },
   monthInfo: {
     alignItems: 'center',
   },
   monthName: {
     fontFamily: FONTS.heading,
-    fontSize: 18,
-    color: COLORS.textPrimary,
+    fontSize: 21,
   },
   yearName: {
     fontFamily: FONTS.body,
-    fontSize: 12,
-    color: COLORS.textSecondary,
+    fontSize: 10,
   },
 
-  summaryCard: {
-    flexDirection: 'row',
-    padding: SPACING.md,
-    borderRadius: SIZES.radiusCard,
-    marginBottom: SPACING.md,
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.glassHighlight,
-  },
   summaryItem: {
     alignItems: 'center',
     flex: 1,
@@ -241,60 +230,45 @@ const styles = StyleSheet.create({
   summaryLabel: {
     fontFamily: FONTS.body,
     fontSize: 10,
-    color: COLORS.textMuted,
     textTransform: 'uppercase',
   },
   summaryValue: {
     fontFamily: FONTS.heading,
     fontSize: 16,
-    color: COLORS.textPrimary,
     marginTop: 2,
   },
   summaryDivider: {
     width: 1,
     height: '60%',
-    backgroundColor: COLORS.glassHighlight,
   },
 
-  tableCard: {
-    padding: SPACING.md,
-    borderRadius: SIZES.radiusCard,
-    marginBottom: SPACING.lg,
-    borderWidth: 1,
-    borderColor: COLORS.glassHighlight,
-  },
   tableHeader: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.glassHighlight,
     paddingBottom: SPACING.sm,
     marginBottom: SPACING.sm,
   },
   headerText: {
     fontFamily: FONTS.headingSemi,
-    fontSize: 12,
-    color: COLORS.textSecondary,
+    fontSize: 10,
   },
   tableRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: SPACING.sm,
     borderBottomWidth: 0.5,
-    borderBottomColor: COLORS.glassHighlight + '40',
   },
   rowText: {
     fontFamily: FONTS.body,
-    fontSize: 13,
+    fontSize: 16,
   },
   studentName: {
     fontFamily: FONTS.headingSemi,
-    fontSize: 14,
-    color: COLORS.textPrimary,
+    fontSize: 16,
   },
   studentNis: {
     fontFamily: FONTS.body,
-    fontSize: 11,
-    color: COLORS.textSecondary,
+    fontSize: 10,
   },
   izinBadge: {
     alignItems: 'center',
@@ -302,16 +276,14 @@ const styles = StyleSheet.create({
   },
   izinCount: {
     fontFamily: FONTS.heading,
-    fontSize: 14,
-    color: COLORS.textPrimary,
+    fontSize: 16,
   },
   percentText: {
     fontFamily: FONTS.heading,
-    fontSize: 14,
+    fontSize: 16,
   },
   emptyText: {
     fontFamily: FONTS.body,
-    color: COLORS.textMuted,
     textAlign: 'center',
     marginVertical: SPACING.xl,
   },
@@ -321,8 +293,7 @@ const styles = StyleSheet.create({
   },
   footerNote: {
     fontFamily: FONTS.body,
-    fontSize: 11,
-    color: COLORS.textMuted,
+    fontSize: 10,
     marginTop: SPACING.md,
     textAlign: 'center',
     fontStyle: 'italic',

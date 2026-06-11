@@ -1,26 +1,44 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, FlatList, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, FlatList, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router as expoRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../src/utils/api';
-import { COLORS, FONTS, SIZES, SPACING } from '../../src/utils/theme';
+import { FONTS, SIZES, SPACING } from '../../src/utils/theme';
 import { HapticFeedback } from '../../src/utils/haptics';
+import { useTheme } from '../../src/hooks/useTheme';
+import { createCommonStyles } from '../../src/utils/commonStyles';
+import SkeuCard from '../../src/components/SkeuCard';
+import TopAppBar from '../../src/components/TopAppBar';
+import SearchBar from '../../src/components/SearchBar';
+import AvatarInitials from '../../src/components/AvatarInitials';
+import FilterPill from '../../src/components/FilterPill';
 
 export default function KelolaAnakWaliScreen() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
+  const { colors, isDark, shadows } = useTheme();
+  const commonStyles = createCommonStyles(colors);
 
   // Main student list query
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['wali-siswa'],
     queryFn: async () => {
       const { data } = await api.get('/wali/siswa');
       return data;
     }
   });
+
+  const errorMessage = error
+    ? (typeof (error as any).response?.data?.message === 'string'
+        ? (error as any).response.data.message
+        : typeof (error as any).message === 'string'
+          ? (error as any).message
+          : 'Terjadi kesalahan memuat data.')
+    : null;
 
   // Fetch Class Join Requests
   const { data: classRequests = [], refetch: refetchRequests } = useQuery({
@@ -31,7 +49,8 @@ export default function KelolaAnakWaliScreen() {
     }
   });
 
-  const students = data?.siswa || [];
+  const students = Array.isArray(data?.siswa) ? data.siswa : [];
+  const classRequestsData = Array.isArray(classRequests) ? classRequests : [];
   const className = data?.kelas || '-';
 
   const stats = useMemo(() => {
@@ -103,58 +122,66 @@ export default function KelolaAnakWaliScreen() {
 
   if (isLoading && !data) {
     return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={{ marginTop: 10, fontFamily: FONTS.body }}>Memuat data...</Text>
-      </View>
+      <LinearGradient
+        colors={[colors.bgPrimary, colors.bgSecondary]}
+        style={[styles.container, styles.centered]}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ marginTop: SPACING.sm, fontFamily: FONTS.body, color: colors.textSecondary }}>Memuat data...</Text>
+      </LinearGradient>
     );
   }
 
   const renderHeader = () => (
     <View style={styles.headerContent}>
+      <View style={{ height: 88 + SPACING.statusBar }} />
       {/* Stats Section */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.total}</Text>
-          <Text style={styles.statLabel}>Total</Text>
+      <SkeuCard isGlass style={{ borderColor: colors.glassHighlight, marginBottom: SPACING.md }}>
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: colors.textPrimary }]}>{stats.total}</Text>
+            <Text style={[styles.statLabel, { color: colors.textMuted }]}>Total</Text>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: colors.glassHighlight }]} />
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: isDark ? '#7BBDE8' : colors.primary }]}>{stats.connected}</Text>
+            <Text style={[styles.statLabel, { color: colors.textMuted }]}>Terhubung</Text>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: colors.glassHighlight }]} />
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: colors.warning }]}>{stats.unconnected}</Text>
+            <Text style={[styles.statLabel, { color: colors.textMuted }]}>Belum</Text>
+          </View>
         </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: COLORS.primary }]}>{stats.connected}</Text>
-          <Text style={styles.statLabel}>Terhubung</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: COLORS.warning }]}>{stats.unconnected}</Text>
-          <Text style={styles.statLabel}>Belum</Text>
-        </View>
-      </View>
+      </SkeuCard>
 
       {/* Join Requests */}
-      {Array.isArray(classRequests) && classRequests.length > 0 && (
+      {classRequestsData.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Permintaan Masuk ({classRequests.length})</Text>
-          {classRequests.map((req: any) => (
-            <View key={req.id} style={styles.requestCard}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.requestName}>{req.siswa?.name || 'Siswa'}</Text>
-                <Text style={styles.requestSub}>Ingin bergabung kelas</Text>
+          <Text style={[styles.sectionTitle, { color: colors.primary }]}>Permintaan Masuk ({classRequestsData.length})</Text>
+          {classRequestsData.map((req: any) => (
+            <SkeuCard isGlass key={req.id} style={[styles.requestCard, { borderColor: colors.primary + '30' }]}>
+              <View style={styles.cardRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.requestName, { color: colors.textPrimary }]}>{req.siswa?.name || 'Siswa'}</Text>
+                  <Text style={[styles.requestSub, { color: colors.textSecondary }]}>Ingin bergabung kelas</Text>
+                </View>
+                <View style={styles.requestActions}>
+                  <TouchableOpacity 
+                    onPress={() => respondMutation.mutate({ id: req.id, status: 'rejected' })}
+                    style={[styles.miniBtn, { backgroundColor: colors.errorBg }]}
+                  >
+                    <MaterialCommunityIcons name="close" size={20} color={colors.error} />
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    onPress={() => respondMutation.mutate({ id: req.id, status: 'accepted' })}
+                    style={[styles.miniBtn, { backgroundColor: colors.successBg }]}
+                  >
+                    <MaterialCommunityIcons name="check" size={20} color={colors.success} />
+                  </TouchableOpacity>
+                </View>
               </View>
-              <View style={styles.requestActions}>
-                <TouchableOpacity 
-                  onPress={() => respondMutation.mutate({ id: req.id, status: 'rejected' })}
-                  style={[styles.miniBtn, { backgroundColor: COLORS.errorBg }]}
-                >
-                  <MaterialCommunityIcons name="close" size={20} color={COLORS.error} />
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  onPress={() => respondMutation.mutate({ id: req.id, status: 'accepted' })}
-                  style={[styles.miniBtn, { backgroundColor: COLORS.successBg }]}
-                >
-                  <MaterialCommunityIcons name="check" size={20} color={COLORS.success} />
-                </TouchableOpacity>
-              </View>
-            </View>
+            </SkeuCard>
           ))}
         </View>
       )}
@@ -162,191 +189,145 @@ export default function KelolaAnakWaliScreen() {
       {/* Controls */}
       <View style={styles.controlsContainer}>
         <View style={styles.filterRow}>
-          {['all', 'connected', 'unconnected'].map((f) => (
-            <TouchableOpacity 
-              key={f}
-              onPress={() => setActiveFilter(f)}
-              style={[
-                styles.filterBtn, 
-                activeFilter === f && { backgroundColor: COLORS.primary }
-              ]}
-            >
-              <Text style={[
-                styles.filterText, 
-                activeFilter === f && { color: '#FFFFFF' }
-              ]}>
-                {f === 'all' ? 'Semua' : f === 'connected' ? 'Terhubung' : 'Belum'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <View style={styles.searchBox}>
-          <MaterialCommunityIcons name="magnify" size={20} color={COLORS.textMuted} />
-          <TextInput 
-            style={styles.searchInput}
-            placeholder="Cari nama atau NIS..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholderTextColor={COLORS.textMuted}
+          <FilterPill 
+            id="all" 
+            label="Semua" 
+            isActive={activeFilter === 'all'} 
+            onPress={setActiveFilter} 
+          />
+          <FilterPill 
+            id="connected" 
+            label="Terhubung" 
+            isActive={activeFilter === 'connected'} 
+            onPress={setActiveFilter} 
+          />
+          <FilterPill 
+            id="unconnected" 
+            label="Belum" 
+            isActive={activeFilter === 'unconnected'} 
+            onPress={setActiveFilter} 
           />
         </View>
+
+        <SearchBar 
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder="Cari nama atau NIS..."
+        />
       </View>
     </View>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Custom Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => expoRouter.back()} style={styles.backBtn}>
-          <MaterialCommunityIcons name="chevron-left" size={32} color={COLORS.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Kelas {className}</Text>
-        <View style={{ width: 48 }} />
-      </View>
+    <LinearGradient
+      colors={[colors.bgPrimary, colors.bgSecondary]}
+      style={commonStyles.container}
+    >
+      <SafeAreaView style={commonStyles.safeArea} edges={['bottom', 'left', 'right']}>
+        <TopAppBar 
+          title={`Kelas ${className}`}
+          showAvatar={false}
+          onBack={() => expoRouter.back()}
+        />
 
-      <FlatList
-        data={filteredStudents}
-        keyExtractor={(item) => item.id}
-        ListHeaderComponent={renderHeader}
-        contentContainerStyle={styles.listContent}
-        onRefresh={onRefresh}
-        refreshing={isLoading}
-        renderItem={({ item }) => (
-          <View style={styles.studentCard}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{item.name?.charAt(0) || 'S'}</Text>
+        <FlatList
+          style={{ flex: 1 }}
+          data={filteredStudents}
+          keyExtractor={(item) => String(item.id)}
+          ListHeaderComponent={renderHeader}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={isLoading}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
+          renderItem={({ item }) => (
+            <View style={{ paddingHorizontal: SPACING.md }}>
+              <SkeuCard isGlass style={[styles.studentCard, { borderColor: colors.glassHighlight }]}>
+                <View style={styles.cardRow}>
+                  <AvatarInitials name={item.name} size={44} />
+                  <View style={styles.studentInfo}>
+                    <Text style={[styles.studentName, { color: colors.textPrimary }]}>{item.name}</Text>
+                    <Text style={[styles.studentSub, { color: colors.textSecondary }]}>NIS: {item.nis || '-'}</Text>
+                    <Text style={[
+                      styles.parentStatus, 
+                      { color: item.has_parent ? colors.success : colors.textMuted }
+                    ]}>
+                      {item.has_parent ? `✓ Ortu: ${item.parent_name}` : '✕ Belum Terhubung'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={() => handleRemove(item)} style={styles.removeBtn}>
+                    <MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.error} />
+                  </TouchableOpacity>
+                </View>
+              </SkeuCard>
             </View>
-            <View style={styles.studentInfo}>
-              <Text style={styles.studentName}>{item.name}</Text>
-              <Text style={styles.studentSub}>NIS: {item.nis || '-'}</Text>
-              <Text style={[
-                styles.parentStatus, 
-                { color: item.has_parent ? COLORS.success : COLORS.textMuted }
-              ]}>
-                {item.has_parent ? `✓ Ortu: ${item.parent_name}` : '✕ Belum Terhubung'}
+          )}
+          ListEmptyComponent={
+            <View style={styles.centered}>
+              <Text style={[styles.emptyText, { color: errorMessage ? colors.error : colors.textMuted }]}>
+                {errorMessage || 'Tidak ada data siswa ditemukan.'}
               </Text>
             </View>
-            <TouchableOpacity onPress={() => handleRemove(item)} style={styles.removeBtn}>
-              <MaterialCommunityIcons name="trash-can-outline" size={20} color={COLORS.error} />
-            </TouchableOpacity>
-          </View>
-        )}
-        ListEmptyComponent={
-          <View style={styles.centered}>
-            <Text style={styles.emptyText}>Tidak ada data siswa ditemukan.</Text>
-          </View>
-        }
-      />
-    </SafeAreaView>
+          }
+        />
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F0F4F8' },
+  container: { flex: 1 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: {
-    height: 60,
+  headerContent: { padding: SPACING.md },
+  statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 10,
-    backgroundColor: '#F0F4F8',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
-  },
-  backBtn: { padding: 4 },
-  headerTitle: { fontFamily: FONTS.heading, fontSize: 18, color: COLORS.primary },
-  
-  headerContent: { padding: SPACING.md },
-  
-  statsContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    padding: 15,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
-    marginBottom: 20,
-    // Basic shadow
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 3,
+    width: '100%',
   },
   statItem: { flex: 1, alignItems: 'center' },
-  statValue: { fontSize: 20, fontWeight: 'bold', color: COLORS.textPrimary },
-  statLabel: { fontSize: 10, color: COLORS.textMuted, textTransform: 'uppercase', marginTop: 2 },
-  statDivider: { width: 1, height: '70%', backgroundColor: '#EEE' },
+  statValue: { fontSize: 21, fontWeight: 'bold' },
+  statLabel: { fontSize: 10, textTransform: 'uppercase', marginTop: 2 },
+  statDivider: { width: 1, height: 34 },
   
-  section: { marginBottom: 20 },
-  sectionTitle: { fontSize: 14, fontWeight: 'bold', color: COLORS.primary, marginBottom: 10 },
+  section: { marginBottom: SPACING.md },
+  sectionTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: SPACING.xs },
   requestCard: {
-    backgroundColor: '#FFFFFF',
-    padding: 12,
-    borderRadius: 12,
+    marginBottom: SPACING.xs,
+  },
+  requestName: { fontSize: 16, fontWeight: 'bold' },
+  requestSub: { fontSize: 10 },
+  requestActions: { flexDirection: 'row', gap: SPACING.sm },
+  miniBtn: { width: 34, height: 34, borderRadius: SIZES.radiusFull, alignItems: 'center', justifyContent: 'center' },
+  
+  cardRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: COLORS.primary + '20',
+    width: '100%',
   },
-  requestName: { fontSize: 14, fontWeight: 'bold', color: COLORS.textPrimary },
-  requestSub: { fontSize: 12, color: COLORS.textMuted },
-  requestActions: { flexDirection: 'row', gap: 10 },
-  miniBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   
-  controlsContainer: { marginBottom: 10 },
-  filterRow: { flexDirection: 'row', gap: 8, marginBottom: 15 },
-  filterBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    borderWidth: 1,
-    borderColor: '#DDD',
-  },
-  filterText: { fontSize: 12, color: COLORS.textMuted },
+  controlsContainer: { marginBottom: SPACING.xs },
+  filterRow: { flexDirection: 'row', gap: SPACING.xs, marginBottom: SPACING.sm },
   
-  searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    height: 46,
-    borderWidth: 1,
-    borderColor: '#DDD',
-  },
-  searchInput: { flex: 1, marginLeft: 8, fontSize: 14, color: COLORS.textPrimary },
-  
-  listContent: { paddingBottom: 50 },
+  listContent: { paddingBottom: 100 },
   studentCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 15,
-    marginHorizontal: 16,
-    marginBottom: 10,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
+    marginBottom: SPACING.xs,
   },
   avatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.primary + '10',
+    borderRadius: SIZES.radiusFull,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: { color: COLORS.primary, fontWeight: 'bold', fontSize: 16 },
-  studentInfo: { flex: 1, marginLeft: 12 },
-  studentName: { fontSize: 15, fontWeight: 'bold', color: COLORS.textPrimary },
-  studentSub: { fontSize: 12, color: COLORS.textMuted, marginTop: 1 },
-  parentStatus: { fontSize: 11, marginTop: 4 },
-  removeBtn: { padding: 8 },
-  emptyText: { color: COLORS.textMuted, marginTop: 20 },
+  avatarText: { fontWeight: 'bold', fontSize: 16 },
+  studentInfo: { flex: 1, marginLeft: SPACING.sm },
+  studentName: { fontSize: 16, fontWeight: 'bold' },
+  studentSub: { fontSize: 10, marginTop: 1 },
+  parentStatus: { fontSize: 10, marginTop: 4 },
+  removeBtn: { padding: SPACING.xs },
+  emptyText: { marginTop: SPACING.md },
 });

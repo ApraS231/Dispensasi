@@ -40,23 +40,6 @@ export default function SiswaProfileScreen() {
           />
         </>
       )
-    },
-    {
-      title: "Dukungan",
-      items: (
-        <>
-          <OptionMenuItem 
-            icon="help-circle-outline" 
-            label="Pusat Bantuan" 
-            onPress={() => {}} 
-          />
-          <OptionMenuItem 
-            icon="information-outline" 
-            label="Tentang Aplikasi" 
-            onPress={() => {}} 
-          />
-        </>
-      )
     }
   ];
 

@@ -18,9 +18,17 @@ class PiketScheduleResource extends Resource
 {
     protected static ?string $model = PiketSchedule::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
 
     protected static ?string $recordTitleAttribute = 'hari';
+
+    protected static ?string $navigationLabel = 'Jadwal Piket';
+
+    protected static ?string $modelLabel = 'Jadwal Piket';
+
+    protected static ?string $pluralModelLabel = 'Jadwal Piket';
+
+    protected static string|\UnitEnum|null $navigationGroup = 'Manajemen';
 
     public static function form(Schema $schema): Schema
     {

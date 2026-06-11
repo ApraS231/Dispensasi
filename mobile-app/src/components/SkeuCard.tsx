@@ -6,7 +6,8 @@ import Animated, {
   withSpring 
 } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
-import { COLORS, SIZES, SPACING, SHADOWS, GLASS } from '../utils/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme } from '../hooks/useTheme';
 
 interface SkeuCardProps {
   children: React.ReactNode;
@@ -26,9 +27,10 @@ export default function SkeuCard({
   onPress, 
   style,
   isGlass = false,
-  blurIntensity = GLASS.blurIntensity,
-  tint = GLASS.tintColor as any
+  blurIntensity = 24, // Optimized as per design.md §4B
+  tint
 }: SkeuCardProps) {
+  const { colors, isDark, SIZES, SPACING, shadows } = useTheme();
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => {
@@ -49,38 +51,69 @@ export default function SkeuCard({
     }
   };
 
-  const CardSurface = isGlass ? BlurView : View;
-  const surfaceProps = isGlass ? { intensity: blurIntensity, tint: tint } : {};
+  const resolvedTint = tint || (isDark ? 'dark' : 'light');
 
   const content = (
     <Animated.View style={[
       styles.card, 
-      SHADOWS.embossedCard,
+      { borderRadius: SIZES.radiusCard },
+      shadows.embossedCard,
       animatedStyle,
       style
     ]}>
-      <CardSurface {...surfaceProps} style={styles.surface}>
-        {/* Light Source Highlights (Top-Left) */}
-        <View style={styles.topHighlight} pointerEvents="none" />
-        <View style={styles.leftHighlight} pointerEvents="none" />
-        
-        {/* Accent Strip */}
-        {showAccentStrip && (
-          <View style={[styles.accentStrip, { backgroundColor: accentColor || COLORS.primary }]} pointerEvents="none">
-            <View style={styles.accentGlow} />
+      {/* Middle clipping container to fix Android shadow-overflow conflict */}
+      <View style={{ borderRadius: SIZES.radiusCard, overflow: 'hidden', width: '100%' }}>
+        {isGlass ? (
+          <BlurView 
+            intensity={blurIntensity} 
+            tint={resolvedTint} 
+            style={styles.surface}
+          >
+            {/* Diagonal Glass Gradient background (§4B) */}
+            <LinearGradient
+              colors={
+                isDark 
+                  ? ['rgba(255, 255, 255, 0.12)', 'rgba(255, 255, 255, 0.03)']
+                  : ['rgba(255, 255, 255, 0.35)', 'rgba(255, 255, 255, 0.10)']
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[StyleSheet.absoluteFill, { borderRadius: SIZES.radiusCard }]}
+            />
+            
+            {/* Light Source Highlights (Top-Left) */}
+            <View style={[styles.topHighlight, { backgroundColor: colors.glassHighlight }]} pointerEvents="none" />
+            <View style={[styles.leftHighlight, { backgroundColor: colors.glassHighlight }]} pointerEvents="none" />
+            
+            {/* Accent Strip */}
+            {showAccentStrip && (
+              <View style={[styles.accentStrip, { backgroundColor: accentColor || colors.primary }]} pointerEvents="none">
+                <View style={styles.accentGlow} />
+              </View>
+            )}
+            
+            {/* Texture Overlay */}
+            <View style={[styles.textureOverlay, { borderRadius: SIZES.radiusCard }]} pointerEvents="none" />
+            
+            <View style={[styles.content, { padding: SIZES.radiusCard }, showAccentStrip && styles.contentWithAccent]}>
+              {children}
+            </View>
+            
+            {/* Bottom Lip Shadow */}
+            <View style={[styles.bottomLip, { backgroundColor: colors.glassShadow }]} pointerEvents="none" />
+          </BlurView>
+        ) : (
+          <View style={[styles.surface, { backgroundColor: colors.surface }]}>
+            {/* Solid Card content */}
+            {showAccentStrip && (
+              <View style={[styles.accentStrip, { backgroundColor: accentColor || colors.primary }]} pointerEvents="none" />
+            )}
+            <View style={[styles.content, { padding: SIZES.radiusCard }, showAccentStrip && styles.contentWithAccent]}>
+              {children}
+            </View>
           </View>
         )}
-        
-        {/* Texture Overlay */}
-        <View style={styles.textureOverlay} pointerEvents="none" />
-        
-        <View style={[styles.content, showAccentStrip && styles.contentWithAccent]}>
-          {children}
-        </View>
-        
-        {/* Bottom Lip Shadow */}
-        <View style={styles.bottomLip} pointerEvents="none" />
-      </CardSurface>
+      </View>
     </Animated.View>
   );
 
@@ -101,21 +134,16 @@ export default function SkeuCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: COLORS.surfaceContainerLowest,
-    borderRadius: SIZES.radiusCard,
-    overflow: 'hidden',
   },
   surface: {
     flexDirection: 'row',
-    borderRadius: SIZES.radiusCard,
-    overflow: 'hidden',
+    width: '100%',
   },
   content: {
     flex: 1,
-    padding: SPACING.md,
   },
   contentWithAccent: {
-    paddingLeft: SPACING.md + 6,
+    paddingLeft: 27, // SIZES.radiusCard (21) + 6px strip width
   },
   accentStrip: {
     width: 6,
@@ -137,7 +165,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 1.5,
-    backgroundColor: 'rgba(255,255,255,0.9)',
     zIndex: 5,
   },
   leftHighlight: {
@@ -146,7 +173,6 @@ const styles = StyleSheet.create({
     left: 0,
     bottom: 0,
     width: 1.5,
-    backgroundColor: 'rgba(255,255,255,0.7)',
     zIndex: 5,
   },
   bottomLip: {
@@ -155,13 +181,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 1.5,
-    backgroundColor: 'rgba(0,0,0,0.05)',
     zIndex: 5,
   },
   textureOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(255,255,255,0.02)',
-    opacity: 0.1,
+    opacity: 0.05,
     zIndex: 1,
   }
 });

@@ -1,23 +1,20 @@
-import React, { useState } from 'react';
-import { 
-  ScrollView, 
-  RefreshControl, 
-  StyleSheet, 
-  View, 
-  Platform,
+import React from 'react';
+import {
+  ScrollView,
+  RefreshControl,
+  StyleSheet,
+  View,
   ScrollViewProps
 } from 'react-native';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring,
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
   useAnimatedScrollHandler,
   interpolate,
   Extrapolation,
   SharedValue
 } from 'react-native-reanimated';
 import LiquidRefreshControl from './LiquidRefreshControl';
-import { COLORS } from '../utils/theme';
 
 interface RefreshableScrollViewProps extends ScrollViewProps {
   refreshing: boolean;
@@ -26,15 +23,13 @@ interface RefreshableScrollViewProps extends ScrollViewProps {
   children: React.ReactNode;
 }
 
-const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
-
-export default function RefreshableScrollView({ 
-  refreshing, 
-  onRefresh, 
+export default function RefreshableScrollView({
+  refreshing,
+  onRefresh,
   scrollY: externalScrollY,
-  children, 
+  children,
   contentContainerStyle,
-  ...props 
+  ...props
 }: RefreshableScrollViewProps) {
   const internalScrollY = useSharedValue(0);
   const scrollY = externalScrollY || internalScrollY;
@@ -81,6 +76,7 @@ export default function RefreshableScrollView({
         }
         contentContainerStyle={contentContainerStyle}
         showsVerticalScrollIndicator={false}
+        {...props}
       >
         {children}
       </Animated.ScrollView>
