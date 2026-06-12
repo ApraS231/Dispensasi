@@ -3,7 +3,10 @@
 namespace App\Filament\Resources\DispensasiTickets\Tables;
 
 use Filament\Tables;
-use Filament\Tables\Actions\ViewAction;
+use Filament\Actions\ViewAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\BulkAction;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Tables\Filters\SelectFilter;
@@ -94,20 +97,20 @@ class DispensasiTicketsTable
                 ViewAction::make(),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\BulkAction::make('approve')
+                BulkActionGroup::make([
+                    BulkAction::make('approve')
                         ->label('Setujui Terpilih')
                         ->icon('heroicon-m-check-circle')
                         ->color('success')
                         ->requiresConfirmation()
                         ->action(fn (\Illuminate\Database\Eloquent\Collection $records) => $records->each->update(['status' => 'approved_final'])),
-                    Tables\Actions\BulkAction::make('reject')
+                    BulkAction::make('reject')
                         ->label('Tolak Terpilih')
                         ->icon('heroicon-m-x-circle')
                         ->color('danger')
                         ->requiresConfirmation()
                         ->action(fn (\Illuminate\Database\Eloquent\Collection $records) => $records->each->update(['status' => 'rejected'])),
-                    Tables\Actions\DeleteBulkAction::make(),
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }

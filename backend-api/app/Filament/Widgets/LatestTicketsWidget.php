@@ -68,7 +68,7 @@ class LatestTicketsWidget extends BaseWidget
                     ->description(fn (DispensasiTicket $record): string => $record->created_at->diffForHumans()),
             ])
             ->actions([
-                Tables\Actions\Action::make('view')
+                \Filament\Actions\Action::make('view')
                     ->label('Detail')
                     ->url(fn (DispensasiTicket $record): string => DispensasiTicketResource::getUrl('view', ['record' => $record]))
                     ->icon('heroicon-m-eye'),
