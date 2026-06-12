@@ -51,14 +51,26 @@ class ProfileController extends Controller
         }
 
         if ($request->hasFile('profile_photo')) {
-            if ($user->profile_photo_url) {
-                // Delete old photo if exists
-                $oldPath = str_replace(url('/storage').'/', '', $user->profile_photo_url);
-                Storage::disk('public')->delete($oldPath);
-            }
+            try {
+                // Delete old photo from Supabase if exists
+                if ($user->profile_photo_url) {
+                    $supabaseBaseUrl = config('filesystems.disks.supabase.url');
+                    if ($supabaseBaseUrl && str_starts_with($user->profile_photo_url, $supabaseBaseUrl)) {
+                        $oldPath = str_replace($supabaseBaseUrl . '/', '', $user->profile_photo_url);
+                        Storage::disk('supabase')->delete($oldPath);
+                    }
+                }
 
-            $path = $request->file('profile_photo')->store('profile-photos', 'public');
-            $user->profile_photo_url = url('/storage/' . $path);
+                $file = $request->file('profile_photo');
+                $fileName = (string) \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
+                $path = $file->storeAs('profile-photos', $fileName, 'supabase');
+
+                if ($path) {
+                    $user->profile_photo_url = Storage::disk('supabase')->url($path);
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("Gagal upload foto profil: " . $e->getMessage());
+            }
         }
 
         $user->save();

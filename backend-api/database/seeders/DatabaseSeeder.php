@@ -219,7 +219,7 @@ class DatabaseSeeder extends Seeder
             'lampiran_bukti' => 'https://via.placeholder.com/300x150.png?text=Undangan',
             'waktu_mulai' => now(),
             'waktu_selesai' => now()->addHours(4),
-            'status' => 'approved_by_wali',
+            'status' => 'waiting_piket',
             'catatan_penolakan' => null,
             'qr_code_token' => Str::random(16),
             'qr_token' => Str::uuid(),

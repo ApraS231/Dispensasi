@@ -167,23 +167,27 @@ class WaliKelasController extends Controller
         
         $hariEfektif = $this->hitungHariEfektif($bulan, $tahun);
 
-        $result = $siswaProfiles->map(function($profile) use ($bulan, $tahun, $hariEfektif) {
-            $tickets = \App\Models\DispensasiTicket::where('siswa_id', $profile->user_id)
-                ->whereMonth('created_at', $bulan)
-                ->whereYear('created_at', $tahun)
-                ->get();
+        // Pre-load semua tiket sekaligus (fix N+1 query)
+        $allTickets = \App\Models\DispensasiTicket::whereIn('siswa_id', $siswaProfiles->pluck('user_id'))
+            ->whereMonth('created_at', $bulan)
+            ->whereYear('created_at', $tahun)
+            ->get()
+            ->groupBy('siswa_id');
+
+        $result = $siswaProfiles->map(function($profile) use ($allTickets, $hariEfektif) {
+            $tickets = $allTickets[$profile->user_id] ?? collect();
 
             $totalIzin = $tickets->count();
             $sakit = $tickets->where('jenis_izin', 'sakit')->count();
             $izin = $tickets->where('jenis_izin', 'izin')->count();
             $dispensasi = $tickets->where('jenis_izin', 'dispensasi')->count();
-            
+
             // Only count approved tickets as reducing attendance
-            $disetujui = $tickets->where('status', 'approved_final')->count();
+            $disetujui = $tickets->whereIn('status', ['approved_final', 'completed_exit'])->count();
             $ditolak = $tickets->where('status', 'rejected')->count();
-            
-            $persenHadir = $hariEfektif > 0 
-                ? round((($hariEfektif - $disetujui) / $hariEfektif) * 100, 1) 
+
+            $persenHadir = $hariEfektif > 0
+                ? round((($hariEfektif - $disetujui) / $hariEfektif) * 100, 1)
                 : 100;
 
             return [

@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "mobile-app",
+    "name": "sispensi",
     "slug": "mobile-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/images/logo.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -21,7 +21,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/images/logo.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
@@ -39,7 +39,7 @@
         "expo-notifications",
         {
           "sounds": [],
-          "icon": "./assets/icon.png",
+          "icon": "./assets/images/logo.png",
           "color": "#1B5E20"
         }
       ]

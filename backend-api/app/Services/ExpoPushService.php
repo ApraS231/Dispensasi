@@ -39,7 +39,7 @@ class ExpoPushService
         if (empty($to)) return false;
 
         $messages = [];
-        $tokens = is_array($to) ? $to : [$to];
+        $tokens = is_array($to) ? array_filter($to) : array_filter([$to]);
 
         foreach ($tokens as $token) {
             // Validasi format Expo Token

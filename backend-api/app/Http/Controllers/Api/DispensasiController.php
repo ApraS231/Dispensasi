@@ -176,7 +176,8 @@ class DispensasiController extends Controller
 
                 // 2. Cari Guru Piket yang sedang aktif DETIK INI untuk dikirimi Push Notif
                 $now = now();
-                $hariIni = $now->dayOfWeekIso; // 1 (Senin) - 7 (Minggu)
+                $hariMap = [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu'];
+                $hariIni = $hariMap[$now->dayOfWeekIso];
                 $jamIni = $now->format('H:i:s');
 
                 $activeSchedules = PiketSchedule::where('hari', $hariIni)
@@ -425,8 +426,9 @@ class DispensasiController extends Controller
     private function isGuruPiketOnShift($guruId)
     {
         $now = now();
+        $hariMap = [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu'];
         return PiketSchedule::where('guru_id', $guruId)
-            ->where('hari', $now->dayOfWeekIso)
+            ->where('hari', $hariMap[$now->dayOfWeekIso])
             ->where('jam_mulai', '<=', $now->format('H:i:s'))
             ->where('jam_selesai', '>=', $now->format('H:i:s'))
             ->exists();

@@ -12,7 +12,7 @@ class NotificationController extends Controller
     {
         $notifs = Notification::where('user_id', $request->user()->id)
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->paginate($request->per_page ?? 20);
         return response()->json($notifs);
     }
 
