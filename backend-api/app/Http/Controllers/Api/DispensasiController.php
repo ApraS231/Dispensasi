@@ -93,8 +93,7 @@ class DispensasiController extends Controller
                 }
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error("Gagal upload ke Supabase: " . $e->getMessage());
-                // Lanjutkan tanpa gambar jika upload gagal, atau bisa kembalikan error
-                // return response()->json(['message' => 'Gagal mengunggah foto bukti: ' . $e->getMessage()], 500);
+                return response()->json(['message' => 'Gagal mengunggah foto bukti ke penyimpanan cloud: ' . $e->getMessage()], 500);
             }
         }
 

@@ -184,15 +184,13 @@ export default function TicketDetailScreen() {
         const type = match ? `image/${match[1]}` : `image`;
 
         formData.append('lampiran_chat', {
-          uri: Platform.OS === 'ios' ? localUri.replace('file://', '') : localUri,
+          uri: localUri,
           name: filename,
           type
         } as any);
       }
 
-      const { data: resData } = await api.post(`/dispensasi/${id}/chats`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const { data: resData } = await api.post(`/dispensasi/${id}/chats`, formData);
       
       setMessages(prev => prev.map(m => m.id === tempId ? { ...resData.data, isPending: false } : m));
     } catch (e) {

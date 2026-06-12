@@ -29,6 +29,20 @@ api.interceptors.request.use(async (config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  
+  // Deteksi FormData dan hapus default Content-Type agar Axios/React Native 
+  // dapat secara otomatis menyusun boundary multipart/form-data.
+  if (config.data instanceof FormData) {
+    if (config.headers) {
+      delete config.headers['Content-Type'];
+      delete config.headers['content-type'];
+      if (typeof config.headers.delete === 'function') {
+        config.headers.delete('Content-Type');
+        config.headers.delete('content-type');
+      }
+    }
+  }
+
   console.log(`API Request: [${config.method?.toUpperCase()}] ${config.url}`);
   return config;
 });

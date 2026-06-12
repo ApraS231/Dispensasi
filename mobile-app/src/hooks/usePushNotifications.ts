@@ -5,6 +5,7 @@ import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import api from '../utils/api';
+import { useAuthStore } from '../stores/authStore';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -64,18 +65,24 @@ export const usePushNotifications = () => {
   const [notification, setNotification] = useState<Notifications.Notification | undefined>(
     undefined
   );
+  const token = useAuthStore((state) => state.token);
   const notificationListener = useRef<Notifications.EventSubscription>(null);
   const responseListener = useRef<Notifications.EventSubscription>(null);
   const router = useRouter();
+
+  // Kirim device token ke backend HANYA setelah authenticated
+  useEffect(() => {
+    if (expoPushToken && token) {
+      api.post('/user/device-token', { device_token: expoPushToken }).catch(e => {
+        console.log('Could not save device token:', e?.message);
+      });
+    }
+  }, [expoPushToken, token]);
 
   useEffect(() => {
     registerForPushNotificationsAsync().then((token) => {
       if (token) {
         setExpoPushToken(token);
-        // Attempt to save token to backend, ignoring errors if not authenticated
-        api.post('/user/device-token', { device_token: token }).catch(e => {
-            console.log('Could not save token (possibly unauthenticated)');
-        });
       }
     });
 

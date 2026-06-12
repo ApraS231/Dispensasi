@@ -91,7 +91,7 @@ export default function PengajuanScreen() {
         const type = match ? `image/${match[1]}` : `image`;
 
         formData.append('foto_bukti', {
-          uri: Platform.OS === 'ios' ? localUri.replace('file://', '') : localUri,
+          uri: localUri,
           name: filename,
           type
         } as any);

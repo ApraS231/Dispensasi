@@ -23,7 +23,7 @@ export default function NotificationsScreen() {
   const fetchNotifications = async () => {
     try {
       const res = await api.get('/notifications');
-      setNotifications(res.data);
+      setNotifications(res.data?.data ?? res.data ?? []);
     } catch (e) {
       console.log('Error fetching notifications', e);
     } finally {

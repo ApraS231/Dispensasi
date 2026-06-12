@@ -108,7 +108,7 @@ class TicketChatController extends Controller
                 }
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error("Gagal upload lampiran chat ke Supabase: " . $e->getMessage());
-                // Tetap lanjut kirim pesan teksnya saja jika upload gagal
+                return response()->json(['message' => 'Gagal mengunggah gambar lampiran chat ke penyimpanan cloud: ' . $e->getMessage()], 500);
             }
         }
 
