@@ -105,7 +105,12 @@ class AuthController extends Controller
             return response()->json(['message' => 'Kredensial salah'], 401);
         }
 
-        if ($request->has('device_token')) {
+        if ($request->has('device_token') && $request->device_token) {
+            \Illuminate\Support\Facades\Log::info('Device token updated during login', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'token_prefix' => substr($request->device_token, 0, 30)
+            ]);
             $user->update(['device_token' => $request->device_token]);
         }
 
@@ -128,6 +133,12 @@ class AuthController extends Controller
     {
         $request->validate([
             'device_token' => 'required|string'
+        ]);
+
+        \Illuminate\Support\Facades\Log::info('Device token update requested', [
+            'user_id' => $request->user()->id,
+            'email' => $request->user()->email,
+            'token_prefix' => substr($request->device_token, 0, 30)
         ]);
 
         $request->user()->update([

@@ -56,6 +56,12 @@ class DispensasiController extends Controller
             return response()->json(['message' => 'Profil siswa tidak ditemukan'], 400);
         }
 
+        if (!$profilSiswa->kelas_id || !$profilSiswa->kelas) {
+            return response()->json([
+                'message' => 'Anda belum terdaftar di kelas manapun. Silakan tunggu persetujuan Wali Kelas terlebih dahulu.'
+            ], 400);
+        }
+
         // Prevent multiple tickets within 12 hours
         $lastTicket = DispensasiTicket::where('siswa_id', $siswaId)
             ->latest()
@@ -111,47 +117,51 @@ class DispensasiController extends Controller
 
         $siswaName = $profilSiswa->user->name ?? 'Siswa';
 
-        // Notifikasi ke Wali Kelas
-        if ($waliKelasId) {
-            $waliKelas = User::find($waliKelasId);
-            if ($waliKelas) {
-                ExpoPushService::send(
-                    $waliKelas->device_token ?? [],
-                    '📝 Izin Baru Kelas Anda',
-                    "{$siswaName} mengajukan izin: {$request->jenis_izin}.",
-                    ['ticket_id' => $tiket->id, 'type' => 'new_ticket'],
-                    [$waliKelasId]
-                );
+        try {
+            // Notifikasi ke Wali Kelas
+            if ($waliKelasId) {
+                $waliKelas = User::find($waliKelasId);
+                if ($waliKelas) {
+                    ExpoPushService::send(
+                        $waliKelas->device_token ?? [],
+                        '📝 Izin Baru Kelas Anda',
+                        "{$siswaName} mengajukan izin: {$request->jenis_izin}.",
+                        ['ticket_id' => $tiket->id, 'type' => 'new_ticket'],
+                        [$waliKelasId]
+                    );
+                }
             }
-        }
 
-        // Notifikasi ke Orang Tua
-        if ($profilSiswa->orang_tua_id) {
-            $ortuId = $profilSiswa->orang_tua_id;
-            $ortu = User::find($ortuId);
-            if ($ortu) {
-                ExpoPushService::send(
-                    $ortu->device_token ?? [],
-                    'ℹ️ Info Kehadiran',
-                    "Anak Anda, {$siswaName}, baru saja mengajukan izin.",
-                    ['ticket_id' => $tiket->id, 'type' => 'new_ticket'],
-                    [$ortuId]
-                );
+            // Notifikasi ke Orang Tua
+            if ($profilSiswa->orang_tua_id) {
+                $ortuId = $profilSiswa->orang_tua_id;
+                $ortu = User::find($ortuId);
+                if ($ortu) {
+                    ExpoPushService::send(
+                        $ortu->device_token ?? [],
+                        'ℹ️ Info Kehadiran',
+                        "Anak Anda, {$siswaName}, baru saja mengajukan izin.",
+                        ['ticket_id' => $tiket->id, 'type' => 'new_ticket'],
+                        [$ortuId]
+                    );
+                }
             }
-        }
 
-        // Notifikasi ke Siswa jika pengaju adalah Orang Tua
-        if ($user->role === 'orang_tua') {
-            $siswaUser = User::find($siswaId);
-            if ($siswaUser) {
-                ExpoPushService::send(
-                    $siswaUser->device_token ?? [],
-                    '📝 Pengajuan Izin Baru',
-                    "Orang tua Anda mengajukan izin atas nama Anda: {$request->jenis_izin}.",
-                    ['ticket_id' => $tiket->id, 'type' => 'new_ticket'],
-                    [$siswaId]
-                );
+            // Notifikasi ke Siswa jika pengaju adalah Orang Tua
+            if ($user->role === 'orang_tua') {
+                $siswaUser = User::find($siswaId);
+                if ($siswaUser) {
+                    ExpoPushService::send(
+                        $siswaUser->device_token ?? [],
+                        '📝 Pengajuan Izin Baru',
+                        "Orang tua Anda mengajukan izin atas nama Anda: {$request->jenis_izin}.",
+                        ['ticket_id' => $tiket->id, 'type' => 'new_ticket'],
+                        [$siswaId]
+                    );
+                }
             }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Notifikasi ticket gagal, tapi tiket tetap dibuat: ' . $e->getMessage());
         }
 
         return response()->json(['message' => 'Tiket berhasil diajukan', 'data' => $tiket], 201);
@@ -186,27 +196,31 @@ class DispensasiController extends Controller
                     ->get()
                     ->unique('guru_id'); // Pastikan satu guru hanya dapat 1 notif meskipun punya jadwal overlap
 
-                foreach ($activeSchedules as $schedule) {
-                    if ($schedule->guru) {
+                try {
+                    foreach ($activeSchedules as $schedule) {
+                        if ($schedule->guru) {
+                            ExpoPushService::send(
+                                $schedule->guru->device_token ?? [],
+                                '⏳ Antrean Baru di Meja Piket',
+                                "Tiket izin {$tiket->siswa->name} telah disetujui Wali Kelas dan menunggu validasi Anda.",
+                                ['ticket_id' => $tiket->id, 'type' => 'ticket_forwarded'],
+                                [$schedule->guru->id]
+                            );
+                        }
+                    }
+
+                    // Notify Siswa (Wali Approve)
+                    if ($tiket->siswa) {
                         ExpoPushService::send(
-                            $schedule->guru->device_token ?? [],
-                            '⏳ Antrean Baru di Meja Piket',
-                            "Tiket izin {$tiket->siswa->name} telah disetujui Wali Kelas dan menunggu validasi Anda.",
-                            ['ticket_id' => $tiket->id, 'type' => 'ticket_forwarded'],
-                            [$schedule->guru->id]
+                            $tiket->siswa->device_token ?? [],
+                            '📋 Update Status Izin',
+                            "Izin Anda disetujui Wali Kelas, menunggu validasi Guru Piket.",
+                            ['ticket_id' => $tiket->id, 'type' => 'ticket_approved'],
+                            [$tiket->siswa->id]
                         );
                     }
-                }
-
-                // Notify Siswa (Wali Approve)
-                if ($tiket->siswa) {
-                    ExpoPushService::send(
-                        $tiket->siswa->device_token ?? [],
-                        '📋 Update Status Izin',
-                        "Izin Anda disetujui Wali Kelas, menunggu validasi Guru Piket.",
-                        ['ticket_id' => $tiket->id, 'type' => 'ticket_approved'],
-                        [$tiket->siswa->id]
-                    );
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error("Notification error on wali approval: " . $e->getMessage());
                 }
 
                 return response()->json(['message' => 'Tiket disetujui Wali Kelas. Diteruskan ke Antrean Piket.', 'data' => $tiket]);
@@ -231,30 +245,34 @@ class DispensasiController extends Controller
                     'expires_at' => now()->addHours(12)
                 ]);
 
-                // Notify Siswa (Final Approve)
-                if ($tiket->siswa) {
-                    ExpoPushService::send(
-                        $tiket->siswa->device_token ?? [],
-                        '✅ Izin Disetujui!',
-                        "QR Code terbit. Silakan menuju meja piket.",
-                        ['ticket_id' => $tiket->id, 'type' => 'ticket_approved'],
-                        [$tiket->siswa->id]
-                    );
-                }
-
-                // Notify Orang Tua (Final Approve)
-                $profil = SiswaProfile::where('user_id', $tiket->siswa_id)->first();
-                if ($profil && $profil->orang_tua_id) {
-                    $ortu = User::find($profil->orang_tua_id);
-                    if ($ortu) {
+                try {
+                    // Notify Siswa (Final Approve)
+                    if ($tiket->siswa) {
                         ExpoPushService::send(
-                            $ortu->device_token ?? [],
-                            '✅ Izin Diverifikasi',
-                            "Izin sekolah {$tiket->siswa->name} telah diverifikasi oleh sekolah.",
+                            $tiket->siswa->device_token ?? [],
+                            '✅ Izin Disetujui!',
+                            "QR Code terbit. Silakan menuju meja piket.",
                             ['ticket_id' => $tiket->id, 'type' => 'ticket_approved'],
-                            [$ortu->id]
+                            [$tiket->siswa->id]
                         );
                     }
+
+                    // Notify Orang Tua (Final Approve)
+                    $profil = SiswaProfile::where('user_id', $tiket->siswa_id)->first();
+                    if ($profil && $profil->orang_tua_id) {
+                        $ortu = User::find($profil->orang_tua_id);
+                        if ($ortu) {
+                            ExpoPushService::send(
+                                $ortu->device_token ?? [],
+                                '✅ Izin Diverifikasi',
+                                "Izin sekolah {$tiket->siswa->name} telah diverifikasi oleh sekolah.",
+                                ['ticket_id' => $tiket->id, 'type' => 'ticket_approved'],
+                                [$ortu->id]
+                            );
+                        }
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error("Notification error on piket approval: " . $e->getMessage());
                 }
 
                 return response()->json(['message' => 'Tiket disetujui Guru Piket', 'data' => $tiket]);
@@ -296,30 +314,34 @@ class DispensasiController extends Controller
                 'catatan_penolakan' => $request->catatan_penolakan
             ]);
 
-            // Notify Siswa
-            if ($tiket->siswa) {
-                ExpoPushService::send(
-                    $tiket->siswa->device_token ?? [],
-                    '❌ Izin Ditolak',
-                    "Maaf, izin Anda ditolak. Ketuk untuk detail.",
-                    ['ticket_id' => $tiket->id, 'type' => 'ticket_rejected'],
-                    [$tiket->siswa->id]
-                );
-            }
-
-            // Notify Orang Tua
-            $profil = SiswaProfile::where('user_id', $tiket->siswa_id)->first();
-            if ($profil && $profil->orang_tua_id) {
-                $ortu = User::find($profil->orang_tua_id);
-                if ($ortu) {
+            try {
+                // Notify Siswa
+                if ($tiket->siswa) {
                     ExpoPushService::send(
-                        $ortu->device_token ?? [],
-                        '❌ Izin Anak Ditolak',
-                        "Izin anak Anda, {$tiket->siswa->name}, ditolak oleh sekolah.",
+                        $tiket->siswa->device_token ?? [],
+                        '❌ Izin Ditolak',
+                        "Maaf, izin Anda ditolak. Ketuk untuk detail.",
                         ['ticket_id' => $tiket->id, 'type' => 'ticket_rejected'],
-                        [$ortu->id]
+                        [$tiket->siswa->id]
                     );
                 }
+
+                // Notify Orang Tua
+                $profil = SiswaProfile::where('user_id', $tiket->siswa_id)->first();
+                if ($profil && $profil->orang_tua_id) {
+                    $ortu = User::find($profil->orang_tua_id);
+                    if ($ortu) {
+                        ExpoPushService::send(
+                            $ortu->device_token ?? [],
+                            '❌ Izin Anak Ditolak',
+                            "Izin anak Anda, {$tiket->siswa->name}, ditolak oleh sekolah.",
+                            ['ticket_id' => $tiket->id, 'type' => 'ticket_rejected'],
+                            [$ortu->id]
+                        );
+                    }
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("Notification error on ticket rejection: " . $e->getMessage());
             }
         } else {
             return response()->json(['message' => 'Anda tidak berhak menolak tiket ini'], 403);

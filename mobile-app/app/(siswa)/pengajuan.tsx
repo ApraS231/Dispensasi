@@ -103,7 +103,14 @@ export default function PengajuanScreen() {
       Alert.alert('Berhasil', 'Dispensasi berhasil diajukan!', [{ text: 'OK', onPress: () => router.back() }]);
     } catch (error: any) {
       HapticFeedback.error();
-      Alert.alert('Gagal', error.response?.data?.message || 'Terjadi kesalahan saat mengajukan izin.');
+      console.error('Submit dispensasi error:', error);
+      let errMsg = 'Terjadi kesalahan saat mengajukan izin.';
+      if (error.response?.data?.message) {
+        errMsg = error.response.data.message;
+      } else if (error.message) {
+        errMsg = error.message;
+      }
+      Alert.alert('Gagal', errMsg);
     } finally {
       setLoading(false);
     }

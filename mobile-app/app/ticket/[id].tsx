@@ -87,9 +87,25 @@ export default function TicketDetailScreen() {
       const res = await api.get(url);
       
       if (isLoadMore) {
-        setMessages(prev => [...prev, ...res.data.data]);
+        setMessages(prev => {
+          // Merge lists and prevent duplicates
+          const newMsgs = res.data.data.filter((m: ChatMessage) => !prev.find(p => p.id === m.id));
+          return [...prev, ...newMsgs];
+        });
       } else {
-        setMessages(res.data.data);
+        setMessages(prev => {
+          const pending = prev.filter(m => m.isPending || m.isFailed);
+          const newMsgs = res.data.data;
+          
+          // Merge pending messages that are not already present in newMsgs
+          const merged = [...newMsgs];
+          pending.forEach(p => {
+            if (!merged.some(m => m.id === p.id)) {
+              merged.unshift(p);
+            }
+          });
+          return merged;
+        });
       }
       nextCursor.current = res.data.next_cursor;
     } catch (e) {
@@ -99,43 +115,16 @@ export default function TicketDetailScreen() {
     }
   };
 
-  // 2. Real-time Subscription
+  // 2. Short Polling Interval (every 5 seconds) as SQLite doesn't support Supabase Realtime
   useEffect(() => {
     fetchHistory();
 
-    const channel = supabase
-      .channel(`chat_room_${id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'ticket_chats',
-          filter: `dispensasi_ticket_id=eq.${id}`,
-        },
-        async (payload: any) => {
-          // If it's from someone else, fetch the full object to get sender info
-          if (payload.new.sender_id !== user?.id) {
-            try {
-              const { data: res } = await api.get(`/dispensasi/${id}/chats?limit=1`);
-              if (res.data?.length > 0) {
-                const newest = res.data[0];
-                setMessages(prev => {
-                  // Avoid duplicates
-                  if (prev.find(m => m.id === newest.id)) return prev;
-                  return [newest, ...prev];
-                });
-              }
-            } catch (err) {
-              console.error("Failed to fetch new message details:", err);
-            }
-          }
-        }
-      )
-      .subscribe();
+    const interval = setInterval(() => {
+      fetchHistory();
+    }, 5000);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, [id]);
 
@@ -174,10 +163,11 @@ export default function TicketDetailScreen() {
     setSelectedImage(null);
     
     try {
-      const formData = new FormData();
-      if (currentMsg) formData.append('pesan', currentMsg);
-      
+      let response;
       if (currentImg) {
+        const formData = new FormData();
+        if (currentMsg) formData.append('pesan', currentMsg);
+        
         const localUri = currentImg.uri;
         const filename = localUri.split('/').pop();
         const match = /\.(\w+)$/.exec(filename || '');
@@ -188,12 +178,16 @@ export default function TicketDetailScreen() {
           name: filename,
           type
         } as any);
+        response = await api.post(`/dispensasi/${id}/chats`, formData);
+      } else {
+        response = await api.post(`/dispensasi/${id}/chats`, { pesan: currentMsg });
       }
 
-      const { data: resData } = await api.post(`/dispensasi/${id}/chats`, formData);
+      const resData = response.data;
       
       setMessages(prev => prev.map(m => m.id === tempId ? { ...resData.data, isPending: false } : m));
     } catch (e) {
+      console.error("Failed to send message:", e);
       setMessages(prev => prev.map(m => m.id === tempId ? { ...m, isPending: false, isFailed: true } : m));
     }
   };

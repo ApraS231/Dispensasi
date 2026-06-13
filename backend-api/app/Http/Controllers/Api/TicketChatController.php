@@ -121,7 +121,11 @@ class TicketChatController extends Controller
 
         $chat->load('sender');
 
-        $this->sendChatNotification($ticket, $chat, $request->user());
+        try {
+            $this->sendChatNotification($ticket, $chat, $request->user());
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Chat notification failed: ' . $e->getMessage());
+        }
 
         return response()->json(['data' => $chat], 201);
     }

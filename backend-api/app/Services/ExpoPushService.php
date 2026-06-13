@@ -38,12 +38,22 @@ class ExpoPushService
 
         if (empty($to)) return false;
 
-        $messages = [];
-        $tokens = is_array($to) ? array_filter($to) : array_filter([$to]);
+        $rawTokens = is_array($to) ? $to : [$to];
+        $tokens = [];
+        foreach ($rawTokens as $t) {
+            if (is_string($t)) {
+                $trimmed = trim($t);
+                if ($trimmed !== '') {
+                    $tokens[] = $trimmed;
+                }
+            }
+        }
 
+        $messages = [];
         foreach ($tokens as $token) {
             // Validasi format Expo Token
             if (strpos($token, 'ExponentPushToken') !== 0 && strpos($token, 'ExpoPushToken') !== 0) {
+                Log::warning('Token notifikasi tidak valid formatnya: ' . $token);
                 continue;
             }
 
@@ -58,16 +68,31 @@ class ExpoPushService
 
         if (empty($messages)) return false;
 
+        Log::info('Mengirim push notifikasi ke Expo', [
+            'total_messages' => count($messages),
+            'tokens' => array_column($messages, 'to')
+        ]);
+
         try {
             $response = Http::withHeaders([
                 'Accept' => 'application/json',
                 'Accept-Encoding' => 'gzip, deflate',
                 'Content-Type' => 'application/json',
-            ])->post('https://exp.host/--/api/v2/push/send', $messages);
+            ])
+            ->timeout(10)
+            ->post('https://exp.host/--/api/v2/push/send', $messages);
 
-            return $response->json();
+            $result = $response->json();
+            Log::info('Expo Push Response', [
+                'status' => $response->status(),
+                'response' => $result
+            ]);
+
+            return $result;
         } catch (\Exception $e) {
-            Log::error('Gagal kirim Expo Push: ' . $e->getMessage());
+            Log::error('Gagal kirim Expo Push: ' . $e->getMessage(), [
+                'exception' => $e
+            ]);
             return false;
         }
     }

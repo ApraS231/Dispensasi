@@ -40,12 +40,12 @@ async function registerForPushNotificationsAsync() {
       return;
     }
 
-    const projectId =
+    let projectId =
       Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
 
     if (!projectId) {
-      console.log('Project ID not found in app config');
-      return;
+      console.log('Project ID not found in app config, falling back to hardcoded ID');
+      projectId = '30ca57fd-e2a9-4ae5-b06b-6cfde9559cf4';
     }
 
     try {
@@ -70,13 +70,37 @@ export const usePushNotifications = () => {
   const responseListener = useRef<Notifications.EventSubscription>(null);
   const router = useRouter();
 
-  // Kirim device token ke backend HANYA setelah authenticated
+  // Kirim device token ke backend HANYA setelah authenticated dengan retry logic
   useEffect(() => {
-    if (expoPushToken && token) {
-      api.post('/user/device-token', { device_token: expoPushToken }).catch(e => {
-        console.log('Could not save device token:', e?.message);
-      });
-    }
+    let active = true;
+    
+    const sendToken = async (retryCount = 0) => {
+      if (!expoPushToken || !token || !active) return;
+      
+      try {
+        console.log(`Sending device token to backend (attempt ${retryCount + 1})...`);
+        const response = await api.post('/user/device-token', { device_token: expoPushToken });
+        console.log('Device token successfully saved to backend:', response.data);
+      } catch (e: any) {
+        console.warn(`Attempt ${retryCount + 1} failed to save device token:`, e?.message);
+        
+        if (retryCount < 3 && active) {
+          const delay = Math.pow(2, retryCount) * 1000;
+          console.log(`Retrying in ${delay}ms...`);
+          setTimeout(() => {
+            sendToken(retryCount + 1);
+          }, delay);
+        } else {
+          console.error('Max retries reached. Device token not saved to backend.');
+        }
+      }
+    };
+
+    sendToken();
+
+    return () => {
+      active = false;
+    };
   }, [expoPushToken, token]);
 
   useEffect(() => {
