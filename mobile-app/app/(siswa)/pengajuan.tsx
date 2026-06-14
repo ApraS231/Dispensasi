@@ -77,14 +77,15 @@ export default function PengajuanScreen() {
       const finalSelesai = new Date(tanggal);
       finalSelesai.setHours(waktuSelesai.getHours(), waktuSelesai.getMinutes(), 0, 0);
 
-      // Create FormData for multipart upload
-      const formData = new FormData();
-      formData.append('jenis_izin', jenisIzin);
-      formData.append('alasan', alasan);
-      formData.append('waktu_mulai', finalMulai.toISOString());
-      formData.append('waktu_selesai', finalSelesai.toISOString());
-
+      let payload;
       if (lampiran) {
+        // Create FormData for multipart upload
+        const formData = new FormData();
+        formData.append('jenis_izin', jenisIzin);
+        formData.append('alasan', alasan);
+        formData.append('waktu_mulai', finalMulai.toISOString());
+        formData.append('waktu_selesai', finalSelesai.toISOString());
+
         const localUri = lampiran.uri;
         const filename = localUri.split('/').pop();
         const match = /\.(\w+)$/.exec(filename || '');
@@ -95,9 +96,18 @@ export default function PengajuanScreen() {
           name: filename,
           type
         } as any);
+        payload = formData;
+      } else {
+        // Use clean JSON payload when there is no attachment
+        payload = {
+          jenis_izin: jenisIzin,
+          alasan: alasan,
+          waktu_mulai: finalMulai.toISOString(),
+          waktu_selesai: finalSelesai.toISOString(),
+        };
       }
 
-      await submitMutation.mutateAsync(formData);
+      await submitMutation.mutateAsync(payload);
       
       HapticFeedback.success();
       Alert.alert('Berhasil', 'Dispensasi berhasil diajukan!', [{ text: 'OK', onPress: () => router.back() }]);

@@ -68,17 +68,21 @@ class AuthController extends Controller
             });
 
             // Kirim notifikasi ke Wali Kelas di luar transaksi
-            if ($waliKelasId) {
-                $waliKelas = User::find($waliKelasId);
-                if ($waliKelas) {
-                    ExpoPushService::send(
-                        $waliKelas->device_token ?? [],
-                        '📝 Permintaan Gabung Kelas',
-                        "{$siswaName} mengajukan bergabung ke kelas {$kelasNama}.",
-                        ['type' => 'new_class_request', 'siswa_id' => $siswaId],
-                        [$waliKelasId]
-                    );
+            try {
+                if ($waliKelasId) {
+                    $waliKelas = User::find($waliKelasId);
+                    if ($waliKelas) {
+                        ExpoPushService::send(
+                            $waliKelas->device_token ?? [],
+                            '📝 Permintaan Gabung Kelas',
+                            "{$siswaName} mengajukan bergabung ke kelas {$kelasNama}.",
+                            ['type' => 'new_class_request', 'siswa_id' => $siswaId],
+                            [$waliKelasId]
+                        );
+                    }
                 }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning('Gagal kirim notifikasi pendaftaran kelas ke wali kelas: ' . $e->getMessage());
             }
 
             return response()->json([

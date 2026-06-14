@@ -51,7 +51,7 @@ export function useMonitoringAnak() {
 export function useSubmitDispensasi() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (formData: FormData) => dispensasiService.store(formData),
+    mutationFn: (data: FormData | any) => dispensasiService.store(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: dispensasiKeys.me() });
       queryClient.invalidateQueries({ queryKey: dispensasiKeys.allTickets() });

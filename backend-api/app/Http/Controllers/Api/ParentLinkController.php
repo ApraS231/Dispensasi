@@ -88,15 +88,19 @@ class ParentLinkController extends Controller
         }
 
         // Notify Siswa
-        $siswa = User::find($siswaId);
-        if ($siswa) {
-            ExpoPushService::send(
-                $siswa->device_token ?? [],
-                'Permintaan Orang Tua',
-                "{$parent->name} ingin menghubungkan akun sebagai wali Anda.",
-                ['request_id' => $linkRequest->id, 'type' => 'parent_link'],
-                [$siswa->id]
-            );
+        try {
+            $siswa = User::find($siswaId);
+            if ($siswa) {
+                ExpoPushService::send(
+                    $siswa->device_token ?? [],
+                    'Permintaan Orang Tua',
+                    "{$parent->name} ingin menghubungkan akun sebagai wali Anda.",
+                    ['request_id' => $linkRequest->id, 'type' => 'parent_link'],
+                    [$siswa->id]
+                );
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Gagal kirim notifikasi parent link request ke siswa: ' . $e->getMessage());
         }
 
         return response()->json(['message' => 'Permintaan berhasil dikirim', 'data' => $linkRequest]);
@@ -154,20 +158,24 @@ class ParentLinkController extends Controller
         });
 
         // Notify Parent
-        $parent = User::find($linkRequest->parent_id);
-        if ($parent) {
-            $title = $request->status === 'accepted' ? 'Permintaan Diterima ✅' : 'Permintaan Ditolak';
-            $body = $request->status === 'accepted' 
-                ? "{$request->user()->name} telah mengkonfirmasi Anda sebagai wali."
-                : "{$request->user()->name} menolak permintaan hubungan akun.";
+        try {
+            $parent = User::find($linkRequest->parent_id);
+            if ($parent) {
+                $title = $request->status === 'accepted' ? 'Permintaan Diterima ✅' : 'Permintaan Ditolak';
+                $body = $request->status === 'accepted' 
+                    ? "{$request->user()->name} telah mengkonfirmasi Anda sebagai wali."
+                    : "{$request->user()->name} menolak permintaan hubungan akun.";
 
-            ExpoPushService::send(
-                $parent->device_token ?? [],
-                $title,
-                $body,
-                ['request_id' => $linkRequest->id, 'type' => 'parent_link_response'],
-                [$parent->id]
-            );
+                ExpoPushService::send(
+                    $parent->device_token ?? [],
+                    $title,
+                    $body,
+                    ['request_id' => $linkRequest->id, 'type' => 'parent_link_response'],
+                    [$parent->id]
+                );
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Gagal kirim notifikasi respon parent link ke orang tua: ' . $e->getMessage());
         }
 
         return response()->json(['message' => 'Berhasil menanggapi permintaan']);

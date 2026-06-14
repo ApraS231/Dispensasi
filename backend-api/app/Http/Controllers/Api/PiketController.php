@@ -96,31 +96,35 @@ class PiketController extends Controller
 
         $ticket->load('siswa'); // Load relasi siswa untuk nama
 
-        // Notifikasi ke Siswa
-        if ($ticket->siswa) {
-            ExpoPushService::send(
-                $ticket->siswa->device_token ?? [],
-                '🚪 QR Tervalidasi',
-                "Izin Anda telah divalidasi di gerbang.",
-                ['ticket_id' => $ticket->id, 'type' => 'qr_validated'],
-                [$ticket->siswa->id]
-            );
-        }
-
-        // Notifikasi ke Orang Tua
-        $profil = SiswaProfile::where('user_id', $ticket->siswa_id)->first();
-        if ($profil && $profil->orang_tua_id) {
-            $ortu = User::find($profil->orang_tua_id);
-            if ($ortu) {
-                $namaAnak = $ticket->siswa->name ?? 'Anak Anda';
+        try {
+            // Notifikasi ke Siswa
+            if ($ticket->siswa) {
                 ExpoPushService::send(
-                    $ortu->device_token ?? [],
-                    '🚪 Anak Keluar Sekolah',
-                    "{$namaAnak} baru saja tervalidasi keluar gerbang.",
+                    $ticket->siswa->device_token ?? [],
+                    '🚪 QR Tervalidasi',
+                    "Izin Anda telah divalidasi di gerbang.",
                     ['ticket_id' => $ticket->id, 'type' => 'qr_validated'],
-                    [$ortu->id]
+                    [$ticket->siswa->id]
                 );
             }
+
+            // Notifikasi ke Orang Tua
+            $profil = SiswaProfile::where('user_id', $ticket->siswa_id)->first();
+            if ($profil && $profil->orang_tua_id) {
+                $ortu = User::find($profil->orang_tua_id);
+                if ($ortu) {
+                    $namaAnak = $ticket->siswa->name ?? 'Anak Anda';
+                    ExpoPushService::send(
+                        $ortu->device_token ?? [],
+                        '🚪 Anak Keluar Sekolah',
+                        "{$namaAnak} baru saja tervalidasi keluar gerbang.",
+                        ['ticket_id' => $ticket->id, 'type' => 'qr_validated'],
+                        [$ortu->id]
+                    );
+                }
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Gagal kirim notifikasi validasi QR ke siswa/orang tua: ' . $e->getMessage());
         }
 
         return response()->json(['valid' => true, 'message' => 'Izin Sah. Siswa divalidasi untuk keluar.', 'data' => $ticket]);

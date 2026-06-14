@@ -5,7 +5,7 @@ export const dispensasiService = {
   getAll: () => api.get('/dispensasi').then(r => r.data),
   getPending: () => api.get('/dispensasi/pending').then(r => r.data),
   getById: (id: string) => api.get(`/dispensasi/${id}`).then(r => r.data),
-  store: (formData: FormData) => api.post('/dispensasi', formData),
+  store: (data: FormData | any) => api.post('/dispensasi', data),
   approve: (id: string) => api.post(`/dispensasi/${id}/approve`),
   reject: (id: string, catatan: string) => 
     api.post(`/dispensasi/${id}/reject`, { catatan_penolakan: catatan }),

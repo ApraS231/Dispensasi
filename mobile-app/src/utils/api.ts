@@ -88,6 +88,12 @@ api.interceptors.response.use(
         triggerDomCloudAlert();
         return Promise.reject(new Error('API returned HTML warning page.'));
       }
+    } else if (error.message === 'Network Error') {
+      const enrichedError = new Error(
+        'Koneksi gagal (Network Error).\n\nIni biasanya disebabkan karena halaman verifikasi keamanan DOM Cloud terblokir. Harap buka https://sidispen-api.osk.dom.my.id/ di browser HP Anda terlebih dahulu, tekan tombol "I understand, I trust this site", lalu coba lagi.'
+      );
+      Object.assign(enrichedError, error);
+      return Promise.reject(enrichedError);
     }
     return Promise.reject(error);
   }

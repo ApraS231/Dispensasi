@@ -56,20 +56,24 @@ class WaliKelasController extends Controller
         });
 
         // Kirim notifikasi ke Siswa
-        $siswa = User::find($joinRequest->siswa_id);
-        if ($siswa) {
-            $title = $request->status === 'accepted' ? '✅ Permintaan Kelas Diterima' : '❌ Permintaan Kelas Ditolak';
-            $body = $request->status === 'accepted' 
-                ? "Permintaan bergabung ke kelas {$kelas->nama_kelas} telah disetujui." 
-                : "Permintaan bergabung ke kelas {$kelas->nama_kelas} ditolak.";
+        try {
+            $siswa = User::find($joinRequest->siswa_id);
+            if ($siswa) {
+                $title = $request->status === 'accepted' ? '✅ Permintaan Kelas Diterima' : '❌ Permintaan Kelas Ditolak';
+                $body = $request->status === 'accepted' 
+                    ? "Permintaan bergabung ke kelas {$kelas->nama_kelas} telah disetujui." 
+                    : "Permintaan bergabung ke kelas {$kelas->nama_kelas} ditolak.";
 
-            ExpoPushService::send(
-                $siswa->device_token ?? [],
-                $title,
-                $body,
-                ['type' => 'class_request_response', 'status' => $request->status],
-                [$siswa->id]
-            );
+                ExpoPushService::send(
+                    $siswa->device_token ?? [],
+                    $title,
+                    $body,
+                    ['type' => 'class_request_response', 'status' => $request->status],
+                    [$siswa->id]
+                );
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Gagal kirim notifikasi respon gabung kelas: ' . $e->getMessage());
         }
 
         return response()->json(['message' => 'Permintaan berhasil ditanggapi']);
