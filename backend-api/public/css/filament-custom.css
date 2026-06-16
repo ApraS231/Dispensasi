@@ -80,17 +80,14 @@ body,
 }
 
 /* Force unselected text and icon colors to have high contrast */
-.fi-sidebar-item-button:not(.fi-active):not([class*="fi-active"]) span,
-.fi-sidebar-item-button:not(.fi-active):not([class*="fi-active"]) svg,
-.fi-sidebar-item-button:not(.fi-active):not([class*="fi-active"]) {
+.fi-sidebar-item-button:not(.fi-active):not([class*="fi-active"]),
+.fi-sidebar-item-button:not(.fi-active):not([class*="fi-active"]) * {
     color: rgba(255, 255, 255, 0.75) !important;
 }
 
-.fi-sidebar-item-button:not(.fi-active):not([class*="fi-active"]):hover span,
-.fi-sidebar-item-button:not(.fi-active):not([class*="fi-active"]):hover svg,
-.fi-sidebar-item-button:not(.fi-active):not([class*="fi-active"]):hover {
+.fi-sidebar-item-button:not(.fi-active):not([class*="fi-active"]):hover,
+.fi-sidebar-item-button:not(.fi-active):not([class*="fi-active"]):hover * {
     color: #ffffff !important;
-    background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 .fi-sidebar-item-button:hover {
