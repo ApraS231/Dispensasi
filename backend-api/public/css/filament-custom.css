@@ -60,8 +60,9 @@ body,
 }
 
 /* Sidebar Navigation Items */
-.fi-sidebar-group-label {
-    color: rgba(255, 255, 255, 0.45) !important;
+.fi-sidebar-group-label,
+.fi-sidebar-group-label * {
+    color: rgba(255, 255, 255, 0.55) !important;
     font-weight: 700 !important;
     font-size: 0.7rem !important;
     text-transform: uppercase !important;
@@ -76,6 +77,20 @@ body,
     padding-left: 1rem !important;
     padding-right: 1rem !important;
     transition: all 0.25s ease !important;
+}
+
+/* Force unselected text and icon colors to have high contrast */
+.fi-sidebar-item-button:not(.fi-active):not([class*="fi-active"]) span,
+.fi-sidebar-item-button:not(.fi-active):not([class*="fi-active"]) svg,
+.fi-sidebar-item-button:not(.fi-active):not([class*="fi-active"]) {
+    color: rgba(255, 255, 255, 0.75) !important;
+}
+
+.fi-sidebar-item-button:not(.fi-active):not([class*="fi-active"]):hover span,
+.fi-sidebar-item-button:not(.fi-active):not([class*="fi-active"]):hover svg,
+.fi-sidebar-item-button:not(.fi-active):not([class*="fi-active"]):hover {
+    color: #ffffff !important;
+    background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 .fi-sidebar-item-button:hover {
@@ -93,11 +108,24 @@ body,
     box-shadow: 0 4px 15px rgba(123, 189, 232, 0.25) !important;
 }
 
+.fi-sidebar-item-button.fi-active *,
+.fi-sidebar-item-button[class*="fi-active"] * {
+    color: #ffffff !important;
+    background: transparent !important;
+}
+
 /* Active Sidebar Item - Dark Mode */
 .dark .fi-sidebar-item-button.fi-active,
 .dark .fi-sidebar-item-button[class*="fi-active"] {
     background: linear-gradient(90deg, #3B82F6 0%, #1D4ED8 100%) !important;
     box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3) !important;
+    color: #ffffff !important;
+}
+
+.dark .fi-sidebar-item-button.fi-active *,
+.dark .fi-sidebar-item-button[class*="fi-active"] * {
+    color: #ffffff !important;
+    background: transparent !important;
 }
 
 /* Sidebar Icons */
@@ -115,7 +143,9 @@ body,
     color: #ffffff !important;
 }
 
-.fi-sidebar-collapse-button {
+.fi-sidebar-collapse-button,
+.fi-sidebar-collapse-button svg,
+.fi-sidebar-collapse-button * {
     color: #ffffff !important;
 }
 

@@ -20,7 +20,7 @@ class DispensasiTicketResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;
 
-    protected static ?string $recordTitleAttribute = 'status';
+    // protected static ?string $recordTitleAttribute = 'status';
 
     protected static ?string $navigationLabel = 'Monitoring Dispensasi';
 
@@ -56,6 +56,11 @@ class DispensasiTicketResource extends Resource
     }
 
     public static function canCreate(): bool
+    {
+        return false;
+    }
+
+    public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
     {
         return false;
     }

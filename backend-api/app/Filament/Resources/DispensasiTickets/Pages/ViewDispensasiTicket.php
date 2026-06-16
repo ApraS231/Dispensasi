@@ -10,10 +10,14 @@ class ViewDispensasiTicket extends ViewRecord
 {
     protected static string $resource = DispensasiTicketResource::class;
 
+    public function getTitle(): string
+    {
+        $siswaName = $this->record->siswa?->name ?? '';
+        return $siswaName ? "Detail Tiket Dispensasi - {$siswaName}" : "Detail Tiket Dispensasi";
+    }
+
     protected function getHeaderActions(): array
     {
-        return [
-            EditAction::make(),
-        ];
+        return [];
     }
 }
