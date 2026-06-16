@@ -36,8 +36,7 @@ async function registerForPushNotificationsAsync() {
       finalStatus = status;
     }
     if (finalStatus !== 'granted') {
-      Alert.alert('Debug Push', 'Izin notifikasi ditolak oleh pengguna.');
-      console.log('Failed to get push token for push notification!');
+      console.warn('Failed to get push token: Notification permissions not granted');
       return;
     }
 
@@ -51,13 +50,11 @@ async function registerForPushNotificationsAsync() {
 
     try {
       token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-      Alert.alert('Debug Push', 'Expo Token Berhasil Didapat:\n' + token);
+      console.log('Expo Push Token successfully retrieved:', token);
     } catch (e: any) {
-      Alert.alert('Debug Push Error', 'Gagal memanggil getExpoPushTokenAsync:\n' + e?.message);
-      console.log('Error getting push token', e);
+      console.error('Failed calling getExpoPushTokenAsync:', e?.message);
     }
   } else {
-    Alert.alert('Debug Push', 'Peringatan: Harus menggunakan HP fisik asli (bukan emulator) untuk Push Notification.');
     console.log('Must use physical device for Push Notifications');
   }
 
@@ -85,7 +82,6 @@ export const usePushNotifications = () => {
         console.log(`Sending device token to backend (attempt ${retryCount + 1})...`);
         const response = await api.post('/user/device-token', { device_token: expoPushToken });
         console.log('Device token successfully saved to backend:', response.data);
-        Alert.alert('Debug Backend', 'Device Token berhasil didaftarkan di database backend!');
       } catch (e: any) {
         console.warn(`Attempt ${retryCount + 1} failed to save device token:`, e?.message);
         
@@ -96,8 +92,7 @@ export const usePushNotifications = () => {
             sendToken(retryCount + 1);
           }, delay);
         } else {
-          Alert.alert('Debug Backend Error', 'Gagal mendaftarkan token ke database setelah 3x percobaan:\n' + e?.message);
-          console.error('Max retries reached. Device token not saved to backend.');
+          console.error('Max retries reached. Device token not saved to backend.', e?.message);
         }
       }
     };
