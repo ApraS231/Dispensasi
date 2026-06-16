@@ -70,7 +70,7 @@ class AdminPanelProvider extends PanelProvider
     {
         \Filament\Support\Facades\FilamentView::registerRenderHook(
             'panels::head.end',
-            fn () => new \Illuminate\Support\HtmlString('<link rel="stylesheet" href="' . asset('css/filament-custom.css') . '?v=1.0.3">'),
+            fn () => new \Illuminate\Support\HtmlString('<link rel="stylesheet" href="' . asset('css/filament-custom.css') . '?v=1.0.5">'),
         );
     }
 }
