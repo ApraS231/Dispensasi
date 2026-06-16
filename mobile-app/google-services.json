@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "374514428563",
+    "project_id": "sispensi-sma3",
+    "storage_bucket": "sispensi-sma3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:374514428563:android:0b70ae3aa81e3d18d33b66",
+        "android_client_info": {
+          "package_name": "com.apras231.mobileapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-j-1Vt2RAFOCMDalJgsPY7gDLOwxgJgI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

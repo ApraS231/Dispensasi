@@ -1,0 +1,15 @@
+features:
+  - php 8.2
+  - ssl
+  - nginx
+
+nginx:
+  root: public
+  fastcgi: on
+  locations:
+    - match: /
+      try_files: $uri $uri/ /index.php?$query_string
+
+commands:
+  - composer install --no-dev --optimize-autoloader
+  - bash scripts/00-laravel-deploy.sh
