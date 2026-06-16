@@ -69,39 +69,36 @@ body,
     letter-spacing: 1.2px !important;
 }
 
-.fi-sidebar-item-button {
+/* Base style for all sidebar buttons (Default/Inactive) */
+.fi-sidebar-item-button,
+.fi-sidebar-item-button * {
     color: rgba(255, 255, 255, 0.75) !important;
+    transition: all 0.25s ease !important;
+}
+
+.fi-sidebar-item-button {
     border-radius: 12px !important;
     margin-left: 0.5rem !important;
     margin-right: 0.5rem !important;
     padding-left: 1rem !important;
     padding-right: 1rem !important;
-    transition: all 0.25s ease !important;
 }
 
-/* Force unselected text and icon colors to have high contrast */
-.fi-sidebar-item-button:not(.fi-active):not([class*="fi-active"]),
-.fi-sidebar-item-button:not(.fi-active):not([class*="fi-active"]) * {
-    color: rgba(255, 255, 255, 0.75) !important;
-}
-
-.fi-sidebar-item-button:not(.fi-active):not([class*="fi-active"]):hover,
-.fi-sidebar-item-button:not(.fi-active):not([class*="fi-active"]):hover * {
+/* Hover style for sidebar buttons */
+.fi-sidebar-item-button:hover,
+.fi-sidebar-item-button:hover * {
+    background-color: rgba(255, 255, 255, 0.08) !important;
     color: #ffffff !important;
 }
 
 .fi-sidebar-item-button:hover {
-    background-color: rgba(255, 255, 255, 0.08) !important;
-    color: #ffffff !important;
     transform: translateX(4px) !important;
 }
 
-/* Active Sidebar Item */
+/* Active Sidebar Item (Widescreen/Light Mode) */
 .fi-sidebar-item-button.fi-active,
 .fi-sidebar-item-button[class*="fi-active"] {
     background: linear-gradient(90deg, #7BBDE8 0%, #49769F 100%) !important;
-    color: #ffffff !important;
-    font-weight: 600 !important;
     box-shadow: 0 4px 15px rgba(123, 189, 232, 0.25) !important;
 }
 
@@ -116,7 +113,6 @@ body,
 .dark .fi-sidebar-item-button[class*="fi-active"] {
     background: linear-gradient(90deg, #3B82F6 0%, #1D4ED8 100%) !important;
     box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3) !important;
-    color: #ffffff !important;
 }
 
 .dark .fi-sidebar-item-button.fi-active *,
@@ -125,19 +121,9 @@ body,
     background: transparent !important;
 }
 
-/* Sidebar Icons */
+/* Sidebar Icons default */
 .fi-sidebar-item-icon {
     color: rgba(255, 255, 255, 0.6) !important;
-    transition: color 0.25s ease !important;
-}
-
-.fi-sidebar-item-button:hover .fi-sidebar-item-icon {
-    color: #ffffff !important;
-}
-
-.fi-sidebar-item-button.fi-active .fi-sidebar-item-icon,
-.fi-sidebar-item-button[class*="fi-active"] .fi-sidebar-item-icon {
-    color: #ffffff !important;
 }
 
 .fi-sidebar-collapse-button,
