@@ -87,20 +87,38 @@ class ParentLinkController extends Controller
             ]);
         }
 
-        // Notify Siswa
+        // Notify Siswa and Parent
         try {
             $siswa = User::find($siswaId);
             if ($siswa) {
+                // 1. Notifikasi ke Siswa
                 ExpoPushService::send(
                     $siswa->device_token ?? [],
-                    'Permintaan Orang Tua',
-                    "{$parent->name} ingin menghubungkan akun sebagai wali Anda.",
-                    ['request_id' => $linkRequest->id, 'type' => 'parent_link'],
+                    '👨‍👩‍👦 Hubungan Akun Orang Tua',
+                    "{$parent->name} ingin menghubungkan akun sebagai orang tua/wali Anda.",
+                    [
+                        'request_id' => $linkRequest->id,
+                        'type' => 'parent_link',
+                        'reference_id' => $linkRequest->id
+                    ],
                     [$siswa->id]
+                );
+
+                // 2. Notifikasi ke Orang Tua (Wali)
+                ExpoPushService::send(
+                    $parent->device_token ?? [],
+                    '👨‍👩‍👦 Hubungan Akun Orang Tua',
+                    "Permintaan menghubungkan akun dengan {$siswa->name} berhasil dikirim. Menunggu persetujuan siswa.",
+                    [
+                        'request_id' => $linkRequest->id,
+                        'type' => 'parent_link',
+                        'reference_id' => $linkRequest->id
+                    ],
+                    [$parent->id]
                 );
             }
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::warning('Gagal kirim notifikasi parent link request ke siswa: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::warning('Gagal kirim notifikasi parent link request: ' . $e->getMessage());
         }
 
         return response()->json(['message' => 'Permintaan berhasil dikirim', 'data' => $linkRequest]);
@@ -157,25 +175,47 @@ class ParentLinkController extends Controller
             }
         });
 
-        // Notify Parent
+        // Notify Parent and Siswa
         try {
             $parent = User::find($linkRequest->parent_id);
             if ($parent) {
                 $title = $request->status === 'accepted' ? 'Permintaan Diterima ✅' : 'Permintaan Ditolak';
-                $body = $request->status === 'accepted' 
+                $bodyParent = $request->status === 'accepted' 
                     ? "{$request->user()->name} telah mengkonfirmasi Anda sebagai wali."
                     : "{$request->user()->name} menolak permintaan hubungan akun.";
 
+                // 1. Notifikasi ke Orang Tua (Wali)
                 ExpoPushService::send(
                     $parent->device_token ?? [],
                     $title,
-                    $body,
-                    ['request_id' => $linkRequest->id, 'type' => 'parent_link_response'],
+                    $bodyParent,
+                    [
+                        'request_id' => $linkRequest->id,
+                        'type' => 'parent_link_response',
+                        'reference_id' => $linkRequest->id
+                    ],
                     [$parent->id]
+                );
+
+                // 2. Notifikasi ke Siswa
+                $bodySiswa = $request->status === 'accepted'
+                    ? "Anda menyetujui {$parent->name} sebagai orang tua/wali Anda."
+                    : "Anda menolak permintaan hubungan akun dari {$parent->name}.";
+
+                ExpoPushService::send(
+                    $request->user()->device_token ?? [],
+                    $title,
+                    $bodySiswa,
+                    [
+                        'request_id' => $linkRequest->id,
+                        'type' => 'parent_link_response',
+                        'reference_id' => $linkRequest->id
+                    ],
+                    [$request->user()->id]
                 );
             }
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::warning('Gagal kirim notifikasi respon parent link ke orang tua: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::warning('Gagal kirim notifikasi respon parent link: ' . $e->getMessage());
         }
 
         return response()->json(['message' => 'Berhasil menanggapi permintaan']);

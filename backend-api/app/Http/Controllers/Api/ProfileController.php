@@ -10,6 +10,8 @@ use Illuminate\Validation\Rules\Password;
 
 use App\Models\SiswaProfile;
 use App\Models\ClassJoinRequest;
+use App\Models\User;
+use App\Services\ExpoPushService;
 
 class ProfileController extends Controller
 {
@@ -43,10 +45,51 @@ class ProfileController extends Controller
 
             if ($request->has('kelas_id') && $request->kelas_id !== $profile->kelas_id) {
                 // Create or update class join request
-                ClassJoinRequest::updateOrCreate(
+                $joinRequest = ClassJoinRequest::updateOrCreate(
                     ['siswa_id' => $user->id, 'status' => 'pending'],
                     ['kelas_id' => $request->kelas_id]
                 );
+
+                $kelas = \App\Models\Kelas::find($request->kelas_id);
+                if ($kelas) {
+                    $kelasNama = $kelas->nama_kelas;
+                    $waliKelasId = $kelas->wali_kelas_id;
+
+                    try {
+                        // 1. Notifikasi ke Wali Kelas
+                        if ($waliKelasId) {
+                            $waliKelas = User::find($waliKelasId);
+                            if ($waliKelas) {
+                                ExpoPushService::send(
+                                    $waliKelas->device_token ?? [],
+                                    '📝 Permintaan Gabung Kelas',
+                                    "{$user->name} mengajukan bergabung ke kelas {$kelasNama}.",
+                                    [
+                                        'type' => 'new_class_request',
+                                        'siswa_id' => $user->id,
+                                        'reference_id' => $joinRequest->id
+                                    ],
+                                    [$waliKelasId]
+                                );
+                            }
+                        }
+
+                        // 2. Notifikasi ke Siswa
+                        ExpoPushService::send(
+                            $user->device_token ?? [],
+                            '📝 Permintaan Gabung Kelas',
+                            "Anda mengajukan bergabung ke kelas {$kelasNama}. Menunggu persetujuan wali kelas.",
+                            [
+                                'type' => 'new_class_request',
+                                'siswa_id' => $user->id,
+                                'reference_id' => $joinRequest->id
+                            ],
+                            [$user->id]
+                        );
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::warning('Gagal kirim notifikasi update profil gabung kelas: ' . $e->getMessage());
+                    }
+                }
             }
         }
 

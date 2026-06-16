@@ -29,8 +29,9 @@ class AuthController extends Controller
             $kelasNama = '';
             $siswaName = '';
             $siswaId = null;
+            $classJoinRequestId = null;
 
-            $result = DB::transaction(function () use ($request, &$waliKelasId, &$kelasNama, &$siswaName, &$siswaId) {
+            $result = DB::transaction(function () use ($request, &$waliKelasId, &$kelasNama, &$siswaName, &$siswaId, &$classJoinRequestId) {
                 $user = User::create([
                     'name' => $request->name,
                     'email' => $request->email,
@@ -44,11 +45,12 @@ class AuthController extends Controller
                     'kelas_id' => null, // Officially unassigned until approved
                 ]);
 
-                ClassJoinRequest::create([
+                $joinRequest = ClassJoinRequest::create([
                     'siswa_id' => $user->id,
                     'kelas_id' => $request->kelas_id,
                     'status' => 'pending',
                 ]);
+                $classJoinRequestId = $joinRequest->id;
 
                 $siswaId = $user->id;
                 $siswaName = $user->name;
@@ -67,7 +69,7 @@ class AuthController extends Controller
                 ];
             });
 
-            // Kirim notifikasi ke Wali Kelas di luar transaksi
+            // Kirim notifikasi ke Wali Kelas dan Siswa di luar transaksi
             try {
                 if ($waliKelasId) {
                     $waliKelas = User::find($waliKelasId);
@@ -76,13 +78,34 @@ class AuthController extends Controller
                             $waliKelas->device_token ?? [],
                             '📝 Permintaan Gabung Kelas',
                             "{$siswaName} mengajukan bergabung ke kelas {$kelasNama}.",
-                            ['type' => 'new_class_request', 'siswa_id' => $siswaId],
+                            [
+                                'type' => 'new_class_request',
+                                'siswa_id' => $siswaId,
+                                'reference_id' => $classJoinRequestId
+                            ],
                             [$waliKelasId]
                         );
                     }
                 }
+
+                if ($siswaId) {
+                    $siswa = User::find($siswaId);
+                    if ($siswa) {
+                        ExpoPushService::send(
+                            $siswa->device_token ?? [],
+                            '📝 Permintaan Gabung Kelas',
+                            "Anda mengajukan bergabung ke kelas {$kelasNama}. Menunggu persetujuan wali kelas.",
+                            [
+                                'type' => 'new_class_request',
+                                'siswa_id' => $siswaId,
+                                'reference_id' => $classJoinRequestId
+                            ],
+                            [$siswaId]
+                        );
+                    }
+                }
             } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::warning('Gagal kirim notifikasi pendaftaran kelas ke wali kelas: ' . $e->getMessage());
+                \Illuminate\Support\Facades\Log::warning('Gagal kirim notifikasi pendaftaran kelas: ' . $e->getMessage());
             }
 
             return response()->json([

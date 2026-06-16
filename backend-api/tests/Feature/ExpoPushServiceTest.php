@@ -38,9 +38,10 @@ class ExpoPushServiceTest extends TestCase
             throw new \Exception('Network Error');
         });
 
+        Log::shouldReceive('info');
         Log::shouldReceive('error')
             ->once()
-            ->with('Gagal kirim Expo Push: Network Error');
+            ->with('Gagal kirim Expo Push: Network Error', \Mockery::any());
 
         $result = ExpoPushService::send('ExponentPushToken[xxxxx]', 'Test Title', 'Test Body');
 

@@ -28,7 +28,7 @@ class ExpoPushService
                         'title' => $title,
                         'body' => $body,
                         'tipe' => $data['type'] ?? 'info',
-                        'reference_id' => $data['ticket_id'] ?? null,
+                        'reference_id' => $data['reference_id'] ?? $data['ticket_id'] ?? null,
                     ]);
                 } catch (\Exception $e) {
                     Log::error('Gagal simpan log notifikasi: ' . $e->getMessage());

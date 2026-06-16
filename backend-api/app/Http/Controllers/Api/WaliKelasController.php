@@ -55,21 +55,43 @@ class WaliKelasController extends Controller
             }
         });
 
-        // Kirim notifikasi ke Siswa
+        // Kirim notifikasi ke Siswa dan Wali Kelas
         try {
             $siswa = User::find($joinRequest->siswa_id);
             if ($siswa) {
                 $title = $request->status === 'accepted' ? '✅ Permintaan Kelas Diterima' : '❌ Permintaan Kelas Ditolak';
-                $body = $request->status === 'accepted' 
+                $bodySiswa = $request->status === 'accepted' 
                     ? "Permintaan bergabung ke kelas {$kelas->nama_kelas} telah disetujui." 
                     : "Permintaan bergabung ke kelas {$kelas->nama_kelas} ditolak.";
 
+                // 1. Notifikasi ke Siswa
                 ExpoPushService::send(
                     $siswa->device_token ?? [],
                     $title,
-                    $body,
-                    ['type' => 'class_request_response', 'status' => $request->status],
+                    $bodySiswa,
+                    [
+                        'type' => 'class_request_response',
+                        'status' => $request->status,
+                        'reference_id' => $joinRequest->id
+                    ],
                     [$siswa->id]
+                );
+
+                // 2. Notifikasi ke Wali Kelas
+                $bodyWali = $request->status === 'accepted'
+                    ? "Anda menyetujui {$siswa->name} bergabung ke kelas {$kelas->nama_kelas}."
+                    : "Anda menolak {$siswa->name} bergabung ke kelas {$kelas->nama_kelas}.";
+
+                ExpoPushService::send(
+                    $user->device_token ?? [],
+                    $title,
+                    $bodyWali,
+                    [
+                        'type' => 'class_request_response',
+                        'status' => $request->status,
+                        'reference_id' => $joinRequest->id
+                    ],
+                    [$user->id]
                 );
             }
         } catch (\Exception $e) {

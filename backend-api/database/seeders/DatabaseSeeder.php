@@ -87,10 +87,11 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // Students
+        $siswaNames = [1 => 'Budi', 2 => 'Andi', 3 => 'Cici', 4 => 'Dedi', 5 => 'Evi'];
         $siswaUsers = [];
         for ($i = 1; $i <= 5; $i++) {
             $siswaUsers[$i] = User::create([
-                'name' => "Siswa Ke-$i " . fake()->firstName(),
+                'name' => "Siswa Ke-$i " . ($siswaNames[$i] ?? 'Siswa'),
                 'email' => "siswa$i@sidispen.com",
                 'password' => $password,
                 'role' => 'siswa',
