@@ -43,10 +43,9 @@ Route::get('/diagnose-s3', function () {
             $url = $disk->url($filename);
             $results['generated_url'] = $url;
             
-            // Try fetching it
             $response = \Illuminate\Support\Facades\Http::get($url);
             $results['http_status'] = $response->status();
-            $results['http_body'] = substr($response->body(), 0, 100);
+            $results['http_body_length'] = strlen($response->body());
             
             // Delete it
             $deleteResult = $disk->delete($filename);
