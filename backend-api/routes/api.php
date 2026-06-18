@@ -33,8 +33,8 @@ Route::get('/diagnose-s3', function () {
 
     try {
         $disk = \Illuminate\Support\Facades\Storage::disk('supabase');
-        $filename = 'diagnose_test_' . time() . '.txt';
-        $content = 'Supabase S3 Diagnostics Content';
+        $filename = 'diagnose_test_' . time() . '.jpg';
+        $content = base64_decode('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=');
         
         $writeResult = $disk->put($filename, $content);
         $results['write_result'] = $writeResult ? 'Success' : 'Failed';
