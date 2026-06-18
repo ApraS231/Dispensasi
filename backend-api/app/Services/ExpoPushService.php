@@ -62,7 +62,8 @@ class ExpoPushService
                 'title' => $title,
                 'body' => $body,
                 'data' => $data,
-                'sound' => 'default'
+                'sound' => 'default',
+                'channelId' => 'default'
             ];
         }
 

@@ -100,7 +100,9 @@ class TicketChatController extends Controller
 
             try {
                 $file = $request->file('lampiran_chat');
-                $fileName = (string) \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
+                // Buat nama file acak berbasis UUID agar aman, pastikan extension lowercase
+                $extension = strtolower($file->guessExtension() ?: $file->getClientOriginalExtension() ?: 'jpg');
+                $fileName = (string) \Illuminate\Support\Str::uuid() . '.' . $extension;
                 $path = $file->storeAs('chat_attachments', $fileName, 'supabase');
                 
                 if ($path) {

@@ -21,6 +21,50 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::get('/kelas', [KelasController::class, 'index']);
 
+Route::get('/diagnose-s3', function () {
+    $results = [];
+    $results['disk_driver'] = config('filesystems.disks.supabase.driver');
+    $results['bucket'] = config('filesystems.disks.supabase.bucket');
+    $results['endpoint'] = config('filesystems.disks.supabase.endpoint');
+    $results['has_access_key'] = !empty(config('filesystems.disks.supabase.key'));
+    $results['has_secret_key'] = !empty(config('filesystems.disks.supabase.secret'));
+    $results['region'] = config('filesystems.disks.supabase.region');
+    $results['has_url'] = !empty(config('filesystems.disks.supabase.url'));
+
+    try {
+        $disk = \Illuminate\Support\Facades\Storage::disk('supabase');
+        $filename = 'diagnose_test_' . time() . '.txt';
+        $content = 'Supabase S3 Diagnostics Content';
+        
+        $writeResult = $disk->put($filename, $content);
+        $results['write_result'] = $writeResult ? 'Success' : 'Failed';
+        
+        if ($writeResult) {
+            $url = $disk->url($filename);
+            $results['generated_url'] = $url;
+            
+            // Try fetching it
+            $response = \Illuminate\Support\Facades\Http::get($url);
+            $results['http_status'] = $response->status();
+            $results['http_body'] = substr($response->body(), 0, 100);
+            
+            // Delete it
+            $deleteResult = $disk->delete($filename);
+            $results['delete_result'] = $deleteResult ? 'Success' : 'Failed';
+        }
+        $results['status'] = 'OK';
+    } catch (\Exception $e) {
+        $results['status'] = 'ERROR';
+        $results['error_message'] = $e->getMessage();
+        if ($e->getPrevious()) {
+            $results['previous_error'] = $e->getPrevious()->getMessage();
+        }
+    }
+
+    return response()->json($results);
+});
+
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     

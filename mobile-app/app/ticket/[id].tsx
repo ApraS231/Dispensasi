@@ -169,9 +169,13 @@ export default function TicketDetailScreen() {
         if (currentMsg) formData.append('pesan', currentMsg);
         
         const localUri = currentImg.uri;
-        const filename = localUri.split('/').pop();
-        const match = /\.(\w+)$/.exec(filename || '');
-        const type = match ? `image/${match[1]}` : `image`;
+        const filename = localUri.split('/').pop() || 'lampiran_chat.jpg';
+        const match = /\.(\w+)$/.exec(filename);
+        let ext = match ? match[1].toLowerCase() : 'jpg';
+        if (ext === 'jpeg') ext = 'jpeg';
+        else if (ext === 'png') ext = 'png';
+        else ext = 'jpg'; // fallback to jpg
+        const type = `image/${ext}`;
 
         formData.append('lampiran_chat', {
           uri: localUri,

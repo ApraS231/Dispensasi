@@ -105,7 +105,8 @@ class ProfileController extends Controller
                 }
 
                 $file = $request->file('profile_photo');
-                $fileName = (string) \Illuminate\Support\Str::uuid() . '.' . $file->getClientOriginalExtension();
+                $extension = strtolower($file->guessExtension() ?: $file->getClientOriginalExtension() ?: 'jpg');
+                $fileName = (string) \Illuminate\Support\Str::uuid() . '.' . $extension;
                 $path = $file->storeAs('profile-photos', $fileName, 'supabase');
 
                 if ($path) {

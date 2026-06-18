@@ -87,8 +87,9 @@ class DispensasiController extends Controller
         if ($request->hasFile('foto_bukti')) {
             try {
                 $file = $request->file('foto_bukti');
-                // Buat nama file acak berbasis UUID agar aman
-                $fileName = (string) Str::uuid() . '.' . $file->getClientOriginalExtension();
+                // Buat nama file acak berbasis UUID agar aman, pastikan extension lowercase
+                $extension = strtolower($file->guessExtension() ?: $file->getClientOriginalExtension() ?: 'jpg');
+                $fileName = (string) Str::uuid() . '.' . $extension;
                 
                 // Simpan ke Supabase Storage di dalam folder 'bukti_izin'
                 $path = $file->storeAs('bukti_izin', $fileName, 'supabase');

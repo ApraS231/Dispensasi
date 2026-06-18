@@ -10,17 +10,25 @@ export const compressImage = async (uri: string) => {
     // 1. Dapatkan info ukuran awal file
     const fileInfo: any = await getInfoAsync(uri);
     
-    // Jika ukuran sudah di bawah 1MB (~1.048.576 bytes), tidak perlu kompresi berat
-    if (fileInfo.exists && fileInfo.size < 1000000) {
+    // Cek apakah file sudah JPEG/JPG
+    const isJpeg = uri.toLowerCase().endsWith('.jpg') || uri.toLowerCase().endsWith('.jpeg');
+    
+    // Jika file sudah JPEG dan ukurannya di bawah 1MB, tidak perlu diproses ulang
+    if (isJpeg && fileInfo.exists && fileInfo.size < 1000000) {
       return uri;
     }
 
-    // 2. Lakukan Manipulasi: Resize & Compress
+    // 2. Lakukan Manipulasi: Resize jika ukuran >= 1MB, dan selalu simpan ke JPEG
+    const actions = [];
+    if (fileInfo.exists && fileInfo.size >= 1000000) {
+      actions.push({ resize: { width: 1200 } });
+    }
+
     const result = await ImageManipulator.manipulateAsync(
       uri,
-      [{ resize: { width: 1200 } }], // Kecilkan lebar ke 1200px (tinggi menyesuaikan otomatis)
+      actions,
       { 
-        compress: 0.7, // Kualitas 70%, ukuran turun drastis tapi tetap tajam
+        compress: 0.8, // Kualitas 80%
         format: ImageManipulator.SaveFormat.JPEG 
       }
     );
