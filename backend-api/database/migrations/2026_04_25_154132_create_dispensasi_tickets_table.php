@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('dispensasi_tickets', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('siswa_id')->constrained('users')->onDelete('cascade');
-            $table->foreignUuid('kelas_id')->constrained('kelas')->onDelete('restrict');
-            $table->foreignUuid('wali_kelas_id')->nullable()->constrained('users')->onDelete('set null');
-            $table->foreignUuid('guru_piket_id')->nullable()->constrained('users')->onDelete('set null');
-            $table->foreignUuid('piket_attendance_id')->nullable()->constrained('piket_attendance_logs')->onDelete('set null');
+        Schema::create('tiket_dispensasi', function (Blueprint $table) {
+            $table->uuid('id_tiket_dispensasi')->primary();
+            $table->foreignUuid('id_siswa')->constrained('pengguna', 'id_pengguna')->onDelete('cascade');
+            $table->foreignUuid('id_kelas')->constrained('kelas', 'id_kelas')->onDelete('restrict');
+            $table->foreignUuid('id_wali_kelas')->nullable()->constrained('pengguna', 'id_pengguna')->onDelete('set null');
+            $table->foreignUuid('id_guru_piket')->nullable()->constrained('pengguna', 'id_pengguna')->onDelete('set null');
+            $table->foreignUuid('id_log_kehadiran_piket')->nullable()->constrained('log_kehadiran_piket', 'id_log_kehadiran_piket')->onDelete('set null');
             $table->enum('jenis_izin', ['sakit', 'izin', 'dispensasi'])->default('sakit');
             $table->text('alasan');
             $table->string('lampiran_bukti')->nullable();
@@ -25,13 +25,13 @@ return new class extends Migration
             $table->dateTime('waktu_selesai');
             $table->enum('status', ['pending', 'waiting_piket', 'approved_by_wali', 'approved_by_piket', 'approved_final', 'completed_exit', 'rejected'])->default('pending');
             $table->text('catatan_penolakan')->nullable();
-            $table->string('qr_code_token')->nullable()->unique();
+            $table->string('token_qr_code')->nullable()->unique();
             $table->timestamps();
-            $table->uuid('qr_token')->nullable()->unique();
-            $table->dateTime('scanned_at')->nullable();
-            $table->foreignUuid('scanner_id')->nullable()->constrained('users')->onDelete('set null');
-            $table->dateTime('expires_at')->nullable();
-            $table->boolean('is_scanned')->nullable()->default(false);
+            $table->uuid('token_qr')->nullable()->unique();
+            $table->dateTime('waktu_pindai')->nullable();
+            $table->foreignUuid('id_pemindai')->nullable()->constrained('pengguna', 'id_pengguna')->onDelete('set null');
+            $table->dateTime('kedaluwarsa_pada')->nullable();
+            $table->boolean('sudah_dipindai')->nullable()->default(false);
         });
     }
 
@@ -40,6 +40,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('dispensasi_tickets');
+        Schema::dropIfExists('tiket_dispensasi');
     }
 };

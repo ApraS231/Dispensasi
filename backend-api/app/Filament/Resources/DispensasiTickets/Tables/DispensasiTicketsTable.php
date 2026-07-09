@@ -23,7 +23,7 @@ class DispensasiTicketsTable
                     ->since()
                     ->tooltip(fn ($record) => $record->created_at->format('d M Y H:i'))
                     ->sortable(),
-                TextColumn::make('siswa.name')
+                TextColumn::make('siswa.nama')
                     ->label('Nama Siswa')
                     ->searchable()
                     ->description(fn (DispensasiTicket $record): ?string => $record->kelas->nama_kelas ?? null),
@@ -65,11 +65,11 @@ class DispensasiTicketsTable
                         'rejected' => 'Ditolak',
                         default => $state,
                     }),
-                TextColumn::make('guruPiket.name')
+                TextColumn::make('guruPiket.nama')
                     ->label('Guru Piket')
                     ->default('-')
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('waliKelas.name')
+                TextColumn::make('waliKelas.nama')
                     ->label('Wali Kelas')
                     ->default('-')
                     ->toggleable(isToggledHiddenByDefault: true),

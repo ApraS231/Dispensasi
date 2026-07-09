@@ -19,7 +19,7 @@ export const compressImage = async (uri: string) => {
     }
 
     // 2. Lakukan Manipulasi: Resize jika ukuran >= 1MB, dan selalu simpan ke JPEG
-    const actions = [];
+    const actions: any[] = [];
     if (fileInfo.exists && fileInfo.size >= 1000000) {
       actions.push({ resize: { width: 1200 } });
     }

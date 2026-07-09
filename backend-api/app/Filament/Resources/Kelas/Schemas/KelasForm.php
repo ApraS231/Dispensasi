@@ -24,9 +24,9 @@ class KelasForm
                         'XII' => 'XII (Dua Belas)',
                     ])
                     ->required(),
-                Select::make('wali_kelas_id')
+                Select::make('id_wali_kelas')
                     ->label('Wali Kelas')
-                    ->relationship('waliKelas', 'name', fn ($query) => $query->where('role', 'wali_kelas'))
+                    ->relationship('waliKelas', 'nama', fn ($query) => $query->where('peran', 'wali_kelas'))
                     ->searchable()
                     ->preload()
                     ->nullable(),

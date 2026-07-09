@@ -15,9 +15,9 @@ class WaliKelasController extends Controller
     public function getClassRequests(Request $request)
     {
         $user = $request->user();
-        $kelas = \App\Models\Kelas::where('wali_kelas_id', $user->id)->firstOrFail();
+        $kelas = \App\Models\Kelas::where('id_wali_kelas', $user->id_pengguna)->firstOrFail();
 
-        $requests = ClassJoinRequest::where('kelas_id', $kelas->id)
+        $requests = ClassJoinRequest::where('id_kelas', $kelas->id_kelas)
             ->where('status', 'pending')
             ->with('siswa')
             ->latest()
@@ -30,10 +30,10 @@ class WaliKelasController extends Controller
     {
         $request->validate(['status' => 'required|in:accepted,rejected']);
         $user = $request->user();
-        $kelas = \App\Models\Kelas::where('wali_kelas_id', $user->id)->firstOrFail();
+        $kelas = \App\Models\Kelas::where('id_wali_kelas', $user->id_pengguna)->firstOrFail();
 
-        $joinRequest = ClassJoinRequest::where('id', $id)
-            ->where('kelas_id', $kelas->id)
+        $joinRequest = ClassJoinRequest::where('id_permintaan_gabung_kelas', $id)
+            ->where('id_kelas', $kelas->id_kelas)
             ->where('status', 'pending')
             ->firstOrFail();
 
@@ -42,22 +42,22 @@ class WaliKelasController extends Controller
 
             if ($request->status === 'accepted') {
                 // Remove student from any other class request they might have pending
-                ClassJoinRequest::where('siswa_id', $joinRequest->siswa_id)
-                    ->where('id', '!=', $joinRequest->id)
+                ClassJoinRequest::where('id_siswa', $joinRequest->id_siswa)
+                    ->where('id_permintaan_gabung_kelas', '!=', $joinRequest->id_permintaan_gabung_kelas)
                     ->where('status', 'pending')
                     ->delete();
 
                 // Update their official class
                 SiswaProfile::updateOrCreate(
-                    ['user_id' => $joinRequest->siswa_id],
-                    ['kelas_id' => $kelas->id]
+                    ['id_pengguna' => $joinRequest->id_siswa],
+                    ['id_kelas' => $kelas->id_kelas]
                 );
             }
         });
 
         // Kirim notifikasi ke Siswa dan Wali Kelas
         try {
-            $siswa = User::find($joinRequest->siswa_id);
+            $siswa = User::find($joinRequest->id_siswa);
             if ($siswa) {
                 $title = $request->status === 'accepted' ? '✅ Permintaan Kelas Diterima' : '❌ Permintaan Kelas Ditolak';
                 $bodySiswa = $request->status === 'accepted' 
@@ -66,32 +66,32 @@ class WaliKelasController extends Controller
 
                 // 1. Notifikasi ke Siswa
                 ExpoPushService::send(
-                    $siswa->device_token ?? [],
+                    $siswa->token_perangkat ?? [],
                     $title,
                     $bodySiswa,
                     [
                         'type' => 'class_request_response',
                         'status' => $request->status,
-                        'reference_id' => $joinRequest->id
+                        'reference_id' => $joinRequest->id_permintaan_gabung_kelas
                     ],
-                    [$siswa->id]
+                    [$siswa->id_pengguna]
                 );
 
                 // 2. Notifikasi ke Wali Kelas
                 $bodyWali = $request->status === 'accepted'
-                    ? "Anda menyetujui {$siswa->name} bergabung ke kelas {$kelas->nama_kelas}."
-                    : "Anda menolak {$siswa->name} bergabung ke kelas {$kelas->nama_kelas}.";
+                    ? "Anda menyetujui {$siswa->nama} bergabung ke kelas {$kelas->nama_kelas}."
+                    : "Anda menolak {$siswa->nama} bergabung ke kelas {$kelas->nama_kelas}.";
 
                 ExpoPushService::send(
-                    $user->device_token ?? [],
+                    $user->token_perangkat ?? [],
                     $title,
                     $bodyWali,
                     [
                         'type' => 'class_request_response',
                         'status' => $request->status,
-                        'reference_id' => $joinRequest->id
+                        'reference_id' => $joinRequest->id_permintaan_gabung_kelas
                     ],
-                    [$user->id]
+                    [$user->id_pengguna]
                 );
             }
         } catch (\Exception $e) {
@@ -104,27 +104,27 @@ class WaliKelasController extends Controller
     public function getSiswaKelas(Request $request)
     {
         $user = $request->user();
-        $kelas = \App\Models\Kelas::where('wali_kelas_id', $user->id)->first();
+        $kelas = \App\Models\Kelas::where('id_wali_kelas', $user->id_pengguna)->first();
 
         if (!$kelas) {
             return response()->json(['message' => 'Anda tidak terdaftar sebagai Wali Kelas.'], 404);
         }
 
-        $siswa = SiswaProfile::where('kelas_id', $kelas->id)
+        $siswa = SiswaProfile::where('id_kelas', $kelas->id_kelas)
             ->with(['user', 'orangTua'])
             ->get()
             ->map(function ($profile) {
                 return [
-                    'id' => $profile->user_id,
-                    'name' => $profile->user->name ?? 'Unknown User',
+                    'id' => $profile->id_pengguna,
+                    'name' => $profile->user->nama ?? 'Unknown User',
                     'nis' => $profile->nis,
-                    'has_parent' => $profile->orang_tua_id ? true : false,
-                    'parent_name' => $profile->orangTua->name ?? null,
+                    'has_parent' => $profile->id_orang_tua ? true : false,
+                    'parent_name' => $profile->orangTua->nama ?? null,
                 ];
             });
 
         return response()->json([
-            'kelas_id' => $kelas->id,
+            'kelas_id' => $kelas->id_kelas,
             'kelas' => $kelas->nama_kelas,
             'siswa' => $siswa,
         ]);
@@ -134,32 +134,32 @@ class WaliKelasController extends Controller
     {
         $query = $request->query('q');
         $user = $request->user();
-        $kelas = \App\Models\Kelas::where('wali_kelas_id', $user->id)->firstOrFail();
+        $kelas = \App\Models\Kelas::where('id_wali_kelas', $user->id_pengguna)->firstOrFail();
 
         // Cari user role siswa yang belum di kelas ini
-        $results = \App\Models\User::where('role', 'siswa')
-            ->where('name', 'like', "%{$query}%")
+        $results = \App\Models\User::where('peran', 'siswa')
+            ->where('nama', 'like', "%{$query}%")
             ->whereDoesntHave('siswaProfile', function($q) use ($kelas) {
-                $q->where('kelas_id', $kelas->id);
+                $q->where('id_kelas', $kelas->id_kelas);
             })
             ->limit(10)
-            ->get(['id', 'name', 'email']);
+            ->get(['id_pengguna', 'nama', 'email']);
         
         return response()->json($results);
     }
 
     public function tambahSiswa(Request $request)
     {
-        $request->validate(['siswa_id' => 'required|exists:users,id']);
+        $request->validate(['siswa_id' => 'required|exists:pengguna,id_pengguna']);
         $user = $request->user();
-        $kelas = \App\Models\Kelas::where('wali_kelas_id', $user->id)->firstOrFail();
+        $kelas = \App\Models\Kelas::where('id_wali_kelas', $user->id_pengguna)->firstOrFail();
         
         // Cek role siswa
-        $siswaUser = \App\Models\User::where('id', $request->siswa_id)->where('role', 'siswa')->firstOrFail();
+        $siswaUser = \App\Models\User::where('id_pengguna', $request->siswa_id)->where('peran', 'siswa')->firstOrFail();
 
         SiswaProfile::updateOrCreate(
-            ['user_id' => $siswaUser->id],
-            ['kelas_id' => $kelas->id]
+            ['id_pengguna' => $siswaUser->id_pengguna],
+            ['id_kelas' => $kelas->id_kelas]
         );
 
         return response()->json(['message' => 'Siswa berhasil ditambahkan ke kelas']);
@@ -168,13 +168,13 @@ class WaliKelasController extends Controller
     public function hapusSiswa(Request $request, $id)
     {
         $user = $request->user();
-        $kelas = \App\Models\Kelas::where('wali_kelas_id', $user->id)->firstOrFail();
+        $kelas = \App\Models\Kelas::where('id_wali_kelas', $user->id_pengguna)->firstOrFail();
         
-        $profile = SiswaProfile::where('user_id', $id)
-            ->where('kelas_id', $kelas->id)
+        $profile = SiswaProfile::where('id_pengguna', $id)
+            ->where('id_kelas', $kelas->id_kelas)
             ->firstOrFail();
             
-        $profile->update(['kelas_id' => null]);
+        $profile->update(['id_kelas' => null]);
 
         return response()->json(['message' => 'Siswa berhasil dikeluarkan dari kelas']);
     }
@@ -185,23 +185,23 @@ class WaliKelasController extends Controller
         $tahun = $request->query('tahun', now()->year);
         $user = $request->user();
         
-        $kelas = \App\Models\Kelas::where('wali_kelas_id', $user->id)->firstOrFail();
+        $kelas = \App\Models\Kelas::where('id_wali_kelas', $user->id_pengguna)->firstOrFail();
         
-        $siswaProfiles = SiswaProfile::where('kelas_id', $kelas->id)
+        $siswaProfiles = SiswaProfile::where('id_kelas', $kelas->id_kelas)
             ->with('user')
             ->get();
         
         $hariEfektif = $this->hitungHariEfektif($bulan, $tahun);
 
         // Pre-load semua tiket sekaligus (fix N+1 query)
-        $allTickets = \App\Models\DispensasiTicket::whereIn('siswa_id', $siswaProfiles->pluck('user_id'))
+        $allTickets = \App\Models\DispensasiTicket::whereIn('id_siswa', $siswaProfiles->pluck('id_pengguna'))
             ->whereMonth('created_at', $bulan)
             ->whereYear('created_at', $tahun)
             ->get()
-            ->groupBy('siswa_id');
+            ->groupBy('id_siswa');
 
         $result = $siswaProfiles->map(function($profile) use ($allTickets, $hariEfektif) {
-            $tickets = $allTickets[$profile->user_id] ?? collect();
+            $tickets = $allTickets[$profile->id_pengguna] ?? collect();
 
             $totalIzin = $tickets->count();
             $sakit = $tickets->where('jenis_izin', 'sakit')->count();
@@ -217,8 +217,8 @@ class WaliKelasController extends Controller
                 : 100;
 
             return [
-                'id' => $profile->user_id,
-                'name' => $profile->user->name ?? 'Unknown',
+                'id' => $profile->id_pengguna,
+                'name' => $profile->user->nama ?? 'Unknown',
                 'nis' => $profile->nis,
                 'total_izin' => $totalIzin,
                 'sakit' => $sakit,

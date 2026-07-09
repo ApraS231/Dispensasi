@@ -11,9 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('piket_attendance_logs', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('guru_id')->constrained('users')->onDelete('cascade');
+        Schema::create('log_kehadiran_piket', function (Blueprint $table) {
+            $table->uuid('id_log_kehadiran_piket')->primary();
+            $table->foreignUuid('id_guru')->constrained('pengguna', 'id_pengguna')->onDelete('cascade');
             $table->timestamp('waktu_masuk')->nullable();
             $table->timestamp('waktu_keluar')->nullable();
             $table->boolean('status_aktif')->default(false);
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('piket_attendance_logs');
+        Schema::dropIfExists('log_kehadiran_piket');
     }
 };

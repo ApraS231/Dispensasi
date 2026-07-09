@@ -12,7 +12,7 @@ class UserForm
     {
         return $schema
             ->components([
-                TextInput::make('name')
+                TextInput::make('nama')
                     ->label('Nama Lengkap')
                     ->required(),
                 TextInput::make('email')
@@ -25,7 +25,7 @@ class UserForm
                     ->password()
                     ->required(fn (string $context): bool => $context === 'create')
                     ->dehydrated(fn (?string $state) => filled($state)),
-                Select::make('role')
+                Select::make('peran')
                     ->label('Peran')
                     ->options([
                         'admin' => 'Admin',

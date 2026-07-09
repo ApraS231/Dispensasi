@@ -52,17 +52,22 @@ api.interceptors.request.use(async (config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
   
-  // Deteksi FormData dan hapus default Content-Type agar Axios/React Native 
-  // dapat secara otomatis menyusun boundary multipart/form-data.
+  // Deteksi FormData dan atur Content-Type ke multipart/form-data agar Axios 
+  // tidak melakukan fallback ke application/x-www-form-urlencoded.
   if (config.data instanceof FormData) {
     if (config.headers) {
-      delete config.headers['Content-Type'];
-      delete config.headers['content-type'];
-      if (typeof config.headers.delete === 'function') {
-        config.headers.delete('Content-Type');
-        config.headers.delete('content-type');
+      if (typeof config.headers.set === 'function') {
+        config.headers.set('Content-Type', 'multipart/form-data');
+      } else {
+        config.headers['Content-Type'] = 'multipart/form-data';
       }
     }
+    console.log('--- FormData Details ---');
+    const parts = (config.data as any)._parts || [];
+    parts.forEach(([key, value]: any) => {
+      console.log(`  [${key}]:`, typeof value === 'object' ? JSON.stringify(value, null, 2) : value);
+    });
+    console.log('------------------------');
   }
 
   console.log(`API Request: [${config.method?.toUpperCase()}] ${config.url}`);
@@ -82,6 +87,9 @@ api.interceptors.response.use(
   },
   (error) => {
     console.error('API Response Error:', error?.message, error?.response?.status);
+    if (error.config) {
+      console.log('Axios config headers at failure:', JSON.stringify(error.config.headers, null, 2));
+    }
     if (error.response) {
       if (checkForDomCloudWarning(error.response.data, error.response.headers)) {
         console.warn('DOM Cloud warning page detected in error response!');

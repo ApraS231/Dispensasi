@@ -19,14 +19,14 @@ class ParentLinkController extends Controller
         $query = $request->query('q');
         $kelasId = $request->query('kelas_id');
 
-        $siswa = User::where('role', 'siswa')
+        $siswa = User::where('peran', 'siswa')
             ->when($query, function($q) use ($query) {
-                $q->where('name', 'like', "%$query%");
+                $q->where('nama', 'like', "%$query%");
             })
             ->whereHas('siswaProfile', function($q) use ($kelasId) {
-                $q->whereNull('orang_tua_id');
+                $q->whereNull('id_orang_tua');
                 if ($kelasId) {
-                    $q->where('kelas_id', $kelasId);
+                    $q->where('id_kelas', $kelasId);
                 }
             })
             ->with(['siswaProfile.kelas'])
@@ -34,8 +34,8 @@ class ParentLinkController extends Controller
             ->get()
             ->map(function($user) {
                 return [
-                    'id' => $user->id,
-                    'name' => $user->name,
+                    'id' => $user->id_pengguna,
+                    'name' => $user->nama,
                     'kelas' => $user->siswaProfile->kelas->nama_kelas ?? 'Tanpa Kelas',
                 ];
             });
@@ -51,15 +51,15 @@ class ParentLinkController extends Controller
     public function sendRequest(Request $request)
     {
         $request->validate([
-            'siswa_id' => 'required|exists:users,id'
+            'siswa_id' => 'required|exists:pengguna,id_pengguna'
         ]);
 
         $parent = $request->user();
         $siswaId = $request->siswa_id;
 
         // Cek limit 2 anak
-        $currentChildrenCount = SiswaProfile::where('orang_tua_id', $parent->id)->count();
-        $pendingRequestsCount = ParentLinkRequest::where('parent_id', $parent->id)
+        $currentChildrenCount = SiswaProfile::where('id_orang_tua', $parent->id_pengguna)->count();
+        $pendingRequestsCount = ParentLinkRequest::where('id_orang_tua', $parent->id_pengguna)
             ->where('status', 'pending')
             ->count();
 
@@ -68,8 +68,8 @@ class ParentLinkController extends Controller
         }
 
         // Cek if already linked or requested
-        $existingRequest = ParentLinkRequest::where('parent_id', $parent->id)
-            ->where('siswa_id', $siswaId)
+        $existingRequest = ParentLinkRequest::where('id_orang_tua', $parent->id_pengguna)
+            ->where('id_siswa', $siswaId)
             ->first();
 
         if ($existingRequest) {
@@ -81,8 +81,8 @@ class ParentLinkController extends Controller
             }
         } else {
             $linkRequest = ParentLinkRequest::create([
-                'parent_id' => $parent->id,
-                'siswa_id' => $siswaId,
+                'id_orang_tua' => $parent->id_pengguna,
+                'id_siswa' => $siswaId,
                 'status' => 'pending'
             ]);
         }
@@ -93,28 +93,28 @@ class ParentLinkController extends Controller
             if ($siswa) {
                 // 1. Notifikasi ke Siswa
                 ExpoPushService::send(
-                    $siswa->device_token ?? [],
+                    $siswa->token_perangkat ?? [],
                     '👨‍👩‍👦 Hubungan Akun Orang Tua',
-                    "{$parent->name} ingin menghubungkan akun sebagai orang tua/wali Anda.",
+                    "{$parent->nama} ingin menghubungkan akun sebagai orang tua/wali Anda.",
                     [
-                        'request_id' => $linkRequest->id,
+                        'request_id' => $linkRequest->id_permintaan_hubung_ortu,
                         'type' => 'parent_link',
-                        'reference_id' => $linkRequest->id
+                        'reference_id' => $linkRequest->id_permintaan_hubung_ortu
                     ],
-                    [$siswa->id]
+                    [$siswa->id_pengguna]
                 );
 
                 // 2. Notifikasi ke Orang Tua (Wali)
                 ExpoPushService::send(
-                    $parent->device_token ?? [],
+                    $parent->token_perangkat ?? [],
                     '👨‍👩‍👦 Hubungan Akun Orang Tua',
-                    "Permintaan menghubungkan akun dengan {$siswa->name} berhasil dikirim. Menunggu persetujuan siswa.",
+                    "Permintaan menghubungkan akun dengan {$siswa->nama} berhasil dikirim. Menunggu persetujuan siswa.",
                     [
-                        'request_id' => $linkRequest->id,
+                        'request_id' => $linkRequest->id_permintaan_hubung_ortu,
                         'type' => 'parent_link',
-                        'reference_id' => $linkRequest->id
+                        'reference_id' => $linkRequest->id_permintaan_hubung_ortu
                     ],
-                    [$parent->id]
+                    [$parent->id_pengguna]
                 );
             }
         } catch (\Exception $e) {
@@ -126,7 +126,7 @@ class ParentLinkController extends Controller
 
     public function myRequests(Request $request)
     {
-        $requests = ParentLinkRequest::where('parent_id', $request->user()->id)
+        $requests = ParentLinkRequest::where('id_orang_tua', $request->user()->id_pengguna)
             ->where('status', '!=', 'accepted')
             ->with(['siswa'])
             ->latest()
@@ -136,8 +136,8 @@ class ParentLinkController extends Controller
 
     public function cancelRequest(Request $request, $id)
     {
-        $linkRequest = ParentLinkRequest::where('id', $id)
-            ->where('parent_id', $request->user()->id)
+        $linkRequest = ParentLinkRequest::where('id_permintaan_hubung_ortu', $id)
+            ->where('id_orang_tua', $request->user()->id_pengguna)
             ->whereIn('status', ['pending', 'rejected'])
             ->firstOrFail();
 
@@ -147,7 +147,7 @@ class ParentLinkController extends Controller
 
     public function pendingRequests(Request $request)
     {
-        $requests = ParentLinkRequest::where('siswa_id', $request->user()->id)
+        $requests = ParentLinkRequest::where('id_siswa', $request->user()->id_pengguna)
             ->where('status', 'pending')
             ->with(['parent'])
             ->latest()
@@ -161,8 +161,8 @@ class ParentLinkController extends Controller
             'status' => 'required|in:accepted,rejected'
         ]);
 
-        $linkRequest = ParentLinkRequest::where('id', $id)
-            ->where('siswa_id', $request->user()->id)
+        $linkRequest = ParentLinkRequest::where('id_permintaan_hubung_ortu', $id)
+            ->where('id_siswa', $request->user()->id_pengguna)
             ->where('status', 'pending')
             ->firstOrFail();
 
@@ -170,48 +170,48 @@ class ParentLinkController extends Controller
             $linkRequest->update(['status' => $request->status]);
 
             if ($request->status === 'accepted') {
-                SiswaProfile::where('user_id', $linkRequest->siswa_id)
-                    ->update(['orang_tua_id' => $linkRequest->parent_id]);
+                SiswaProfile::where('id_pengguna', $linkRequest->id_siswa)
+                    ->update(['id_orang_tua' => $linkRequest->id_orang_tua]);
             }
         });
 
         // Notify Parent and Siswa
         try {
-            $parent = User::find($linkRequest->parent_id);
+            $parent = User::find($linkRequest->id_orang_tua);
             if ($parent) {
                 $title = $request->status === 'accepted' ? 'Permintaan Diterima ✅' : 'Permintaan Ditolak';
                 $bodyParent = $request->status === 'accepted' 
-                    ? "{$request->user()->name} telah mengkonfirmasi Anda sebagai wali."
-                    : "{$request->user()->name} menolak permintaan hubungan akun.";
+                    ? "{$request->user()->nama} telah mengkonfirmasi Anda sebagai wali."
+                    : "{$request->user()->nama} menolak permintaan hubungan akun.";
 
                 // 1. Notifikasi ke Orang Tua (Wali)
                 ExpoPushService::send(
-                    $parent->device_token ?? [],
+                    $parent->token_perangkat ?? [],
                     $title,
                     $bodyParent,
                     [
-                        'request_id' => $linkRequest->id,
+                        'request_id' => $linkRequest->id_permintaan_hubung_ortu,
                         'type' => 'parent_link_response',
-                        'reference_id' => $linkRequest->id
+                        'reference_id' => $linkRequest->id_permintaan_hubung_ortu
                     ],
-                    [$parent->id]
+                    [$parent->id_pengguna]
                 );
 
                 // 2. Notifikasi ke Siswa
                 $bodySiswa = $request->status === 'accepted'
-                    ? "Anda menyetujui {$parent->name} sebagai orang tua/wali Anda."
-                    : "Anda menolak permintaan hubungan akun dari {$parent->name}.";
+                    ? "Anda menyetujui {$parent->nama} sebagai orang tua/wali Anda."
+                    : "Anda menolak permintaan hubungan akun dari {$parent->nama}.";
 
                 ExpoPushService::send(
-                    $request->user()->device_token ?? [],
+                    $request->user()->token_perangkat ?? [],
                     $title,
                     $bodySiswa,
                     [
-                        'request_id' => $linkRequest->id,
+                        'request_id' => $linkRequest->id_permintaan_hubung_ortu,
                         'type' => 'parent_link_response',
-                        'reference_id' => $linkRequest->id
+                        'reference_id' => $linkRequest->id_permintaan_hubung_ortu
                     ],
-                    [$request->user()->id]
+                    [$request->user()->id_pengguna]
                 );
             }
         } catch (\Exception $e) {

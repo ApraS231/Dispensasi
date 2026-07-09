@@ -21,14 +21,14 @@ class ProfileController extends Controller
 
         $request->validate([
             'name' => 'nullable|string|max:255',
-            'email' => 'nullable|email|unique:users,email,'.$user->id,
+            'email' => 'nullable|email|unique:pengguna,email,'.$user->id_pengguna,
             'nis' => 'nullable|string',
-            'kelas_id' => 'nullable|exists:kelas,id',
+            'kelas_id' => 'nullable|exists:kelas,id_kelas',
             'profile_photo' => 'nullable|image|max:2048' // max 2MB
         ]);
 
         if ($request->has('name')) {
-            $user->name = $request->name;
+            $user->nama = $request->name;
         }
 
         if ($request->has('email')) {
@@ -36,24 +36,24 @@ class ProfileController extends Controller
         }
 
         // Handle Siswa Profile (NIS & Kelas Request)
-        if ($user->role === 'siswa') {
-            $profile = SiswaProfile::firstOrCreate(['user_id' => $user->id]);
+        if ($user->peran === 'siswa') {
+            $profile = SiswaProfile::firstOrCreate(['id_pengguna' => $user->id_pengguna]);
             
             if ($request->has('nis')) {
                 $profile->update(['nis' => $request->nis]);
             }
 
-            if ($request->has('kelas_id') && $request->kelas_id !== $profile->kelas_id) {
+            if ($request->has('kelas_id') && $request->kelas_id !== $profile->id_kelas) {
                 // Create or update class join request
                 $joinRequest = ClassJoinRequest::updateOrCreate(
-                    ['siswa_id' => $user->id, 'status' => 'pending'],
-                    ['kelas_id' => $request->kelas_id]
+                    ['id_siswa' => $user->id_pengguna, 'status' => 'pending'],
+                    ['id_kelas' => $request->kelas_id]
                 );
 
                 $kelas = \App\Models\Kelas::find($request->kelas_id);
                 if ($kelas) {
                     $kelasNama = $kelas->nama_kelas;
-                    $waliKelasId = $kelas->wali_kelas_id;
+                    $waliKelasId = $kelas->id_wali_kelas;
 
                     try {
                         // 1. Notifikasi ke Wali Kelas
@@ -61,13 +61,13 @@ class ProfileController extends Controller
                             $waliKelas = User::find($waliKelasId);
                             if ($waliKelas) {
                                 ExpoPushService::send(
-                                    $waliKelas->device_token ?? [],
+                                    $waliKelas->token_perangkat ?? [],
                                     '📝 Permintaan Gabung Kelas',
-                                    "{$user->name} mengajukan bergabung ke kelas {$kelasNama}.",
+                                    "{$user->nama} mengajukan bergabung ke kelas {$kelasNama}.",
                                     [
                                         'type' => 'new_class_request',
-                                        'siswa_id' => $user->id,
-                                        'reference_id' => $joinRequest->id
+                                        'siswa_id' => $user->id_pengguna,
+                                        'reference_id' => $joinRequest->id_permintaan_gabung_kelas
                                     ],
                                     [$waliKelasId]
                                 );
@@ -76,15 +76,15 @@ class ProfileController extends Controller
 
                         // 2. Notifikasi ke Siswa
                         ExpoPushService::send(
-                            $user->device_token ?? [],
+                            $user->token_perangkat ?? [],
                             '📝 Permintaan Gabung Kelas',
                             "Anda mengajukan bergabung ke kelas {$kelasNama}. Menunggu persetujuan wali kelas.",
                             [
                                 'type' => 'new_class_request',
-                                'siswa_id' => $user->id,
-                                'reference_id' => $joinRequest->id
+                                'siswa_id' => $user->id_pengguna,
+                                'reference_id' => $joinRequest->id_permintaan_gabung_kelas
                             ],
-                            [$user->id]
+                            [$user->id_pengguna]
                         );
                     } catch (\Exception $e) {
                         \Illuminate\Support\Facades\Log::warning('Gagal kirim notifikasi update profil gabung kelas: ' . $e->getMessage());
@@ -96,10 +96,10 @@ class ProfileController extends Controller
         if ($request->hasFile('profile_photo')) {
             try {
                 // Delete old photo from Supabase if exists
-                if ($user->profile_photo_url) {
+                if ($user->url_foto_profil) {
                     $supabaseBaseUrl = config('filesystems.disks.supabase.url');
-                    if ($supabaseBaseUrl && str_starts_with($user->profile_photo_url, $supabaseBaseUrl)) {
-                        $oldPath = str_replace($supabaseBaseUrl . '/', '', $user->profile_photo_url);
+                    if ($supabaseBaseUrl && str_starts_with($user->url_foto_profil, $supabaseBaseUrl)) {
+                        $oldPath = str_replace($supabaseBaseUrl . '/', '', $user->url_foto_profil);
                         Storage::disk('supabase')->delete($oldPath);
                     }
                 }
@@ -110,7 +110,7 @@ class ProfileController extends Controller
                 $path = $file->storeAs('profile-photos', $fileName, 'supabase');
 
                 if ($path) {
-                    $user->profile_photo_url = Storage::disk('supabase')->url($path);
+                    $user->url_foto_profil = Storage::disk('supabase')->url($path);
                 }
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error("Gagal upload foto profil: " . $e->getMessage());

@@ -11,12 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('siswa_profiles', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('user_id')->constrained('users')->onDelete('cascade');
+        Schema::create('profil_siswa', function (Blueprint $table) {
+            $table->uuid('id_profil_siswa')->primary();
+            $table->foreignUuid('id_pengguna')->constrained('pengguna', 'id_pengguna')->onDelete('cascade');
             $table->string('nis')->unique();
-            $table->foreignUuid('kelas_id')->nullable()->constrained('kelas')->onDelete('restrict');
-            $table->foreignUuid('orang_tua_id')->nullable()->constrained('users')->onDelete('set null');
+            $table->foreignUuid('id_kelas')->nullable()->constrained('kelas', 'id_kelas')->onDelete('restrict');
+            $table->foreignUuid('id_orang_tua')->nullable()->constrained('pengguna', 'id_pengguna')->onDelete('set null');
             $table->timestamps();
         });
     }
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('siswa_profiles');
+        Schema::dropIfExists('profil_siswa');
     }
 };

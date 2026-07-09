@@ -37,7 +37,7 @@ class StatsOverview extends StatsOverviewWidget
 
         // 3. Siswa Terdaftar Trend
         $trendSiswa = collect(range(6, 0))->map(fn ($days) => 
-            User::where('role', 'siswa')
+            User::where('peran', 'siswa')
                 ->whereDate('created_at', '<=', today()->subDays($days))
                 ->count()
         )->all();
@@ -90,7 +90,7 @@ class StatsOverview extends StatsOverviewWidget
                 ->chart($trendPending)
                 ->color('warning'),
 
-            Stat::make('Siswa Terdaftar', User::where('role', 'siswa')->count())
+            Stat::make('Siswa Terdaftar', User::where('peran', 'siswa')->count())
                 ->description('Total akun siswa aktif')
                 ->descriptionIcon('heroicon-m-user-group')
                 ->chart($trendSiswa)

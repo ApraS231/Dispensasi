@@ -24,10 +24,10 @@ class RegistrationController extends Controller
         ]);
 
         $user = User::create([
-            'name' => $request->name,
+            'nama' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'orang_tua',
+            'peran' => 'orang_tua',
         ]);
 
         return redirect()->route('register.success');

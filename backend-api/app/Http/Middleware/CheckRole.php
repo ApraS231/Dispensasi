@@ -9,7 +9,7 @@ class CheckRole
 {
     public function handle(Request $request, Closure $next, ...$roles)
     {
-        if (!$request->user() || !in_array($request->user()->role, $roles)) {
+        if (!$request->user() || !in_array($request->user()->peran, $roles)) {
             return response()->json(['message' => 'Akses ditolak. Anda tidak memiliki izin.'], 403);
         }
         return $next($request);

@@ -21,7 +21,7 @@ class PiketController extends Controller
         $hariIni = $hariMap[$now->dayOfWeekIso];
         $jamIni = $now->format('H:i:s');
 
-        $aktif = PiketSchedule::where('guru_id', $user->id)
+        $aktif = PiketSchedule::where('id_guru', $user->id_pengguna)
             ->where('hari', $hariIni)
             ->where('jam_mulai', '<=', $jamIni)
             ->where('jam_selesai', '>=', $jamIni)
@@ -34,10 +34,10 @@ class PiketController extends Controller
     public function getQueue(Request $request)
     {
         $now = now();
-        $guruId = $request->user()->id;
+        $guruId = $request->user()->id_pengguna;
 
         // 1. Cek apakah Guru ini sedang masuk jadwal Shift
-        $isScheduledNow = PiketSchedule::where('guru_id', $guruId)
+        $isScheduledNow = PiketSchedule::where('id_guru', $guruId)
             ->where('hari', [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu'][$now->dayOfWeekIso])
             ->where('jam_mulai', '<=', $now->format('H:i:s'))
             ->where('jam_selesai', '>=', $now->format('H:i:s'))
@@ -55,7 +55,7 @@ class PiketController extends Controller
         // 2. Tarik semua tiket dari Pool (FIFO - First In First Out)
         $queue = DispensasiTicket::with(['siswa', 'kelas'])
             ->where('status', 'waiting_piket')
-            ->whereNull('guru_piket_id')
+            ->whereNull('id_guru_piket')
             ->orderBy('created_at', 'asc') // Yang paling lama menunggu ada di atas
             ->get();
 
@@ -69,7 +69,7 @@ class PiketController extends Controller
     public function validateQR(Request $request) {
         $request->validate(['qr_token' => 'required|uuid']);
 
-        $ticket = \App\Models\DispensasiTicket::where('qr_token', $request->qr_token)->first();
+        $ticket = \App\Models\DispensasiTicket::where('token_qr', $request->qr_token)->first();
 
         if (!$ticket) {
             return response()->json(['valid' => false, 'message' => 'QR Code Palsu / Tidak Dikenali'], 404);
@@ -82,16 +82,16 @@ class PiketController extends Controller
             ], 400);
         }
 
-        if ($ticket->scanned_at !== null) {
+        if ($ticket->waktu_pindai !== null) {
             return response()->json(['valid' => false, 'message' => 'QR Code ini sudah pernah dipakai!'], 400);
         }
 
         // Jika Valid, kunci tiket
         $ticket->update([
             'status' => 'completed_exit',
-            'is_scanned' => true,
-            'scanned_at' => now(),
-            'scanner_id' => $request->user()->id
+            'sudah_dipindai' => true,
+            'waktu_pindai' => now(),
+            'id_pemindai' => $request->user()->id_pengguna
         ]);
 
         $ticket->load('siswa'); // Load relasi siswa untuk nama
@@ -100,26 +100,26 @@ class PiketController extends Controller
             // Notifikasi ke Siswa
             if ($ticket->siswa) {
                 ExpoPushService::send(
-                    $ticket->siswa->device_token ?? [],
+                    $ticket->siswa->token_perangkat ?? [],
                     '🚪 QR Tervalidasi',
                     "Izin Anda telah divalidasi di gerbang.",
-                    ['ticket_id' => $ticket->id, 'type' => 'qr_validated'],
-                    [$ticket->siswa->id]
+                    ['ticket_id' => $ticket->id_tiket_dispensasi, 'type' => 'qr_validated'],
+                    [$ticket->siswa->id_pengguna]
                 );
             }
 
             // Notifikasi ke Orang Tua
-            $profil = SiswaProfile::where('user_id', $ticket->siswa_id)->first();
-            if ($profil && $profil->orang_tua_id) {
-                $ortu = User::find($profil->orang_tua_id);
+            $profil = SiswaProfile::where('id_pengguna', $ticket->id_siswa)->first();
+            if ($profil && $profil->id_orang_tua) {
+                $ortu = User::find($profil->id_orang_tua);
                 if ($ortu) {
-                    $namaAnak = $ticket->siswa->name ?? 'Anak Anda';
+                    $namaAnak = $ticket->siswa->nama ?? 'Anak Anda';
                     ExpoPushService::send(
-                        $ortu->device_token ?? [],
+                        $ortu->token_perangkat ?? [],
                         '🚪 Anak Keluar Sekolah',
                         "{$namaAnak} baru saja tervalidasi keluar gerbang.",
-                        ['ticket_id' => $ticket->id, 'type' => 'qr_validated'],
-                        [$ortu->id]
+                        ['ticket_id' => $ticket->id_tiket_dispensasi, 'type' => 'qr_validated'],
+                        [$ortu->id_pengguna]
                     );
                 }
             }
@@ -147,7 +147,7 @@ class PiketController extends Controller
         return response()->json([
             'date' => now()->format('Y-m-d'),
             'total' => $logs->count(),
-            'scanned_count' => $logs->where('is_scanned', true)->count(),
+            'scanned_count' => $logs->where('sudah_dipindai', true)->count(),
             'data' => $logs
         ]);
     }

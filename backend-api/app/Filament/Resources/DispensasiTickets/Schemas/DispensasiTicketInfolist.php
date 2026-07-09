@@ -75,10 +75,10 @@ class DispensasiTicketInfolist
                                             'rejected' => 'Ditolak',
                                             default => $state,
                                         }),
-                                    TextEntry::make('guruPiket.name')
+                                    TextEntry::make('guruPiket.nama')
                                         ->label('Guru Piket')
                                         ->placeholder('-'),
-                                ]),
+                                 ]),
                             TextEntry::make('catatan_penolakan')
                                 ->label('Catatan Penolakan')
                                 ->placeholder('-')
@@ -90,12 +90,12 @@ class DispensasiTicketInfolist
                 \Filament\Schemas\Components\Group::make([
                     Section::make('Informasi Siswa')
                         ->schema([
-                            TextEntry::make('siswa.name')
+                            TextEntry::make('siswa.nama')
                                 ->label('Nama Siswa')
                                 ->weight('bold'),
                             TextEntry::make('kelas.nama_kelas')
                                 ->label('Kelas'),
-                            TextEntry::make('waliKelas.name')
+                            TextEntry::make('waliKelas.nama')
                                 ->label('Wali Kelas')
                                 ->placeholder('-'),
                         ]),

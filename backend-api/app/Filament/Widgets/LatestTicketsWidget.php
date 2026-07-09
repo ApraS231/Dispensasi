@@ -24,7 +24,7 @@ class LatestTicketsWidget extends BaseWidget
                 DispensasiTicket::query()->latest()->limit(5)
             )
             ->columns([
-                TextColumn::make('siswa.name')
+                TextColumn::make('siswa.nama')
                     ->label('Siswa')
                     ->weight('bold')
                     ->searchable(),

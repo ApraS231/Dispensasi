@@ -9,6 +9,21 @@ class PiketAttendanceLog extends Model
 {
     use HasUuids;
 
+    protected $table = 'log_kehadiran_piket';
+    protected $primaryKey = 'id_log_kehadiran_piket';
+
+    protected $appends = ['id', 'guru_id'];
+
+    public function getIdAttribute()
+    {
+        return $this->attributes['id_log_kehadiran_piket'] ?? $this->id_log_kehadiran_piket ?? null;
+    }
+
+    public function getGuruIdAttribute()
+    {
+        return $this->attributes['id_guru'] ?? $this->id_guru ?? null;
+    }
+
     protected $guarded = [];
 
     protected $casts = [
@@ -19,6 +34,6 @@ class PiketAttendanceLog extends Model
 
     public function guru()
     {
-        return $this->belongsTo(User::class, 'guru_id');
+        return $this->belongsTo(User::class, 'id_guru', 'id_pengguna');
     }
 }

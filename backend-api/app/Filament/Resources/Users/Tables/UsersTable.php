@@ -15,14 +15,14 @@ class UsersTable
     {
         return $table
             ->columns([
-                TextColumn::make('name')
+                TextColumn::make('nama')
                     ->label('Nama')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('email')
                     ->label('Email')
                     ->searchable(),
-                TextColumn::make('role')
+                TextColumn::make('peran')
                     ->label('Peran')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -41,7 +41,7 @@ class UsersTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('role')
+                SelectFilter::make('peran')
                     ->options([
                         'admin' => 'Admin',
                         'siswa' => 'Siswa',

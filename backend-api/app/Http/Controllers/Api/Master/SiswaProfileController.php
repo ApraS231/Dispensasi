@@ -16,10 +16,10 @@ class SiswaProfileController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'user_id' => 'required|exists:users,id|unique:siswa_profiles',
-            'nis' => 'required|string|unique:siswa_profiles',
-            'kelas_id' => 'required|exists:kelas,id',
-            'orang_tua_id' => 'nullable|exists:users,id',
+            'id_pengguna' => 'required|exists:pengguna,id_pengguna|unique:profil_siswa,id_pengguna',
+            'nis' => 'required|string|unique:profil_siswa,nis',
+            'id_kelas' => 'required|exists:kelas,id_kelas',
+            'id_orang_tua' => 'nullable|exists:pengguna,id_pengguna',
         ]);
         $profile = SiswaProfile::create($validated);
         return response()->json($profile, 201);
@@ -34,10 +34,10 @@ class SiswaProfileController extends Controller
     {
         $profile = SiswaProfile::findOrFail($id);
         $validated = $request->validate([
-            'user_id' => 'sometimes|exists:users,id|unique:siswa_profiles,user_id,' . $id,
-            'nis' => 'sometimes|string|unique:siswa_profiles,nis,' . $id,
-            'kelas_id' => 'sometimes|exists:kelas,id',
-            'orang_tua_id' => 'nullable|exists:users,id',
+            'id_pengguna' => 'sometimes|exists:pengguna,id_pengguna|unique:profil_siswa,id_pengguna,' . $id . ',id_profil_siswa',
+            'nis' => 'sometimes|string|unique:profil_siswa,nis,' . $id . ',id_profil_siswa',
+            'id_kelas' => 'sometimes|exists:kelas,id_kelas',
+            'id_orang_tua' => 'nullable|exists:pengguna,id_pengguna',
         ]);
         $profile->update($validated);
         return response()->json($profile);

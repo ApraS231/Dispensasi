@@ -18,12 +18,16 @@ class UserController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string',
-            'email' => 'required|email|unique:users',
+            'email' => 'required|email|unique:pengguna,email',
             'password' => 'required|string|min:6',
             'role' => 'required|in:admin,siswa,orang_tua,guru_piket,wali_kelas',
         ]);
-        $validated['password'] = Hash::make($validated['password']);
-        $user = User::create($validated);
+        $user = User::create([
+            'nama' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'peran' => $validated['role'],
+        ]);
         return response()->json($user, 201);
     }
 
@@ -37,14 +41,18 @@ class UserController extends Controller
         $user = User::findOrFail($id);
         $validated = $request->validate([
             'name' => 'sometimes|string',
-            'email' => 'sometimes|email|unique:users,email,' . $id,
+            'email' => 'sometimes|email|unique:pengguna,email,' . $id . ',id_pengguna',
             'password' => 'sometimes|string|min:6',
             'role' => 'sometimes|in:admin,siswa,orang_tua,guru_piket,wali_kelas',
         ]);
-        if (isset($validated['password'])) {
-            $validated['password'] = Hash::make($validated['password']);
-        }
-        $user->update($validated);
+        
+        $updateData = [];
+        if (isset($validated['name'])) $updateData['nama'] = $validated['name'];
+        if (isset($validated['email'])) $updateData['email'] = $validated['email'];
+        if (isset($validated['password'])) $updateData['password'] = Hash::make($validated['password']);
+        if (isset($validated['role'])) $updateData['peran'] = $validated['role'];
+
+        $user->update($updateData);
         return response()->json($user);
     }
 

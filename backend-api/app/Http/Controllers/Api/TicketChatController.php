@@ -15,20 +15,20 @@ class TicketChatController extends Controller
     private function checkAccess($user, $ticket)
     {
         // Admin always has access
-        if ($user->role === 'admin') return true;
+        if ($user->peran === 'admin') return true;
         
         // Ownership access
-        if ($ticket->siswa_id === $user->id) return true;
-        if ($ticket->wali_kelas_id === $user->id) return true;
-        if ($ticket->guru_piket_id === $user->id) return true;
+        if ($ticket->id_siswa === $user->id_pengguna) return true;
+        if ($ticket->id_wali_kelas === $user->id_pengguna) return true;
+        if ($ticket->id_guru_piket === $user->id_pengguna) return true;
         
         // Staff access (Guru Piket can view all chats to process tickets)
-        if ($user->role === 'guru_piket') return true;
+        if ($user->peran === 'guru_piket') return true;
         
         // Parent access to their child's ticket
-        if ($user->role === 'orang_tua') {
-            $isAnak = SiswaProfile::where('orang_tua_id', $user->id)
-                ->where('user_id', $ticket->siswa_id)
+        if ($user->peran === 'orang_tua') {
+            $isAnak = SiswaProfile::where('id_orang_tua', $user->id_pengguna)
+                ->where('id_pengguna', $ticket->id_siswa)
                 ->exists();
             if ($isAnak) return true;
         }
@@ -47,7 +47,7 @@ class TicketChatController extends Controller
         $limit = $request->query('limit', 20);
         $cursor = $request->query('cursor');
 
-        $query = TicketChat::with('sender')->where('dispensasi_ticket_id', $ticketId);
+        $query = TicketChat::with('sender')->where('id_tiket_dispensasi', $ticketId);
 
         if ($cursor && $cursor !== 'null') {
             $cursorMessage = TicketChat::find($cursor);
@@ -58,7 +58,7 @@ class TicketChatController extends Controller
 
         $chats = $query->orderBy('created_at', 'desc')->limit($limit)->get();
 
-        $nextCursor = $chats->count() === (int)$limit ? $chats->last()->id : null;
+        $nextCursor = $chats->count() === (int)$limit ? $chats->last()->id_obrolan_tiket : null;
 
         return response()->json([
             'data' => $chats,
@@ -94,7 +94,7 @@ class TicketChatController extends Controller
 
         if ($request->hasFile('lampiran_chat')) {
             // Cek role: Hanya siswa dan orang tua yang boleh kirim gambar
-            if (!in_array($user->role, ['siswa', 'orang_tua'])) {
+            if (!in_array($user->peran, ['siswa', 'orang_tua'])) {
                 return response()->json(['message' => 'Hanya siswa dan orang tua yang dapat mengirim gambar di chat.'], 403);
             }
 
@@ -115,10 +115,10 @@ class TicketChatController extends Controller
         }
 
         $chat = TicketChat::create([
-            'dispensasi_ticket_id' => $ticketId,
-            'sender_id' => $user->id,
+            'id_tiket_dispensasi' => $ticketId,
+            'id_pengirim' => $user->id_pengguna,
             'pesan' => $request->pesan ?? '',
-            'attachment_url' => $attachmentUrl
+            'url_lampiran' => $attachmentUrl
         ]);
 
         $chat->load('sender');
@@ -135,33 +135,33 @@ class TicketChatController extends Controller
     private function sendChatNotification($ticket, $chat, $sender)
     {
         $targetUserIds = array_filter([
-            $ticket->siswa_id,
-            $ticket->wali_kelas_id,
-            $ticket->guru_piket_id
+            $ticket->id_siswa,
+            $ticket->id_wali_kelas,
+            $ticket->id_guru_piket
         ]);
 
-        $ortu = SiswaProfile::where('user_id', $ticket->siswa_id)->value('orang_tua_id');
+        $ortu = SiswaProfile::where('id_pengguna', $ticket->id_siswa)->value('id_orang_tua');
         if ($ortu) {
             $targetUserIds[] = $ortu;
         }
 
         $targetUserIds = array_unique($targetUserIds);
         
-        if (($key = array_search($sender->id, $targetUserIds)) !== false) {
+        if (($key = array_search($sender->id_pengguna, $targetUserIds)) !== false) {
             unset($targetUserIds[$key]);
         }
 
-        $tokens = User::whereIn('id', $targetUserIds)
-            ->whereNotNull('device_token')
-            ->pluck('device_token')
+        $tokens = User::whereIn('id_pengguna', $targetUserIds)
+            ->whereNotNull('token_perangkat')
+            ->pluck('token_perangkat')
             ->toArray();
 
         // Pass $targetUserIds to ExpoPushService for logging, even if tokens is empty
         ExpoPushService::send(
             $tokens,
-            'Pesan Baru: ' . $sender->name,
+            'Pesan Baru: ' . $sender->nama,
             $chat->pesan ?: '[Gambar]',
-            ['ticket_id' => $ticket->id, 'type' => 'chat'],
+            ['ticket_id' => $ticket->id_tiket_dispensasi, 'type' => 'chat'],
             array_values($targetUserIds) // Reset keys
         );
     }

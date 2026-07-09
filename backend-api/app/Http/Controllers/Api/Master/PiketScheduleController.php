@@ -16,7 +16,7 @@ class PiketScheduleController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'guru_id' => 'required|exists:users,id',
+            'id_guru' => 'required|exists:pengguna,id_pengguna',
             'hari' => 'required|string',
             'jam_mulai' => 'required',
             'jam_selesai' => 'required',
@@ -34,7 +34,7 @@ class PiketScheduleController extends Controller
     {
         $schedule = PiketSchedule::findOrFail($id);
         $validated = $request->validate([
-            'guru_id' => 'sometimes|exists:users,id',
+            'id_guru' => 'sometimes|exists:pengguna,id_pengguna',
             'hari' => 'sometimes|string',
             'jam_mulai' => 'sometimes',
             'jam_selesai' => 'sometimes',

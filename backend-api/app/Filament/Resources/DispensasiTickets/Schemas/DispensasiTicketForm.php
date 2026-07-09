@@ -21,20 +21,20 @@ class DispensasiTicketForm
                         Section::make('Data Siswa & Kelas')
                             ->columnSpan(1)
                             ->schema([
-                                Select::make('siswa_id')
+                                Select::make('id_siswa')
                                     ->label('Siswa')
-                                    ->relationship('siswa', 'name')
+                                    ->relationship('siswa', 'nama')
                                     ->searchable()
                                     ->required()
                                     ->helperText('Pilih siswa yang mengajukan perizinan'),
-                                Select::make('kelas_id')
+                                Select::make('id_kelas')
                                     ->label('Kelas')
                                     ->relationship('kelas', 'nama_kelas')
                                     ->searchable()
                                     ->required(),
-                                Select::make('wali_kelas_id')
+                                Select::make('id_wali_kelas')
                                     ->label('Wali Kelas')
-                                    ->relationship('waliKelas', 'name')
+                                    ->relationship('waliKelas', 'nama')
                                     ->searchable()
                                     ->placeholder('Pilih Wali Kelas'),
                             ]),
@@ -82,9 +82,9 @@ class DispensasiTicketForm
                                             ])
                                             ->required()
                                             ->default('pending'),
-                                        Select::make('guru_piket_id')
+                                        Select::make('id_guru_piket')
                                             ->label('Guru Piket')
-                                            ->relationship('guruPiket', 'name')
+                                            ->relationship('guruPiket', 'nama')
                                             ->searchable()
                                             ->placeholder('Pilih Guru Piket'),
                                         TextInput::make('lampiran_bukti')

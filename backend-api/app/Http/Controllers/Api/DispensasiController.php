@@ -34,15 +34,15 @@ class DispensasiController extends Controller
             'waktu_mulai' => 'required|date',
             'waktu_selesai' => 'required|date',
             'foto_bukti' => 'nullable|image|mimes:jpeg,png,jpg|max:5120', // Maks 5MB
-            'siswa_id' => ($user->role === 'orang_tua' ? 'required|exists:users,id' : 'nullable'),
+            'siswa_id' => ($user->peran === 'orang_tua' ? 'required|exists:pengguna,id_pengguna' : 'nullable'),
         ]);
 
-        $siswaId = $user->id;
-        if ($user->role === 'orang_tua') {
+        $siswaId = $user->id_pengguna;
+        if ($user->peran === 'orang_tua') {
             $siswaId = $request->siswa_id;
             // Verifikasi apakah siswa_id adalah anak dari orang tua ini
-            $isAnak = SiswaProfile::where('orang_tua_id', $user->id)
-                ->where('user_id', $siswaId)
+            $isAnak = SiswaProfile::where('id_orang_tua', $user->id_pengguna)
+                ->where('id_pengguna', $siswaId)
                 ->exists();
             
             if (!$isAnak) {
@@ -50,26 +50,26 @@ class DispensasiController extends Controller
             }
         }
 
-        $profilSiswa = SiswaProfile::where('user_id', $siswaId)->with('kelas')->first();
+        $profilSiswa = SiswaProfile::where('id_pengguna', $siswaId)->with('kelas')->first();
 
         if (!$profilSiswa) {
             return response()->json(['message' => 'Profil siswa tidak ditemukan'], 400);
         }
 
-        if (!$profilSiswa->kelas_id || !$profilSiswa->kelas) {
+        if (!$profilSiswa->id_kelas || !$profilSiswa->kelas) {
             return response()->json([
                 'message' => 'Anda belum terdaftar di kelas manapun. Silakan tunggu persetujuan Wali Kelas terlebih dahulu.'
             ], 400);
         }
 
         // Prevent multiple tickets within 12 hours
-        $lastTicket = DispensasiTicket::where('siswa_id', $siswaId)
+        $lastTicket = DispensasiTicket::where('id_siswa', $siswaId)
             ->latest()
             ->first();
 
         if ($lastTicket) {
             $isRejected = $lastTicket->status === 'rejected';
-            $isExpired = $lastTicket->expires_at && now()->greaterThan($lastTicket->expires_at);
+            $isExpired = $lastTicket->kedaluwarsa_pada && now()->greaterThan($lastTicket->kedaluwarsa_pada);
             $isWithin12Hours = $lastTicket->created_at->diffInHours(now()) < 12;
 
             if ($isWithin12Hours && !$isRejected && !$isExpired) {
@@ -80,7 +80,7 @@ class DispensasiController extends Controller
             }
         }
 
-        $waliKelasId = $profilSiswa->kelas->wali_kelas_id ?? null;
+        $waliKelasId = $profilSiswa->kelas->id_wali_kelas ?? null;
 
         // 1. Proses Upload Gambar jika ada
         $lampiranUrl = null;
@@ -105,9 +105,9 @@ class DispensasiController extends Controller
         }
 
         $tiket = DispensasiTicket::create([
-            'siswa_id' => $siswaId,
-            'kelas_id' => $profilSiswa->kelas_id,
-            'wali_kelas_id' => $waliKelasId,
+            'id_siswa' => $siswaId,
+            'id_kelas' => $profilSiswa->id_kelas,
+            'id_wali_kelas' => $waliKelasId,
             'jenis_izin' => $request->jenis_izin,
             'alasan' => $request->alasan,
             'lampiran_bukti' => $lampiranUrl,
@@ -116,7 +116,7 @@ class DispensasiController extends Controller
             'status' => 'pending'
         ]);
 
-        $siswaName = $profilSiswa->user->name ?? 'Siswa';
+        $siswaName = $profilSiswa->user->nama ?? 'Siswa';
 
         try {
             // Notifikasi ke Wali Kelas
@@ -124,39 +124,39 @@ class DispensasiController extends Controller
                 $waliKelas = User::find($waliKelasId);
                 if ($waliKelas) {
                     ExpoPushService::send(
-                        $waliKelas->device_token ?? [],
+                        $waliKelas->token_perangkat ?? [],
                         '📝 Izin Baru Kelas Anda',
                         "{$siswaName} mengajukan izin: {$request->jenis_izin}.",
-                        ['ticket_id' => $tiket->id, 'type' => 'new_ticket'],
+                        ['ticket_id' => $tiket->id_tiket_dispensasi, 'type' => 'new_ticket'],
                         [$waliKelasId]
                     );
                 }
             }
 
             // Notifikasi ke Orang Tua
-            if ($profilSiswa->orang_tua_id) {
-                $ortuId = $profilSiswa->orang_tua_id;
+            if ($profilSiswa->id_orang_tua) {
+                $ortuId = $profilSiswa->id_orang_tua;
                 $ortu = User::find($ortuId);
                 if ($ortu) {
                     ExpoPushService::send(
-                        $ortu->device_token ?? [],
+                        $ortu->token_perangkat ?? [],
                         'ℹ️ Info Kehadiran',
                         "Anak Anda, {$siswaName}, baru saja mengajukan izin.",
-                        ['ticket_id' => $tiket->id, 'type' => 'new_ticket'],
+                        ['ticket_id' => $tiket->id_tiket_dispensasi, 'type' => 'new_ticket'],
                         [$ortuId]
                     );
                 }
             }
 
             // Notifikasi ke Siswa jika pengaju adalah Orang Tua
-            if ($user->role === 'orang_tua') {
+            if ($user->peran === 'orang_tua') {
                 $siswaUser = User::find($siswaId);
                 if ($siswaUser) {
                     ExpoPushService::send(
-                        $siswaUser->device_token ?? [],
+                        $siswaUser->token_perangkat ?? [],
                         '📝 Pengajuan Izin Baru',
                         "Orang tua Anda mengajukan izin atas nama Anda: {$request->jenis_izin}.",
-                        ['ticket_id' => $tiket->id, 'type' => 'new_ticket'],
+                        ['ticket_id' => $tiket->id_tiket_dispensasi, 'type' => 'new_ticket'],
                         [$siswaId]
                     );
                 }
@@ -174,14 +174,14 @@ class DispensasiController extends Controller
             $tiket = DispensasiTicket::with(['siswa', 'waliKelas', 'guruPiket'])->findOrFail($id);
             $user = $request->user();
 
-            \Illuminate\Support\Facades\Log::info("User {$user->id} ({$user->role}) attempting to approve ticket {$id}");
+            \Illuminate\Support\Facades\Log::info("User {$user->id_pengguna} ({$user->peran}) attempting to approve ticket {$id}");
 
-            if ($user->role === 'wali_kelas' && $tiket->wali_kelas_id === $user->id) {
+            if ($user->peran === 'wali_kelas' && $tiket->id_wali_kelas === $user->id_pengguna) {
 
                 // 1. Lempar tiket ke "Meja Piket" (Pool)
                 $tiket->update([
                     'status' => 'waiting_piket',
-                    'guru_piket_id' => null // Biarkan kosong/mengambang
+                    'id_guru_piket' => null // Biarkan kosong/mengambang
                 ]);
 
                 // 2. Cari Guru Piket yang sedang aktif DETIK INI untuk dikirimi Push Notif
@@ -195,17 +195,17 @@ class DispensasiController extends Controller
                     ->where('jam_selesai', '>=', $jamIni)
                     ->with('guru')
                     ->get()
-                    ->unique('guru_id'); // Pastikan satu guru hanya dapat 1 notif meskipun punya jadwal overlap
+                    ->unique('id_guru'); // Pastikan satu guru hanya dapat 1 notif meskipun punya jadwal overlap
 
                 try {
                     foreach ($activeSchedules as $schedule) {
                         if ($schedule->guru) {
                             ExpoPushService::send(
-                                $schedule->guru->device_token ?? [],
+                                $schedule->guru->token_perangkat ?? [],
                                 '⏳ Antrean Baru di Meja Piket',
-                                "Tiket izin {$tiket->siswa->name} telah disetujui Wali Kelas dan menunggu validasi Anda.",
-                                ['ticket_id' => $tiket->id, 'type' => 'ticket_forwarded'],
-                                [$schedule->guru->id]
+                                "Tiket izin {$tiket->siswa->nama} telah disetujui Wali Kelas and menunggu validasi Anda.",
+                                ['ticket_id' => $tiket->id_tiket_dispensasi, 'type' => 'ticket_forwarded'],
+                                [$schedule->guru->id_pengguna]
                             );
                         }
                     }
@@ -213,11 +213,11 @@ class DispensasiController extends Controller
                     // Notify Siswa (Wali Approve)
                     if ($tiket->siswa) {
                         ExpoPushService::send(
-                            $tiket->siswa->device_token ?? [],
+                            $tiket->siswa->token_perangkat ?? [],
                             '📋 Update Status Izin',
                             "Izin Anda disetujui Wali Kelas, menunggu validasi Guru Piket.",
-                            ['ticket_id' => $tiket->id, 'type' => 'ticket_approved'],
-                            [$tiket->siswa->id]
+                            ['ticket_id' => $tiket->id_tiket_dispensasi, 'type' => 'ticket_approved'],
+                            [$tiket->siswa->id_pengguna]
                         );
                     }
                 } catch (\Exception $e) {
@@ -226,14 +226,14 @@ class DispensasiController extends Controller
 
                 return response()->json(['message' => 'Tiket disetujui Wali Kelas. Diteruskan ke Antrean Piket.', 'data' => $tiket]);
 
-            } else if ($user->role === 'guru_piket') {
+            } else if ($user->peran === 'guru_piket') {
                 // Shift Check: Guru Piket must be on duty to approve
-                if (!$this->isGuruPiketOnShift($user->id)) {
+                if (!$this->isGuruPiketOnShift($user->id_pengguna)) {
                     return response()->json(['message' => 'Anda sedang tidak dalam jadwal piket aktif.'], 403);
                 }
 
                 // Pool Claim: Pastikan tiket masih available di pool atau belum diklaim orang lain
-                if ($tiket->status !== 'waiting_piket' || $tiket->guru_piket_id !== null) {
+                if ($tiket->status !== 'waiting_piket' || $tiket->id_guru_piket !== null) {
                     return response()->json([
                         'message' => 'Tiket ini sudah diproses oleh Guru Piket lain atau statusnya sudah berubah.'
                     ], 409); // 409 Conflict
@@ -241,34 +241,34 @@ class DispensasiController extends Controller
 
                 $tiket->update([
                     'status' => 'approved_final',
-                    'guru_piket_id' => $user->id, // KLAIM & KUNCI KE GURU INI
-                    'qr_token' => (string) Str::uuid(),
-                    'expires_at' => now()->addHours(12)
+                    'id_guru_piket' => $user->id_pengguna, // KLAIM & KUNCI KE GURU INI
+                    'token_qr' => (string) Str::uuid(),
+                    'kedaluwarsa_pada' => now()->addHours(12)
                 ]);
 
                 try {
                     // Notify Siswa (Final Approve)
                     if ($tiket->siswa) {
                         ExpoPushService::send(
-                            $tiket->siswa->device_token ?? [],
+                            $tiket->siswa->token_perangkat ?? [],
                             '✅ Izin Disetujui!',
                             "QR Code terbit. Silakan menuju meja piket.",
-                            ['ticket_id' => $tiket->id, 'type' => 'ticket_approved'],
-                            [$tiket->siswa->id]
+                            ['ticket_id' => $tiket->id_tiket_dispensasi, 'type' => 'ticket_approved'],
+                            [$tiket->siswa->id_pengguna]
                         );
                     }
 
                     // Notify Orang Tua (Final Approve)
-                    $profil = SiswaProfile::where('user_id', $tiket->siswa_id)->first();
-                    if ($profil && $profil->orang_tua_id) {
-                        $ortu = User::find($profil->orang_tua_id);
+                    $profil = SiswaProfile::where('id_pengguna', $tiket->id_siswa)->first();
+                    if ($profil && $profil->id_orang_tua) {
+                        $ortu = User::find($profil->id_orang_tua);
                         if ($ortu) {
                             ExpoPushService::send(
-                                $ortu->device_token ?? [],
+                                $ortu->token_perangkat ?? [],
                                 '✅ Izin Diverifikasi',
-                                "Izin sekolah {$tiket->siswa->name} telah diverifikasi oleh sekolah.",
-                                ['ticket_id' => $tiket->id, 'type' => 'ticket_approved'],
-                                [$ortu->id]
+                                "Izin sekolah {$tiket->siswa->nama} telah diverifikasi oleh sekolah.",
+                                ['ticket_id' => $tiket->id_tiket_dispensasi, 'type' => 'ticket_approved'],
+                                [$ortu->id_pengguna]
                             );
                         }
                     }
@@ -293,18 +293,18 @@ class DispensasiController extends Controller
 
         $request->validate(['catatan_penolakan' => 'required|string']);
 
-        if ($user->role === 'admin') {
+        if ($user->peran === 'admin') {
             $canReject = true;
-        } else if ($user->role === 'wali_kelas' && $tiket->wali_kelas_id === $user->id) {
+        } else if ($user->peran === 'wali_kelas' && $tiket->id_wali_kelas === $user->id_pengguna) {
             $canReject = true;
-        } else if ($user->role === 'guru_piket') {
+        } else if ($user->peran === 'guru_piket') {
             // Shift Check
-            if (!$this->isGuruPiketOnShift($user->id)) {
+            if (!$this->isGuruPiketOnShift($user->id_pengguna)) {
                 return response()->json(['message' => 'Anda sedang tidak dalam jadwal piket aktif.'], 403);
             }
 
             // Guru piket only can reject if it's already in their pool/claimed
-            $canReject = ($tiket->guru_piket_id === $user->id || ($tiket->status === 'waiting_piket' && $tiket->guru_piket_id === null));
+            $canReject = ($tiket->id_guru_piket === $user->id_pengguna || ($tiket->status === 'waiting_piket' && $tiket->id_guru_piket === null));
         } else {
             $canReject = false;
         }
@@ -319,25 +319,25 @@ class DispensasiController extends Controller
                 // Notify Siswa
                 if ($tiket->siswa) {
                     ExpoPushService::send(
-                        $tiket->siswa->device_token ?? [],
+                        $tiket->siswa->token_perangkat ?? [],
                         '❌ Izin Ditolak',
                         "Maaf, izin Anda ditolak. Ketuk untuk detail.",
-                        ['ticket_id' => $tiket->id, 'type' => 'ticket_rejected'],
-                        [$tiket->siswa->id]
+                        ['ticket_id' => $tiket->id_tiket_dispensasi, 'type' => 'ticket_rejected'],
+                        [$tiket->siswa->id_pengguna]
                     );
                 }
 
                 // Notify Orang Tua
-                $profil = SiswaProfile::where('user_id', $tiket->siswa_id)->first();
-                if ($profil && $profil->orang_tua_id) {
-                    $ortu = User::find($profil->orang_tua_id);
+                $profil = SiswaProfile::where('id_pengguna', $tiket->id_siswa)->first();
+                if ($profil && $profil->id_orang_tua) {
+                    $ortu = User::find($profil->id_orang_tua);
                     if ($ortu) {
                         ExpoPushService::send(
-                            $ortu->device_token ?? [],
+                            $ortu->token_perangkat ?? [],
                             '❌ Izin Anak Ditolak',
-                            "Izin anak Anda, {$tiket->siswa->name}, ditolak oleh sekolah.",
-                            ['ticket_id' => $tiket->id, 'type' => 'ticket_rejected'],
-                            [$ortu->id]
+                            "Izin anak Anda, {$tiket->siswa->nama}, ditolak oleh sekolah.",
+                            ['ticket_id' => $tiket->id_tiket_dispensasi, 'type' => 'ticket_rejected'],
+                            [$ortu->id_pengguna]
                         );
                     }
                 }
@@ -353,7 +353,7 @@ class DispensasiController extends Controller
 
     public function myTickets(Request $request)
     {
-        $query = DispensasiTicket::where('siswa_id', $request->user()->id)->latest();
+        $query = DispensasiTicket::where('id_siswa', $request->user()->id_pengguna)->latest();
         
         if ($request->has('date')) {
             $query->whereDate('created_at', $request->date);
@@ -365,9 +365,9 @@ class DispensasiController extends Controller
     public function monitoringAnak(Request $request)
     {
         $user = $request->user();
-        $anakIds = SiswaProfile::where('orang_tua_id', $user->id)->pluck('user_id');
+        $anakIds = SiswaProfile::where('id_orang_tua', $user->id_pengguna)->pluck('id_pengguna');
         
-        $query = DispensasiTicket::whereIn('siswa_id', $anakIds)
+        $query = DispensasiTicket::whereIn('id_siswa', $anakIds)
             ->with(['siswa.siswaProfile.kelas'])
             ->latest();
 
@@ -381,13 +381,13 @@ class DispensasiController extends Controller
     public function getChildren(Request $request)
     {
         $user = $request->user();
-        $children = SiswaProfile::where('orang_tua_id', $user->id)
+        $children = SiswaProfile::where('id_orang_tua', $user->id_pengguna)
             ->with(['user', 'kelas'])
             ->get()
             ->map(function ($profile) {
                 return [
-                    'id' => $profile->user_id,
-                    'name' => $profile->user->name,
+                    'id' => $profile->id_pengguna,
+                    'name' => $profile->user->nama,
                     'nis' => $profile->nis,
                     'kelas' => $profile->kelas->nama_kelas ?? '-',
                 ];
@@ -400,11 +400,11 @@ class DispensasiController extends Controller
         $user = $request->user();
         $query = DispensasiTicket::with('siswa')->latest();
 
-        if ($user->role === 'wali_kelas') {
-            $query->where('wali_kelas_id', $user->id)->where('status', 'pending');
-        } else if ($user->role === 'guru_piket') {
+        if ($user->peran === 'wali_kelas') {
+            $query->where('id_wali_kelas', $user->id_pengguna)->where('status', 'pending');
+        } else if ($user->peran === 'guru_piket') {
             // Shift Check: If not on shift, don't show queue
-            if (!$this->isGuruPiketOnShift($user->id)) {
+            if (!$this->isGuruPiketOnShift($user->id_pengguna)) {
                 return response()->json([], 200);
             }
 
@@ -422,16 +422,16 @@ class DispensasiController extends Controller
         $user = $request->user();
         $query = DispensasiTicket::with('siswa')->latest();
 
-        if ($user->role === 'wali_kelas') {
-            $query->where('wali_kelas_id', $user->id);
-        } else if ($user->role === 'guru_piket') {
+        if ($user->peran === 'wali_kelas') {
+            $query->where('id_wali_kelas', $user->id_pengguna);
+        } else if ($user->peran === 'guru_piket') {
             // Shift Check: If not on shift, don't show history
-            if (!$this->isGuruPiketOnShift($user->id)) {
+            if (!$this->isGuruPiketOnShift($user->id_pengguna)) {
                 return response()->json([], 200);
             }
 
             $query->where(function($q) use ($user) {
-                $q->where('guru_piket_id', $user->id)
+                $q->where('id_guru_piket', $user->id_pengguna)
                   ->orWhere('status', 'waiting_piket');
             });
         } else {
@@ -449,7 +449,7 @@ class DispensasiController extends Controller
     {
         $now = now();
         $hariMap = [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu'];
-        return PiketSchedule::where('guru_id', $guruId)
+        return PiketSchedule::where('id_guru', $guruId)
             ->where('hari', $hariMap[$now->dayOfWeekIso])
             ->where('jam_mulai', '<=', $now->format('H:i:s'))
             ->where('jam_selesai', '>=', $now->format('H:i:s'))

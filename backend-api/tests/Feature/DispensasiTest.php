@@ -15,9 +15,9 @@ class DispensasiTest extends TestCase
 
     public function test_prevent_multiple_dispensasi_requests_same_day()
     {
-        $user = User::factory()->create(['role' => 'siswa']);
+        $user = User::factory()->create(['peran' => 'siswa']);
         $kelas = Kelas::create(['nama_kelas' => '10A', 'tingkat' => '10']);
-        SiswaProfile::create(['user_id' => $user->id, 'kelas_id' => $kelas->id, 'nis' => '12345']);
+        SiswaProfile::create(['id_pengguna' => $user->id_pengguna, 'id_kelas' => $kelas->id_kelas, 'nis' => '12345']);
 
         $this->actingAs($user);
 

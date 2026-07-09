@@ -11,10 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('class_join_requests', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('siswa_id')->constrained('users')->onDelete('cascade');
-            $table->foreignUuid('kelas_id')->constrained('kelas')->onDelete('cascade');
+        Schema::create('permintaan_gabung_kelas', function (Blueprint $table) {
+            $table->uuid('id_permintaan_gabung_kelas')->primary();
+            $table->foreignUuid('id_siswa')->constrained('pengguna', 'id_pengguna')->onDelete('cascade');
+            $table->foreignUuid('id_kelas')->constrained('kelas', 'id_kelas')->onDelete('cascade');
             $table->enum('status', ['pending', 'accepted', 'rejected'])->default('pending');
             $table->timestamps();
         });
@@ -25,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('class_join_requests');
+        Schema::dropIfExists('permintaan_gabung_kelas');
     }
 };

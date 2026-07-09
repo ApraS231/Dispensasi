@@ -24,11 +24,11 @@ class ExpoPushService
             foreach ($logForUserIds as $userId) {
                 try {
                     Notification::create([
-                        'user_id' => $userId,
-                        'title' => $title,
-                        'body' => $body,
+                        'id_pengguna' => $userId,
+                        'judul' => $title,
+                        'isi' => $body,
                         'tipe' => $data['type'] ?? 'info',
-                        'reference_id' => $data['reference_id'] ?? $data['ticket_id'] ?? null,
+                        'id_referensi' => $data['reference_id'] ?? $data['ticket_id'] ?? null,
                     ]);
                 } catch (\Exception $e) {
                     Log::error('Gagal simpan log notifikasi: ' . $e->getMessage());

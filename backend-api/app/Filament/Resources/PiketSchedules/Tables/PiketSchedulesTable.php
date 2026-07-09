@@ -14,7 +14,7 @@ class PiketSchedulesTable
     {
         return $table
             ->columns([
-                TextColumn::make('guru.name')
+                TextColumn::make('guru.nama')
                     ->label('Guru Piket')
                     ->searchable()
                     ->sortable(),

@@ -106,13 +106,17 @@ export default function OrtuPengajuanScreen() {
 
       if (lampiran) {
         const localUri = lampiran.uri;
-        const filename = localUri.split('/').pop() || 'foto_bukti.jpg';
+        let filename = localUri.split('/').pop() || 'foto_bukti.jpg';
         const match = /\.(\w+)$/.exec(filename);
-        let ext = match ? match[1].toLowerCase() : 'jpg';
-        if (ext === 'jpeg') ext = 'jpeg';
-        else if (ext === 'png') ext = 'png';
-        else ext = 'jpg'; // fallback to jpg
-        const type = `image/${ext}`;
+        const ext = match ? match[1].toLowerCase() : 'jpg';
+
+        // Ensure proper filename extension for content URIs
+        if (!filename.includes('.')) {
+          filename += `.${ext === 'jpeg' ? 'jpg' : ext}`;
+        }
+
+        // Use standard MIME types (image/jpeg for jpg/jpeg, image/png for png)
+        const type = ext === 'png' ? 'image/png' : 'image/jpeg';
 
         formData.append('foto_bukti', {
           uri: localUri,

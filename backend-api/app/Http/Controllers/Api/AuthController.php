@@ -18,10 +18,10 @@ class AuthController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
+            'email' => 'required|string|email|max:255|unique:pengguna,email',
             'password' => 'required|string|min:8',
-            'nis' => 'required|string|unique:siswa_profiles,nis',
-            'kelas_id' => 'required|exists:kelas,id',
+            'nis' => 'required|string|unique:profil_siswa,nis',
+            'kelas_id' => 'required|exists:kelas,id_kelas',
         ]);
 
         try {
@@ -33,32 +33,32 @@ class AuthController extends Controller
 
             $result = DB::transaction(function () use ($request, &$waliKelasId, &$kelasNama, &$siswaName, &$siswaId, &$classJoinRequestId) {
                 $user = User::create([
-                    'name' => $request->name,
+                    'nama' => $request->name,
                     'email' => $request->email,
                     'password' => Hash::make($request->password),
-                    'role' => 'siswa',
+                    'peran' => 'siswa',
                 ]);
 
                 SiswaProfile::create([
-                    'user_id' => $user->id,
+                    'id_pengguna' => $user->id_pengguna,
                     'nis' => $request->nis,
-                    'kelas_id' => null, // Officially unassigned until approved
+                    'id_kelas' => null, // Officially unassigned until approved
                 ]);
 
                 $joinRequest = ClassJoinRequest::create([
-                    'siswa_id' => $user->id,
-                    'kelas_id' => $request->kelas_id,
+                    'id_siswa' => $user->id_pengguna,
+                    'id_kelas' => $request->kelas_id,
                     'status' => 'pending',
                 ]);
-                $classJoinRequestId = $joinRequest->id;
+                $classJoinRequestId = $joinRequest->id_permintaan_gabung_kelas;
 
-                $siswaId = $user->id;
-                $siswaName = $user->name;
+                $siswaId = $user->id_pengguna;
+                $siswaName = $user->nama;
 
                 $kelas = Kelas::find($request->kelas_id);
                 if ($kelas) {
                     $kelasNama = $kelas->nama_kelas;
-                    $waliKelasId = $kelas->wali_kelas_id;
+                    $waliKelasId = $kelas->id_wali_kelas;
                 }
 
                 $token = $user->createToken('mobile-app-token')->plainTextToken;
@@ -75,7 +75,7 @@ class AuthController extends Controller
                     $waliKelas = User::find($waliKelasId);
                     if ($waliKelas) {
                         ExpoPushService::send(
-                            $waliKelas->device_token ?? [],
+                            $waliKelas->token_perangkat ?? [],
                             '📝 Permintaan Gabung Kelas',
                             "{$siswaName} mengajukan bergabung ke kelas {$kelasNama}.",
                             [
@@ -92,7 +92,7 @@ class AuthController extends Controller
                     $siswa = User::find($siswaId);
                     if ($siswa) {
                         ExpoPushService::send(
-                            $siswa->device_token ?? [],
+                            $siswa->token_perangkat ?? [],
                             '📝 Permintaan Gabung Kelas',
                             "Anda mengajukan bergabung ke kelas {$kelasNama}. Menunggu persetujuan wali kelas.",
                             [
@@ -134,11 +134,11 @@ class AuthController extends Controller
 
         if ($request->has('device_token') && $request->device_token) {
             \Illuminate\Support\Facades\Log::info('Device token updated during login', [
-                'user_id' => $user->id,
+                'user_id' => $user->id_pengguna,
                 'email' => $user->email,
                 'token_prefix' => substr($request->device_token, 0, 30)
             ]);
-            $user->update(['device_token' => $request->device_token]);
+            $user->update(['token_perangkat' => $request->device_token]);
         }
 
         $token = $user->createToken('mobile-app-token')->plainTextToken;
@@ -151,7 +151,7 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        $request->user()->update(['device_token' => null]);
+        $request->user()->update(['token_perangkat' => null]);
         $request->user()->currentAccessToken()->delete();
         return response()->json(['message' => 'Logout berhasil']);
     }
@@ -163,13 +163,13 @@ class AuthController extends Controller
         ]);
 
         \Illuminate\Support\Facades\Log::info('Device token update requested', [
-            'user_id' => $request->user()->id,
+            'user_id' => $request->user()->id_pengguna,
             'email' => $request->user()->email,
             'token_prefix' => substr($request->device_token, 0, 30)
         ]);
 
         $request->user()->update([
-            'device_token' => $request->device_token
+            'token_perangkat' => $request->device_token
         ]);
 
         return response()->json(['message' => 'Device token updated successfully']);

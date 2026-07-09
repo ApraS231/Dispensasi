@@ -11,17 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('users', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->string('name');
+        Schema::create('pengguna', function (Blueprint $table) {
+            $table->uuid('id_pengguna')->primary();
+            $table->string('nama');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->enum('role', ['admin', 'siswa', 'orang_tua', 'guru_piket', 'wali_kelas'])->default('siswa');
-            $table->string('device_token')->nullable();
+            $table->enum('peran', ['admin', 'siswa', 'orang_tua', 'guru_piket', 'wali_kelas'])->default('siswa');
+            $table->string('token_perangkat')->nullable();
             $table->rememberToken();
             $table->timestamps();
-            $table->string('profile_photo_url')->nullable();
+            $table->string('url_foto_profil')->nullable();
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
@@ -32,7 +32,7 @@ return new class extends Migration
 
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();
-            $table->foreignUuid('user_id')->nullable()->index();
+            $table->foreignUuid('id_pengguna')->nullable()->index();
             $table->string('ip_address', 45)->nullable();
             $table->text('user_agent')->nullable();
             $table->longText('payload');
@@ -45,7 +45,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('users');
+        Schema::dropIfExists('pengguna');
         Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
     }
