@@ -17,6 +17,7 @@ import BouncyButton from '../../src/components/BouncyButton';
 import { useSharedValue } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import { HapticFeedback } from '../../src/utils/haptics';
+import * as SecureStore from 'expo-secure-store';
 
 export default function LaporanIzinScreen() {
   const scrollY = useSharedValue(0);
@@ -46,16 +47,55 @@ export default function LaporanIzinScreen() {
     setSelectedDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
   };
 
+  const exportToPDF = async () => {
+    if (!data || !data.siswa) return;
+    
+    HapticFeedback.medium();
+    
+    try {
+      const token = await SecureStore.getItemAsync('userToken');
+      const fileName = `Laporan_Izin_${data.kelas.replace(/\s+/g, '_')}_${data.bulan_nama}_${tahun}.pdf`;
+      const fileUri = (FileSystem.documentDirectory || 'file:///') + fileName;
+      
+      const downloadResult = await FileSystem.downloadAsync(
+        `${process.env.EXPO_PUBLIC_API_URL}/wali/laporan-izin/pdf?bulan=${bulan}&tahun=${tahun}`,
+        fileUri,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/pdf',
+          }
+        }
+      );
+      
+      if (downloadResult.status === 200) {
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(downloadResult.uri, {
+            mimeType: 'application/pdf',
+            dialogTitle: 'Bagikan Laporan PDF'
+          });
+        } else {
+          Alert.alert('Gagal', 'Fitur berbagi tidak tersedia di perangkat ini.');
+        }
+      } else {
+        Alert.alert('Gagal', 'Gagal mengunduh file PDF dari server.');
+      }
+    } catch (error: any) {
+      console.error('PDF Export Error:', error);
+      Alert.alert('Error', `Gagal membuat file PDF: ${error.message || 'Unknown error'}`);
+    }
+  };
+
   const exportToCSV = async () => {
     if (!data || !data.siswa) return;
     
     HapticFeedback.medium();
     
     try {
-      let csvContent = 'No,Nama,NIS,Sakit,Keluarga,Lainnya,Total Izin,Disetujui,Ditolak,% Hadir\n';
+      let csvContent = 'No,Nama,NIS,Sakit,Izin,Dispensasi,Total Izin,Disetujui,Ditolak,% Hadir\n';
       
       data.siswa.forEach((item: any, index: number) => {
-        csvContent += `${index + 1},"${item.name}","${item.nis || '-'}",${item.sakit},${item.keperluan_keluarga},${item.lainnya},${item.total_izin},${item.disetujui},${item.ditolak},"${item.persen_hadir}%"\n`;
+        csvContent += `${index + 1},"${item.name}","${item.nis || '-'}",${item.sakit},${item.izin},${item.dispensasi},${item.total_izin},${item.disetujui},${item.ditolak},"${item.persen_hadir}%"\n`;
       });
 
       const fileName = `Laporan_Izin_${data.kelas.replace(/\s+/g, '_')}_${data.bulan_nama}_${tahun}.csv`;
@@ -140,10 +180,13 @@ export default function LaporanIzinScreen() {
           <AnimatedEntrance delay={300} direction="up">
             <SkeuCard isGlass style={{ marginBottom: SPACING.lg, borderColor: colors.glassHighlight }}>
               <View style={[styles.tableHeader, { borderBottomColor: colors.glassHighlight }]}>
-                <Text style={[styles.headerText, { width: 30, color: colors.textSecondary }]}>No</Text>
+                <Text style={[styles.headerText, { width: 25, color: colors.textSecondary }]}>No</Text>
                 <Text style={[styles.headerText, { flex: 1, color: colors.textSecondary }]}>Nama Siswa</Text>
-                <Text style={[styles.headerText, { width: 40, textAlign: 'center', color: colors.textSecondary }]}>Izin</Text>
-                <Text style={[styles.headerText, { width: 60, textAlign: 'right', color: colors.textSecondary }]}>% Hadir</Text>
+                <Text style={[styles.headerText, { width: 25, textAlign: 'center', color: colors.textSecondary }]}>S</Text>
+                <Text style={[styles.headerText, { width: 25, textAlign: 'center', color: colors.textSecondary }]}>I</Text>
+                <Text style={[styles.headerText, { width: 25, textAlign: 'center', color: colors.textSecondary }]}>D</Text>
+                <Text style={[styles.headerText, { width: 35, textAlign: 'center', color: colors.textSecondary }]}>Tot</Text>
+                <Text style={[styles.headerText, { width: 50, textAlign: 'right', color: colors.textSecondary }]}>% Hdr</Text>
               </View>
 
               {isLoading ? (
@@ -153,16 +196,17 @@ export default function LaporanIzinScreen() {
               ) : (
                 data?.siswa.map((item: any, index: number) => (
                   <View key={item.id} style={[styles.tableRow, { borderBottomColor: colors.outlineVariant }]}>
-                    <Text style={[styles.rowText, { width: 30, color: colors.textMuted }]}>{index + 1}</Text>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.studentName, { color: colors.textPrimary }]} numberOfLines={1}>{item.name}</Text>
-                      <Text style={[styles.studentNis, { color: colors.textSecondary }]}>NIS: {item.nis || '-'}</Text>
+                    <Text style={[styles.rowText, { width: 25, color: colors.textMuted, fontSize: 13 }]}>{index + 1}</Text>
+                    <View style={{ flex: 1, paddingRight: 4 }}>
+                      <Text style={[styles.studentName, { color: colors.textPrimary, fontSize: 14 }]} numberOfLines={1}>{item.name}</Text>
+                      <Text style={[styles.studentNis, { color: colors.textSecondary, fontSize: 10 }]}>NIS: {item.nis || '-'}</Text>
                     </View>
-                    <View style={[styles.izinBadge, { width: 40 }]}>
-                      <Text style={[styles.izinCount, { color: colors.textPrimary }]}>{item.total_izin}</Text>
-                    </View>
-                    <View style={{ width: 60, alignItems: 'flex-end' }}>
-                      <Text style={[styles.percentText, { color: getPercentageColor(item.percent_hadir || item.persen_hadir) }]}>
+                    <Text style={[styles.rowText, { width: 25, textAlign: 'center', fontSize: 13, color: colors.textPrimary }]}>{item.sakit}</Text>
+                    <Text style={[styles.rowText, { width: 25, textAlign: 'center', fontSize: 13, color: colors.textPrimary }]}>{item.izin}</Text>
+                    <Text style={[styles.rowText, { width: 25, textAlign: 'center', fontSize: 13, color: colors.textPrimary }]}>{item.dispensasi}</Text>
+                    <Text style={[styles.rowText, { width: 35, textAlign: 'center', fontSize: 13, fontFamily: FONTS.heading, color: colors.textPrimary }]}>{item.total_izin}</Text>
+                    <View style={{ width: 50, alignItems: 'flex-end' }}>
+                      <Text style={[styles.percentText, { fontSize: 13, color: getPercentageColor(item.percent_hadir || item.persen_hadir) }]}>
                         {item.percent_hadir || item.persen_hadir}%
                       </Text>
                     </View>
@@ -176,13 +220,24 @@ export default function LaporanIzinScreen() {
           <AnimatedEntrance delay={400} direction="up">
             <View style={styles.actionSection}>
               <BouncyButton 
+                title="Unduh Laporan PDF" 
+                onPress={exportToPDF}
+                icon="file-pdf-box"
+                variant="primary"
+                style={{ marginBottom: SPACING.md }}
+                disabled={!data || data.siswa.length === 0}
+              />
+              <BouncyButton 
                 title="Export ke Excel (CSV)" 
                 onPress={exportToCSV}
                 icon="file-export-outline"
-                variant="primary"
+                variant="outline"
                 disabled={!data || data.siswa.length === 0}
               />
-              <Text style={[styles.footerNote, { color: colors.textMuted }]}>* Persentase dihitung dari hari efektif (Senin-Jumat) dikurangi izin yang disetujui.</Text>
+              <Text style={[styles.footerNote, { color: colors.textMuted }]}>
+                * S: Sakit, I: Izin, D: Dispensasi, Tot: Total Izin, % Hdr: Persentase Kehadiran.{"\n"}
+                Persentase dihitung dari hari efektif (Senin-Jumat) dikurangi izin yang disetujui.
+              </Text>
             </View>
           </AnimatedEntrance>
 

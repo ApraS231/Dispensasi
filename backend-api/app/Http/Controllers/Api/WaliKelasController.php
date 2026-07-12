@@ -232,12 +232,90 @@ class WaliKelasController extends Controller
 
         return response()->json([
             'kelas' => $kelas->nama_kelas,
+            'wali_kelas_nama' => $user->nama,
             'bulan_nama' => \Carbon\Carbon::create($tahun, $bulan)->translatedFormat('F'),
             'bulan' => (int)$bulan,
             'tahun' => (int)$tahun,
             'hari_efektif' => $hariEfektif,
             'siswa' => $result,
         ]);
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $bulan = $request->query('bulan', now()->month);
+        $tahun = $request->query('tahun', now()->year);
+        $user = $request->user();
+        
+        $kelas = \App\Models\Kelas::where('id_wali_kelas', $user->id_pengguna)->firstOrFail();
+        
+        $siswaProfiles = SiswaProfile::where('id_kelas', $kelas->id_kelas)
+            ->with('user')
+            ->get();
+        
+        $hariEfektif = $this->hitungHariEfektif($bulan, $tahun);
+
+        $allTickets = \App\Models\DispensasiTicket::whereIn('id_siswa', $siswaProfiles->pluck('id_pengguna'))
+            ->whereMonth('created_at', $bulan)
+            ->whereYear('created_at', $tahun)
+            ->get()
+            ->groupBy('id_siswa');
+
+        $result = $siswaProfiles->map(function($profile) use ($allTickets, $hariEfektif) {
+            $tickets = $allTickets[$profile->id_pengguna] ?? collect();
+
+            $totalIzin = $tickets->count();
+            $sakit = $tickets->where('jenis_izin', 'sakit')->count();
+            $izin = $tickets->where('jenis_izin', 'izin')->count();
+            $dispensasi = $tickets->where('jenis_izin', 'dispensasi')->count();
+            $disetujui = $tickets->whereIn('status', ['approved_final', 'completed_exit'])->count();
+            $ditolak = $tickets->where('status', 'rejected')->count();
+
+            $persenHadir = $hariEfektif > 0
+                ? round((($hariEfektif - $disetujui) / $hariEfektif) * 100, 1)
+                : 100;
+
+            return [
+                'name' => $profile->user->nama ?? 'Unknown',
+                'nis' => $profile->nis,
+                'total_izin' => $totalIzin,
+                'sakit' => $sakit,
+                'izin' => $izin,
+                'dispensasi' => $dispensasi,
+                'disetujui' => $disetujui,
+                'ditolak' => $ditolak,
+                'persen_hadir' => $persenHadir,
+            ];
+        });
+
+        // Convert logos to base64 for PDF rendering
+        $logoKaltimPath = public_path('images/logo-kaltim.jpg');
+        $logoSma3Path = public_path('images/logo-sma3.png');
+
+        $logoKaltim = file_exists($logoKaltimPath) 
+            ? base64_encode(file_get_contents($logoKaltimPath)) 
+            : '';
+        $logoSma3 = file_exists($logoSma3Path) 
+            ? base64_encode(file_get_contents($logoSma3Path)) 
+            : '';
+
+        $bulanNama = \Carbon\Carbon::create($tahun, $bulan)->translatedFormat('F');
+        $tanggalSekarang = \Carbon\Carbon::now()->translatedFormat('d F Y');
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.laporan-izin', [
+            'kelas' => $kelas->nama_kelas,
+            'bulan_nama' => $bulanNama,
+            'bulan' => $bulan,
+            'tahun' => $tahun,
+            'hari_efektif' => $hariEfektif,
+            'siswa' => $result,
+            'logoKaltim' => $logoKaltim,
+            'logoSma3' => $logoSma3,
+            'wali_kelas_nama' => $user->nama,
+            'tanggal_sekarang' => $tanggalSekarang,
+        ]);
+
+        return $pdf->download("Laporan_Izin_{$kelas->nama_kelas}_{$bulanNama}_{$tahun}.pdf");
     }
 
     private function hitungHariEfektif($bulan, $tahun)

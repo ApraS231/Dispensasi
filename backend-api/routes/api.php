@@ -120,6 +120,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/wali/tambah-siswa', [WaliKelasController::class, 'tambahSiswa']);
         Route::delete('/wali/hapus-siswa/{id}', [WaliKelasController::class, 'hapusSiswa']);
         Route::get('/wali/laporan-izin', [WaliKelasController::class, 'laporanIzin']);
+        Route::get('/wali/laporan-izin/pdf', [WaliKelasController::class, 'exportPdf']);
         
         // Class Join Requests
         Route::get('/wali/class-requests', [WaliKelasController::class, 'getClassRequests']);
