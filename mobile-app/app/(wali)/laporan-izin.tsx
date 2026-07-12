@@ -231,7 +231,7 @@ export default function LaporanIzinScreen() {
                 title="Export ke Excel (CSV)" 
                 onPress={exportToCSV}
                 icon="file-export-outline"
-                variant="outline"
+                variant="outlined"
                 disabled={!data || data.siswa.length === 0}
               />
               <Text style={[styles.footerNote, { color: colors.textMuted }]}>

@@ -10,7 +10,7 @@ const doc = new PDFDocument({
 });
 
 const outputPathProject = path.join(__dirname, 'dokumentasi_database.pdf');
-const outputPathArtifact = 'C:\\Users\\Lenovo\\.gemini\\antigravity-ide\\brain\\82f9d9db-4ece-4073-81fe-fe83640ca088\\dokumentasi_database.pdf';
+const outputPathArtifact = 'C:\\Users\\Lenovo\\.gemini\\antigravity-ide\\brain\\80f22b71-24ef-4f61-bcde-b827e28c0a44\\dokumentasi_database.pdf';
 
 const streamProject = fs.createWriteStream(outputPathProject);
 const streamArtifact = fs.createWriteStream(outputPathArtifact);

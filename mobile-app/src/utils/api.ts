@@ -5,7 +5,7 @@ import { Alert } from 'react-native';
 console.log('AXIOS_API_BASE_URL:', process.env.EXPO_PUBLIC_API_URL);
 
 const getRefererFromUrl = (url?: string) => {
-  if (!url) return 'https://sidispen-api.osk.dom.my.id/';
+  if (!url) return 'https://sispensi-api.domcloud.dev/';
   try {
     const match = url.match(/^(https?:\/\/[^\/]+)/);
     return match ? `${match[1]}/` : url;
@@ -40,7 +40,7 @@ const checkForDomCloudWarning = (data: any, headers: any): boolean => {
 const triggerDomCloudAlert = () => {
   Alert.alert(
     'API Terblokir (DOM Cloud)',
-    'Permintaan API diblokir oleh sistem keamanan DOM Cloud. Harap buka tautan berikut di browser HP/emulator Anda terlebih dahulu, tekan tombol "I understand, I trust this site", lalu buka kembali aplikasi ini:\n\nhttps://sidispen-api.osk.dom.my.id/',
+    'Permintaan API diblokir oleh sistem keamanan DOM Cloud. Harap buka tautan berikut di browser HP/emulator Anda terlebih dahulu, tekan tombol "I understand, I trust this site", lalu buka kembali aplikasi ini:\n\nhttps://sispensi-api.domcloud.dev/',
     [{ text: 'OK' }]
   );
 };
@@ -98,7 +98,7 @@ api.interceptors.response.use(
       }
     } else if (error.message === 'Network Error') {
       const enrichedError = new Error(
-        'Koneksi gagal (Network Error).\n\nIni biasanya disebabkan karena halaman verifikasi keamanan DOM Cloud terblokir. Harap buka https://sidispen-api.osk.dom.my.id/ di browser HP Anda terlebih dahulu, tekan tombol "I understand, I trust this site", lalu coba lagi.'
+        'Koneksi gagal (Network Error).\n\nIni biasanya disebabkan karena halaman verifikasi keamanan DOM Cloud terblokir. Harap buka https://sispensi-api.domcloud.dev/ di browser HP Anda terlebih dahulu, tekan tombol "I understand, I trust this site", lalu coba lagi.'
       );
       Object.assign(enrichedError, error);
       return Promise.reject(enrichedError);
