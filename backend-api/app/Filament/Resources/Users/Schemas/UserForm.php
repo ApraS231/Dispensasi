@@ -35,7 +35,12 @@ class UserForm
                         'wali_kelas' => 'Wali Kelas',
                     ])
                     ->required()
-                    ->default('siswa'),
+                    ->default('siswa')
+                    ->live(),
+                TextInput::make('nidn')
+                    ->label('NIDN')
+                    ->nullable()
+                    ->visible(fn (callable $get) => in_array($get('peran'), ['wali_kelas', 'guru_piket'])),
             ]);
     }
 }

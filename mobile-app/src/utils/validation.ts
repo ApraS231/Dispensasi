@@ -76,6 +76,13 @@ export const validateNIS = (nis: string): ValidationResult => {
   return { isValid: true };
 };
 
+export const validateNIDN = (nidn: string): ValidationResult => {
+  if (!nidn || nidn.trim() === '') {
+    return { isValid: false, error: 'NIDN wajib diisi' };
+  }
+  return { isValid: true };
+};
+
 export const validatePasswordMatch = (password: string, confirm: string): ValidationResult => {
   if (!confirm || confirm.trim() === '') {
     return { isValid: false, error: 'Konfirmasi password wajib diisi' };

@@ -34,6 +34,11 @@ class UsersTable
                         default => 'gray',
                     })
                     ->searchable(),
+                TextColumn::make('nidn')
+                    ->label('NIDN')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('created_at')
                     ->label('Dibuat')
                     ->dateTime('d M Y')

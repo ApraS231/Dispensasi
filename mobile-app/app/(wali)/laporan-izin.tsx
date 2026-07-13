@@ -86,36 +86,7 @@ export default function LaporanIzinScreen() {
     }
   };
 
-  const exportToCSV = async () => {
-    if (!data || !data.siswa) return;
-    
-    HapticFeedback.medium();
-    
-    try {
-      let csvContent = 'No,Nama,NIS,Sakit,Izin,Dispensasi,Total Izin,Disetujui,Ditolak,% Hadir\n';
-      
-      data.siswa.forEach((item: any, index: number) => {
-        csvContent += `${index + 1},"${item.name}","${item.nis || '-'}",${item.sakit},${item.izin},${item.dispensasi},${item.total_izin},${item.disetujui},${item.ditolak},"${item.persen_hadir}%"\n`;
-      });
 
-      const fileName = `Laporan_Izin_${data.kelas.replace(/\s+/g, '_')}_${data.bulan_nama}_${tahun}.csv`;
-      const fileUri = (FileSystem.documentDirectory || 'file:///') + fileName;
-      
-      await FileSystem.writeAsStringAsync(fileUri, csvContent, { encoding: FileSystem.EncodingType.UTF8 });
-      
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(fileUri, {
-          mimeType: 'text/csv',
-          dialogTitle: 'Bagikan Laporan Izin'
-        });
-      } else {
-        Alert.alert('Gagal', 'Fitur berbagi tidak tersedia di perangkat ini.');
-      }
-    } catch (error: any) {
-      console.error('CSV Export Error:', error);
-      Alert.alert('Error', `Gagal membuat file CSV: ${error.message || 'Unknown error'}`);
-    }
-  };
 
   const getPercentageColor = (percent: number) => {
     if (percent >= 90) return colors.success;
@@ -225,13 +196,6 @@ export default function LaporanIzinScreen() {
                 icon="file-pdf-box"
                 variant="primary"
                 style={{ marginBottom: SPACING.md }}
-                disabled={!data || data.siswa.length === 0}
-              />
-              <BouncyButton 
-                title="Export ke Excel (CSV)" 
-                onPress={exportToCSV}
-                icon="file-export-outline"
-                variant="outlined"
                 disabled={!data || data.siswa.length === 0}
               />
               <Text style={[styles.footerNote, { color: colors.textMuted }]}>

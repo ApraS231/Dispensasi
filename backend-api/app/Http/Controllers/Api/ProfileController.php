@@ -21,10 +21,11 @@ class ProfileController extends Controller
 
         $request->validate([
             'name' => 'nullable|string|max:255',
-            'email' => 'nullable|email|unique:pengguna,email,'.$user->id_pengguna,
+            'email' => 'nullable|email|unique:pengguna,email,'.$user->id_pengguna.',id_pengguna',
             'nis' => 'nullable|string',
             'kelas_id' => 'nullable|exists:kelas,id_kelas',
-            'profile_photo' => 'nullable|image|max:2048' // max 2MB
+            'profile_photo' => 'nullable|image|max:2048', // max 2MB
+            'nidn' => 'nullable|string|max:50'
         ]);
 
         if ($request->has('name')) {
@@ -33,6 +34,12 @@ class ProfileController extends Controller
 
         if ($request->has('email')) {
             $user->email = $request->email;
+        }
+
+        if (in_array($user->peran, ['wali_kelas', 'guru_piket'])) {
+            if ($request->has('nidn')) {
+                $user->nidn = $request->nidn;
+            }
         }
 
         // Handle Siswa Profile (NIS & Kelas Request)

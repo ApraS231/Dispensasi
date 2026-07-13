@@ -25,6 +25,7 @@ export default function ProfileSettingsScreen() {
   const [email, setEmail] = useState(user?.email || '');
   const [nis, setNis] = useState((user as any)?.siswa_profile?.nis || '');
   const [selectedKelasId, setSelectedKelasId] = useState((user as any)?.siswa_profile?.kelas_id || null);
+  const [nidn, setNidn] = useState((user as any)?.nidn || '');
   const [showKelasPicker, setShowKelasPicker] = useState(false);
   const [photoUri, setPhotoUri] = useState<string | null>(user?.profile_photo_url || null);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -49,6 +50,7 @@ export default function ProfileSettingsScreen() {
       formData.append('email', data.email);
       if (data.nis) formData.append('nis', data.nis);
       if (data.kelas_id) formData.append('kelas_id', data.kelas_id);
+      if (data.nidn) formData.append('nidn', data.nidn);
 
       const { data: response } = await api.post('/profile/update', formData, {
         headers: {
@@ -101,6 +103,7 @@ export default function ProfileSettingsScreen() {
       email, 
       nis, 
       kelas_id: selectedKelasId,
+      nidn,
     });
   };
 
@@ -221,6 +224,23 @@ export default function ProfileSettingsScreen() {
                   </SkeuCard>
                 )}
                 <Text style={[styles.helperTextNote, { color: colors.textMuted }]}>* Perubahan kelas memerlukan persetujuan Wali Kelas.</Text>
+              </>
+            )}
+
+            {['wali_kelas', 'guru_piket'].includes(user?.role || '') && (
+              <>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>NIDN</Text>
+                <View style={[styles.inputWrapper, shadows.inset]}>
+                  <MaterialCommunityIcons name="card-account-details-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
+                  <TextInput 
+                    style={[styles.input, { color: colors.textPrimary }]} 
+                    value={nidn} 
+                    onChangeText={setNidn} 
+                    placeholder="Masukkan NIDN Anda"
+                    placeholderTextColor={colors.textMuted}
+                    keyboardType="numeric"
+                  />
+                </View>
               </>
             )}
 

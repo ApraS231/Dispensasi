@@ -3,6 +3,7 @@ import {
   validatePassword, 
   validateName, 
   validateNIS, 
+  validateNIDN,
   validatePasswordMatch, 
   parseValidationErrors 
 } from './validation';
@@ -105,6 +106,19 @@ describe('Validation Utility Tests', () => {
 
     it('should pass if NIS is valid', () => {
       const result = validateNIS('12345');
+      expect(result.isValid).toBe(true);
+    });
+  });
+
+  describe('validateNIDN', () => {
+    it('should fail if NIDN is empty', () => {
+      const result = validateNIDN('');
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe('NIDN wajib diisi');
+    });
+
+    it('should pass if NIDN is valid', () => {
+      const result = validateNIDN('1234567890');
       expect(result.isValid).toBe(true);
     });
   });

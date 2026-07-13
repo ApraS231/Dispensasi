@@ -21,12 +21,14 @@ class UserController extends Controller
             'email' => 'required|email|unique:pengguna,email',
             'password' => 'required|string|min:6',
             'role' => 'required|in:admin,siswa,orang_tua,guru_piket,wali_kelas',
+            'nidn' => 'nullable|string|max:50',
         ]);
         $user = User::create([
             'nama' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'peran' => $validated['role'],
+            'nidn' => $validated['nidn'] ?? null,
         ]);
         return response()->json($user, 201);
     }
@@ -44,6 +46,7 @@ class UserController extends Controller
             'email' => 'sometimes|email|unique:pengguna,email,' . $id . ',id_pengguna',
             'password' => 'sometimes|string|min:6',
             'role' => 'sometimes|in:admin,siswa,orang_tua,guru_piket,wali_kelas',
+            'nidn' => 'nullable|string|max:50',
         ]);
         
         $updateData = [];
@@ -51,6 +54,7 @@ class UserController extends Controller
         if (isset($validated['email'])) $updateData['email'] = $validated['email'];
         if (isset($validated['password'])) $updateData['password'] = Hash::make($validated['password']);
         if (isset($validated['role'])) $updateData['peran'] = $validated['role'];
+        if (array_key_exists('nidn', $validated)) $updateData['nidn'] = $validated['nidn'];
 
         $user->update($updateData);
         return response()->json($user);

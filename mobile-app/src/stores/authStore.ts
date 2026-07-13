@@ -6,6 +6,7 @@ interface User {
   email: string;
   role: 'siswa' | 'guru_piket' | 'wali_kelas' | 'orang_tua' | 'admin';
   profile_photo_url?: string;
+  nidn?: string;
 }
 
 interface AuthState {
