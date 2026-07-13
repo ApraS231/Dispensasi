@@ -28,34 +28,17 @@ class DatabaseSeeder extends Seeder
         // 1. Seed Users
         // Admin
         $admin = User::create([
-            'nama' => 'Administrator SIDISpen',
-            'email' => 'admin@sidispen.com',
+            'nama' => 'Administrator SISPensi',
+            'email' => 'admin@sispensi.com',
             'password' => $password,
             'peran' => 'admin',
-            'email_verified_at' => now(),
-        ]);
-
-        // Wali Kelas
-        $wali1 = User::create([
-            'nama' => 'Drs. H. Ahmad Fauzi',
-            'email' => 'wali1@sidispen.com',
-            'password' => $password,
-            'peran' => 'wali_kelas',
-            'email_verified_at' => now(),
-        ]);
-
-        $wali2 = User::create([
-            'nama' => 'Siti Aminah, S.Pd.',
-            'email' => 'wali2@sidispen.com',
-            'password' => $password,
-            'peran' => 'wali_kelas',
             'email_verified_at' => now(),
         ]);
 
         // Guru Piket
         $piket1 = User::create([
             'nama' => 'Budi Santoso, S.Pd.',
-            'email' => 'piket1@sidispen.com',
+            'email' => 'piket1@sispensi.com',
             'password' => $password,
             'peran' => 'guru_piket',
             'email_verified_at' => now(),
@@ -63,7 +46,7 @@ class DatabaseSeeder extends Seeder
 
         $piket2 = User::create([
             'nama' => 'Dewi Lestari, M.Pd.',
-            'email' => 'piket2@sidispen.com',
+            'email' => 'piket2@sispensi.com',
             'password' => $password,
             'peran' => 'guru_piket',
             'email_verified_at' => now(),
@@ -72,7 +55,7 @@ class DatabaseSeeder extends Seeder
         // Parents
         $parent1 = User::create([
             'nama' => 'Hendra Wijaya (Wali Siswa)',
-            'email' => 'parent1@sidispen.com',
+            'email' => 'parent1@sispensi.com',
             'password' => $password,
             'peran' => 'orang_tua',
             'email_verified_at' => now(),
@@ -80,76 +63,177 @@ class DatabaseSeeder extends Seeder
 
         $parent2 = User::create([
             'nama' => 'Rina Amalia (Wali Siswa)',
-            'email' => 'parent2@sidispen.com',
+            'email' => 'parent2@sispensi.com',
             'password' => $password,
             'peran' => 'orang_tua',
             'email_verified_at' => now(),
         ]);
 
-        // Students
-        $siswaNames = [1 => 'Budi', 2 => 'Andi', 3 => 'Cici', 4 => 'Dedi', 5 => 'Evi'];
-        $siswaUsers = [];
-        for ($i = 1; $i <= 5; $i++) {
-            $siswaUsers[$i] = User::create([
-                'nama' => "Siswa Ke-$i " . ($siswaNames[$i] ?? 'Siswa'),
-                'email' => "siswa$i@sidispen.com",
-                'password' => $password,
-                'peran' => 'siswa',
-                'email_verified_at' => now(),
-            ]);
+        // 2. Seed Kelas, Wali Kelas, and Siswa Profiles
+        $tingkatList = [
+            'X' => ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
+            'XI' => ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
+            'XII' => ['A', 'B', 'C', 'D', 'E', 'F', 'G']
+        ];
+
+        $waliNames = [
+            'X' => [
+                'A' => 'Drs. H. Ahmad Fauzi',
+                'B' => 'Siti Aminah, S.Pd.',
+                'C' => 'H. Bambang Subianto, M.Pd.',
+                'D' => 'Dra. Sri Wahyuni',
+                'E' => 'Rudi Hermawan, S.Pd.',
+                'F' => 'Indah Lestari, S.Pd.',
+                'G' => 'Drs. M. Yusuf'
+            ],
+            'XI' => [
+                'A' => 'Dr. Eko Prasetyo',
+                'B' => 'Kartika Sari, S.Pd.',
+                'C' => 'Drs. Joko Susilo',
+                'D' => 'Tri Utami, M.Pd.',
+                'E' => 'Wawan Setiawan, S.Pd.',
+                'F' => 'Dewi Sartika, S.Pd.',
+                'G' => 'Drs. Agus Harimurti'
+            ],
+            'XII' => [
+                'A' => 'Hj. Ratna Sari, M.Pd.',
+                'B' => 'Drs. Heri Cahyono',
+                'C' => 'Rini Astuti, S.Pd.',
+                'D' => 'Bambang Pamungkas, S.Pd.',
+                'E' => 'Mega Utami, S.Pd.',
+                'F' => 'Drs. Slamet Riyadi',
+                'G' => 'Fitriani, M.Pd.'
+            ]
+        ];
+
+        $studentFirstNames = ['Budi', 'Andi', 'Cici', 'Dedi', 'Evi', 'Fahri', 'Gita', 'Hadi', 'Ira', 'Joko', 'Kiki', 'Lia', 'Maman', 'Nina', 'Oki', 'Putri', 'Qori', 'Rian', 'Santi', 'Tono'];
+        $studentLastNames = ['Pratama', 'Santoso', 'Wijaya', 'Lestari', 'Hidayat', 'Sari', 'Kusuma', 'Putra', 'Setiawan', 'Ningsih', 'Gunawan', 'Astuti', 'Wibowo', 'Fitri', 'Siregar', 'Hadi', 'Saputra', 'Ramadhan', 'Utami', 'Yusuf'];
+
+        $testStudent1 = null;
+        $testStudent2 = null;
+        $testStudent3 = null;
+        $testStudent4 = null;
+        $testStudent5 = null;
+        
+        $testKelas1 = null;
+        $testKelas2 = null;
+
+        $testWali1 = null;
+        $testWali2 = null;
+
+        $nisCounter = 102030001;
+
+        foreach ($tingkatList as $tingkat => $classes) {
+            foreach ($classes as $classSuffix) {
+                // Create Wali Kelas
+                $waliName = $waliNames[$tingkat][$classSuffix] ?? "Wali Kelas $tingkat $classSuffix";
+                $waliEmail = strtolower("wali." . $tingkat . "." . $classSuffix . "@sispensi.com");
+                
+                $wali = User::create([
+                    'nama' => $waliName,
+                    'email' => $waliEmail,
+                    'password' => $password,
+                    'peran' => 'wali_kelas',
+                    'email_verified_at' => now(),
+                ]);
+
+                // Create Kelas
+                $kelasName = "$tingkat $classSuffix";
+                $kelas = Kelas::create([
+                    'nama_kelas' => $kelasName,
+                    'tingkat' => $tingkat,
+                    'id_wali_kelas' => $wali->id_pengguna,
+                ]);
+
+                // Keep test classes/walis references
+                if ($tingkat === 'XII' && $classSuffix === 'A') {
+                    $testKelas1 = $kelas;
+                    $testWali1 = $wali;
+                }
+                if ($tingkat === 'XII' && $classSuffix === 'B') {
+                    $testKelas2 = $kelas;
+                    $testWali2 = $wali;
+                }
+
+                // Create 5 students for this class
+                for ($s = 1; $s <= 5; $s++) {
+                    $fName = $studentFirstNames[array_rand($studentFirstNames)];
+                    $lName = $studentLastNames[array_rand($studentLastNames)];
+                    $studentName = "$fName $lName";
+                    $studentEmail = strtolower($fName . "." . $lName . "." . $nisCounter . "@sispensi.com");
+
+                    $student = User::create([
+                        'nama' => $studentName,
+                        'email' => $studentEmail,
+                        'password' => $password,
+                        'peran' => 'siswa',
+                        'email_verified_at' => now(),
+                    ]);
+
+                    // Determine parent (use parent1/2 for first few, generate dynamic for others)
+                    $parent = null;
+                    if ($nisCounter % 5 === 1) {
+                        $parent = $parent1;
+                    } elseif ($nisCounter % 5 === 2) {
+                        $parent = $parent2;
+                    } else {
+                        $parentName = "Wali dari " . $studentName;
+                        $parentEmail = strtolower("ortu." . $fName . "." . $lName . "." . $nisCounter . "@sispensi.com");
+                        $parent = User::create([
+                            'nama' => $parentName,
+                            'email' => $parentEmail,
+                            'password' => $password,
+                            'peran' => 'orang_tua',
+                            'email_verified_at' => now(),
+                        ]);
+                    }
+
+                    $idKelasForProfile = $kelas->id_kelas;
+
+                    // Keep references for Ticket generation Compatibility
+                    if ($tingkat === 'XII' && $classSuffix === 'A' && $s === 1) {
+                        $testStudent1 = $student;
+                    }
+                    if ($tingkat === 'XII' && $classSuffix === 'A' && $s === 2) {
+                        $testStudent2 = $student;
+                    }
+                    if ($tingkat === 'XII' && $classSuffix === 'B' && $s === 3) {
+                        $testStudent3 = $student;
+                    }
+                    if ($tingkat === 'XII' && $classSuffix === 'B' && $s === 4) {
+                        $testStudent4 = $student;
+                    }
+                    if ($tingkat === 'XII' && $classSuffix === 'B' && $s === 5) {
+                        $testStudent5 = $student;
+                        // To keep join requests working like the original seeder, set id_kelas to null
+                        $idKelasForProfile = null;
+                    }
+
+                    SiswaProfile::create([
+                        'id_pengguna' => $student->id_pengguna,
+                        'nis' => (string)$nisCounter,
+                        'id_kelas' => $idKelasForProfile,
+                        'id_orang_tua' => $parent->id_pengguna,
+                    ]);
+
+                    $nisCounter++;
+                }
+            }
         }
 
-        // 2. Seed Kelas
-        $kelas1 = Kelas::create([
-            'nama_kelas' => 'XII IPA 1',
-            'tingkat' => '12',
-            'id_wali_kelas' => $wali1->id_pengguna,
-        ]);
+        // Map compatibility variables
+        $siswaUsers = [
+            1 => $testStudent1,
+            2 => $testStudent2,
+            3 => $testStudent3,
+            4 => $testStudent4,
+            5 => $testStudent5,
+        ];
 
-        $kelas2 = Kelas::create([
-            'nama_kelas' => 'XII IPS 1',
-            'tingkat' => '12',
-            'id_wali_kelas' => $wali2->id_pengguna,
-        ]);
-
-        // 3. Seed Siswa Profiles
-        // siswa1 & siswa2 -> kelas1, parent1
-        $profile1 = SiswaProfile::create([
-            'id_pengguna' => $siswaUsers[1]->id_pengguna,
-            'nis' => '102030401',
-            'id_kelas' => $kelas1->id_kelas,
-            'id_orang_tua' => $parent1->id_pengguna,
-        ]);
-
-        $profile2 = SiswaProfile::create([
-            'id_pengguna' => $siswaUsers[2]->id_pengguna,
-            'nis' => '102030402',
-            'id_kelas' => $kelas1->id_kelas,
-            'id_orang_tua' => $parent1->id_pengguna,
-        ]);
-
-        // siswa3 & siswa4 -> kelas2, parent2
-        $profile3 = SiswaProfile::create([
-            'id_pengguna' => $siswaUsers[3]->id_pengguna,
-            'nis' => '102030403',
-            'id_kelas' => $kelas2->id_kelas,
-            'id_orang_tua' => $parent2->id_pengguna,
-        ]);
-
-        $profile4 = SiswaProfile::create([
-            'id_pengguna' => $siswaUsers[4]->id_pengguna,
-            'nis' => '102030404',
-            'id_kelas' => $kelas2->id_kelas,
-            'id_orang_tua' => $parent2->id_pengguna,
-        ]);
-
-        // siswa5 -> no kelas, parent1
-        $profile5 = SiswaProfile::create([
-            'id_pengguna' => $siswaUsers[5]->id_pengguna,
-            'nis' => '102030405',
-            'id_kelas' => null,
-            'id_orang_tua' => $parent1->id_pengguna,
-        ]);
+        $kelas1 = $testKelas1;
+        $kelas2 = $testKelas2;
+        $wali1 = $testWali1;
+        $wali2 = $testWali2;
 
         // 4. Seed Piket Schedules
         PiketSchedule::create([

@@ -31,7 +31,7 @@ class DispensasiTicketInfolist
                                 ->formatStateUsing(fn (string $state): string => match ($state) {
                                     'sakit' => 'Sakit',
                                     'izin' => 'Izin',
-                                    'dispensasi' => 'Dispensasi',
+                                    'dispensasi' => 'Perizinan',
                                     default => $state,
                                 }),
                             Grid::make(2)

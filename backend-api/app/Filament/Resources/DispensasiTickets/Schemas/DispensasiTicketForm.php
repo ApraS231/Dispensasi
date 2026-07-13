@@ -47,7 +47,7 @@ class DispensasiTicketForm
                                     ->options([
                                         'sakit' => 'Sakit',
                                         'izin' => 'Izin',
-                                        'dispensasi' => 'Dispensasi',
+                                        'dispensasi' => 'Perizinan',
                                     ])
                                     ->required()
                                     ->default('sakit'),

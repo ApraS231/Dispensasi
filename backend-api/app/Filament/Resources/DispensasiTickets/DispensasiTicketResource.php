@@ -22,13 +22,13 @@ class DispensasiTicketResource extends Resource
 
     // protected static ?string $recordTitleAttribute = 'status';
 
-    protected static ?string $navigationLabel = 'Monitoring Dispensasi';
+    protected static ?string $navigationLabel = 'Monitoring Perizinan';
 
-    protected static ?string $modelLabel = 'Tiket Dispensasi';
+    protected static ?string $modelLabel = 'Tiket Perizinan';
 
-    protected static ?string $pluralModelLabel = 'Tiket Dispensasi';
+    protected static ?string $pluralModelLabel = 'Tiket Perizinan';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Dispensasi';
+    protected static string|\UnitEnum|null $navigationGroup = 'Perizinan';
 
     public static function getNavigationBadge(): ?string
     {

@@ -13,7 +13,7 @@ class ViewDispensasiTicket extends ViewRecord
     public function getTitle(): string
     {
         $siswaName = $this->record->siswa?->name ?? '';
-        return $siswaName ? "Detail Tiket Dispensasi - {$siswaName}" : "Detail Tiket Dispensasi";
+        return $siswaName ? "Detail Tiket Perizinan - {$siswaName}" : "Detail Tiket Perizinan";
     }
 
     protected function getHeaderActions(): array

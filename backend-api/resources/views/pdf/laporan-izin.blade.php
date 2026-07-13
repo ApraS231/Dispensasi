@@ -164,7 +164,7 @@
     <div class="header-line"></div>
 
     <div class="title">
-        LAPORAN REKAPITULASI BULANAN IZIN DAN DISPENSASI SISWA
+        LAPORAN REKAPITULASI BULANAN IZIN DAN PERIZINAN SISWA
     </div>
 
     <table class="info-table">
@@ -198,7 +198,7 @@
             <tr>
                 <th style="width: 8%;">Sakit</th>
                 <th style="width: 8%;">Izin</th>
-                <th style="width: 9%;">Disp.</th>
+                <th style="width: 9%;">Periz.</th>
             </tr>
         </thead>
         <tbody>

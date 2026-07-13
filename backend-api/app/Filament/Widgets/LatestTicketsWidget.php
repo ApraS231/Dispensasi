@@ -15,7 +15,7 @@ class LatestTicketsWidget extends BaseWidget
     
     protected int | string | array $columnSpan = 'full';
 
-    protected static ?string $heading = 'Tiket Dispensasi Terbaru';
+    protected static ?string $heading = 'Tiket Perizinan Terbaru';
 
     public function table(Table $table): Table
     {

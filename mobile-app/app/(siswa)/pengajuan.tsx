@@ -118,10 +118,10 @@ export default function PengajuanScreen() {
       await submitMutation.mutateAsync(payload);
       
       HapticFeedback.success();
-      Alert.alert('Berhasil', 'Dispensasi berhasil diajukan!', [{ text: 'OK', onPress: () => router.back() }]);
+      Alert.alert('Berhasil', 'Perizinan berhasil diajukan!', [{ text: 'OK', onPress: () => router.back() }]);
     } catch (error: any) {
       HapticFeedback.error();
-      console.error('Submit dispensasi error:', error);
+      console.error('Submit perizinan error:', error);
       let errMsg = 'Terjadi kesalahan saat mengajukan izin.';
       if (error.response?.data?.message) {
         errMsg = error.response.data.message;
@@ -167,7 +167,7 @@ export default function PengajuanScreen() {
               <MaterialCommunityIcons name="information" size={20} color={colors.primary} style={{ marginRight: SPACING.sm, marginTop: 2 }} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.infoTitle, { color: colors.primary }]}>Alur Pengajuan</Text>
-                <Text style={[styles.infoText, { color: colors.textSecondary }]}>Dispensasi wajib disetujui oleh Wali Kelas sebelum Anda bisa meminta QR Code ke Guru Piket.</Text>
+                <Text style={[styles.infoText, { color: colors.textSecondary }]}>Perizinan wajib disetujui oleh Wali Kelas sebelum Anda bisa meminta QR Code ke Guru Piket.</Text>
               </View>
             </View>
             
@@ -181,7 +181,7 @@ export default function PengajuanScreen() {
               >
                 <Picker.Item label="Sakit" value="sakit" color={isDark ? '#FFFFFF' : '#001D39'} style={{ backgroundColor: colors.bgPrimary }} />
                 <Picker.Item label="Izin" value="izin" color={isDark ? '#FFFFFF' : '#001D39'} style={{ backgroundColor: colors.bgPrimary }} />
-                <Picker.Item label="Dispensasi" value="dispensasi" color={isDark ? '#FFFFFF' : '#001D39'} style={{ backgroundColor: colors.bgPrimary }} />
+                <Picker.Item label="Perizinan" value="dispensasi" color={isDark ? '#FFFFFF' : '#001D39'} style={{ backgroundColor: colors.bgPrimary }} />
               </Picker>
             </View>
 

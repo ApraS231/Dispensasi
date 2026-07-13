@@ -249,7 +249,7 @@ export default function TicketDetailScreen() {
     >
         {/* Header - Fixed container to ensure responsiveness */}
         <View style={{ height: SPACING.statusBar + 88, zIndex: 100 }}>
-          <TopAppBar title="Detail Dispensasi" onBack={() => router.back()} />
+          <TopAppBar title="Detail Perizinan" onBack={() => router.back()} />
         </View>
         
         <KeyboardAvoidingView 

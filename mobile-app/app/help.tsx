@@ -30,7 +30,7 @@ const roleGuides: Record<'siswa' | 'orang_tua' | 'wali_kelas' | 'guru_piket', Ro
       {
         number: '01',
         title: 'Ajukan Izin Baru',
-        description: 'Ketuk tombol tambah "+" terapung (FAB) di dashboard Anda. Isi formulir dispensasi mulai dari Jenis Izin, Detail Alasan, Tanggal/Jam Mulai & Selesai, serta unggah dokumen/foto bukti pendukung.',
+        description: 'Ketuk tombol tambah "+" terapung (FAB) di dashboard Anda. Isi formulir perizinan mulai dari Jenis Izin, Detail Alasan, Tanggal/Jam Mulai & Selesai, serta unggah dokumen/foto bukti pendukung.',
       },
       {
         number: '02',
@@ -45,7 +45,7 @@ const roleGuides: Record<'siswa' | 'orang_tua' | 'wali_kelas' | 'guru_piket', Ro
       {
         number: '04',
         title: 'Tunjukkan QR Code ke Piket',
-        description: 'Buka tiket perizinan yang telah disetujui di tab "Riwayat/Izin". Tunjukkan QR Code dispensasi tersebut ke Guru Piket di gerbang sekolah untuk dipindai saat keluar/masuk.',
+        description: 'Buka tiket perizinan yang telah disetujui di tab "Riwayat/Izin". Tunjukkan QR Code perizinan tersebut ke Guru Piket di gerbang sekolah untuk dipindai saat keluar/masuk.',
       },
     ],
   },
@@ -61,7 +61,7 @@ const roleGuides: Record<'siswa' | 'orang_tua' | 'wali_kelas' | 'guru_piket', Ro
       {
         number: '02',
         title: 'Terima Notifikasi Izin',
-        description: 'Setiap kali anak Anda membuat pengajuan dispensasi/izin, Anda akan otomatis menerima notifikasi pengajuan masuk di perangkat Anda.',
+        description: 'Setiap kali anak Anda membuat pengajuan perizinan/izin, Anda akan otomatis menerima notifikasi pengajuan masuk di perangkat Anda.',
       },
       {
         number: '03',
@@ -87,17 +87,17 @@ const roleGuides: Record<'siswa' | 'orang_tua' | 'wali_kelas' | 'guru_piket', Ro
       {
         number: '02',
         title: 'Verifikasi Berkas Pendukung',
-        description: 'Tinjau detail alasan pengajuan dispensasi beserta foto bukti dokumen (misal: surat dokter/undangan kegiatan) yang dilampirkan oleh siswa.',
+        description: 'Tinjau detail alasan pengajuan perizinan beserta foto bukti dokumen (misal: surat dokter/undangan kegiatan) yang dilampirkan oleh siswa.',
       },
       {
         number: '03',
         title: 'Validasi Akhir',
-        description: 'Ketuk tombol "Setujui" untuk merilis tiket dispensasi digital siswa, atau "Tolak" disertai alasan penolakan jika perizinan dinilai kurang valid.',
+        description: 'Ketuk tombol "Setujui" untuk merilis tiket perizinan digital siswa, atau "Tolak" disertai alasan penolakan jika perizinan dinilai kurang valid.',
       },
       {
         number: '04',
         title: 'Pantau Laporan Absensi',
-        description: 'Gunakan fitur laporan absensi kelas untuk memantau akumulasi data ketidakhadiran dan dispensasi siswa bimbingan Anda secara berkala.',
+        description: 'Gunakan fitur laporan absensi kelas untuk memantau akumulasi data ketidakhadiran dan perizinan siswa bimbingan Anda secara berkala.',
       },
     ],
   },
@@ -113,12 +113,12 @@ const roleGuides: Record<'siswa' | 'orang_tua' | 'wali_kelas' | 'guru_piket', Ro
       {
         number: '02',
         title: 'Pindai QR Siswa',
-        description: 'Arahkan kamera ke QR Code dispensasi yang dibawa siswa di gerbang sekolah. Sistem akan otomatis memuat detail pengajuan secara langsung.',
+        description: 'Arahkan kamera ke QR Code perizinan yang dibawa siswa di gerbang sekolah. Sistem akan otomatis memuat detail pengajuan secara langsung.',
       },
       {
         number: '03',
         title: 'Validasi Log Gerbang',
-        description: 'Konfirmasi kecocokan foto dan data dispensasi di layar, lalu ketuk tombol "Validasi Keluar" atau "Validasi Masuk" untuk mencatat jam persis absensi.',
+        description: 'Konfirmasi kecocokan foto dan data perizinan di layar, lalu ketuk tombol "Validasi Keluar" atau "Validasi Masuk" untuk mencatat jam persis absensi.',
       },
       {
         number: '04',

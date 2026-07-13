@@ -199,7 +199,7 @@ export default function LaporanIzinScreen() {
                 disabled={!data || data.siswa.length === 0}
               />
               <Text style={[styles.footerNote, { color: colors.textMuted }]}>
-                * S: Sakit, I: Izin, D: Dispensasi, Tot: Total Izin, % Hdr: Persentase Kehadiran.{"\n"}
+                * S: Sakit, I: Izin, D: Perizinan, Tot: Total Izin, % Hdr: Persentase Kehadiran.{"\n"}
                 Persentase dihitung dari hari efektif (Senin-Jumat) dikurangi izin yang disetujui.
               </Text>
             </View>

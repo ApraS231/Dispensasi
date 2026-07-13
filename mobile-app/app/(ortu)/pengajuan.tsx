@@ -128,7 +128,7 @@ export default function OrtuPengajuanScreen() {
       await submitMutation.mutateAsync(formData);
       
       HapticFeedback.success();
-      Alert.alert('Berhasil', 'Dispensasi berhasil diajukan!', [{ text: 'OK', onPress: () => router.back() }]);
+      Alert.alert('Berhasil', 'Perizinan berhasil diajukan!', [{ text: 'OK', onPress: () => router.back() }]);
     } catch (error: any) {
       HapticFeedback.error();
       Alert.alert('Gagal', error.response?.data?.message || 'Terjadi kesalahan saat mengajukan izin.');
@@ -198,7 +198,7 @@ export default function OrtuPengajuanScreen() {
             >
               <Picker.Item label="Sakit" value="sakit" color={isDark ? '#FFFFFF' : '#001D39'} style={{ backgroundColor: colors.bgPrimary }} />
               <Picker.Item label="Izin" value="izin" color={isDark ? '#FFFFFF' : '#001D39'} style={{ backgroundColor: colors.bgPrimary }} />
-              <Picker.Item label="Dispensasi" value="dispensasi" color={isDark ? '#FFFFFF' : '#001D39'} style={{ backgroundColor: colors.bgPrimary }} />
+              <Picker.Item label="Perizinan" value="dispensasi" color={isDark ? '#FFFFFF' : '#001D39'} style={{ backgroundColor: colors.bgPrimary }} />
             </Picker>
           </View>
 

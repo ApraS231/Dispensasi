@@ -148,7 +148,7 @@
                         Efisiensi Perizinan Siswa Secara Mandiri
                     </h2>
                     <p class="text-base text-[#49769F] font-medium leading-relaxed">
-                        Selamat datang di <strong>SISPENSI</strong> (Sistem Perizinan Siswa), sistem informasi perizinan online SMA Negeri 3. Aplikasi ini dirancang untuk mempermudah orang tua dalam memantau dan mengajukan dispensasi serta izin siswa, serta membantu guru piket dan manajemen sekolah melakukan pencatatan secara transparan dan akurat.
+                        Selamat datang di <strong>SISPENSI</strong> (Sistem Perizinan Siswa), sistem informasi perizinan online SMA Negeri 3. Aplikasi ini dirancang untuk mempermudah orang tua dalam memantau dan mengajukan perizinan serta izin siswa, serta membantu guru piket dan manajemen sekolah melakukan pencatatan secara transparan dan akurat.
                     </p>
                     <div class="pt-4 flex flex-wrap gap-4">
                         <div class="flex items-center gap-3">
@@ -184,7 +184,7 @@
                             <div>
                                 <h3 class="text-2xl font-bold text-[#0A4174]">Portal Orang Tua</h3>
                                 <p class="text-sm text-[#49769F] mt-2 font-medium leading-relaxed">
-                                    Akses khusus bagi orang tua / wali murid untuk membuat pengajuan izin dispensasi siswa dan melihat riwayat kehadiran anak secara berkala.
+                                    Akses khusus bagi orang tua / wali murid untuk membuat pengajuan perizinan siswa dan melihat riwayat kehadiran anak secara berkala.
                                 </p>
                             </div>
                         </div>
@@ -207,7 +207,7 @@
                             <div>
                                 <h3 class="text-2xl font-bold text-[#0A4174]">Portal Staf & Admin</h3>
                                 <p class="text-sm text-[#49769F] mt-2 font-medium leading-relaxed">
-                                    Halaman masuk bagi Guru Piket, Walikelas, dan Administrator Sekolah untuk verifikasi pengajuan serta monitoring dispensasi harian.
+                                    Halaman masuk bagi Guru Piket, Walikelas, dan Administrator Sekolah untuk verifikasi pengajuan serta monitoring perizinan harian.
                                 </p>
                             </div>
                         </div>
@@ -232,7 +232,7 @@
                             </svg>
                         </div>
                         <h4 class="font-bold text-[#001D39] text-base">Pengajuan Cepat</h4>
-                        <p class="text-xs text-[#49769F] mt-2 leading-relaxed font-medium">Proses pendaftaran surat dispensasi secara online memudahkan penanganan izin tanpa kertas fisik.</p>
+                        <p class="text-xs text-[#49769F] mt-2 leading-relaxed font-medium">Proses pendaftaran surat perizinan secara online memudahkan penanganan izin tanpa kertas fisik.</p>
                     </div>
 
                     <div class="feature-card rounded-2xl p-6">
@@ -252,7 +252,7 @@
                             </svg>
                         </div>
                         <h4 class="font-bold text-[#001D39] text-base">Transparansi Kehadiran</h4>
-                        <p class="text-xs text-[#49769F] mt-2 leading-relaxed font-medium">Memastikan setiap dispensasi terhubung langsung dengan catatan absensi harian kelas.</p>
+                        <p class="text-xs text-[#49769F] mt-2 leading-relaxed font-medium">Memastikan setiap perizinan terhubung langsung dengan catatan absensi harian kelas.</p>
                     </div>
                 </div>
             </div>

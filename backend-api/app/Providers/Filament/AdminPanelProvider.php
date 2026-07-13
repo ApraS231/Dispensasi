@@ -34,7 +34,7 @@ class AdminPanelProvider extends PanelProvider
             ->sidebarCollapsibleOnDesktop()
             ->maxContentWidth('full')
             ->navigationGroups([
-                'Dispensasi',
+                'Perizinan',
                 'Manajemen',
             ])
             ->font('Plus Jakarta Sans')

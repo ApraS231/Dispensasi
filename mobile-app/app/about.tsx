@@ -17,7 +17,7 @@ export default function AboutScreen() {
 
   const features = [
     { icon: 'cellphone-text', title: 'Pengajuan Mandiri', desc: 'Siswa dan orang tua dapat mengajukan izin keluar/masuk sekolah secara mandiri dari mana saja.' },
-    { icon: 'qrcode-scan', title: 'Validasi QR Instan', desc: 'Guru Piket dapat memvalidasi dispensasi siswa di gerbang secara instan menggunakan pemindai QR Code.' },
+    { icon: 'qrcode-scan', title: 'Validasi QR Instan', desc: 'Guru Piket dapat memvalidasi perizinan siswa di gerbang secara instan menggunakan pemindai QR Code.' },
     { icon: 'file-chart-outline', title: 'Laporan Riwayat', desc: 'Wali Kelas memantau tingkat kehadiran dan data izin siswa secara berkala demi kelancaran akademis.' },
     { icon: 'chat-processing-outline', title: 'Diskusi Interaktif', desc: 'Siswa dan guru dapat berdiskusi serta melampirkan berkas bukti secara langsung di dalam aplikasi.' },
   ];
@@ -68,7 +68,7 @@ export default function AboutScreen() {
               Tujuan & Fungsi
             </Text>
             <Text style={[styles.bodyText, { fontFamily: FONTS.body, color: colors.textSecondary }]}>
-              Aplikasi ini dikembangkan untuk mendigitalisasi dan mempermudah alur perizinan serta dispensasi bagi siswa SMA Negeri 3 Bontang. 
+              Aplikasi ini dikembangkan untuk mendigitalisasi dan mempermudah alur perizinan bagi siswa SMA Negeri 3 Bontang. 
               Sistem terintegrasi ini mempercepat koordinasi antara Siswa, Wali Kelas, Orang Tua, dan Guru Piket demi menjamin keselamatan, ketertiban, dan transparansi kegiatan siswa di luar kelas.
             </Text>
           </SkeuCard>
