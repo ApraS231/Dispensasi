@@ -230,7 +230,7 @@
                     Wali Kelas {{ $kelas }},
                     <div class="signature-space"></div>
                     <strong><u>{{ $wali_kelas_nama }}</u></strong><br>
-                    NIP. -
+                    NIDN. {{ $wali_kelas_nidn ?? '-' }}
                 </td>
             </tr>
         </table>

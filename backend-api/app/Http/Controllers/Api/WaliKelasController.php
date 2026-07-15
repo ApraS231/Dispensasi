@@ -317,6 +317,7 @@ class WaliKelasController extends Controller
             'logoKaltim' => $logoKaltim,
             'logoSma3' => $logoSma3,
             'wali_kelas_nama' => $user->nama,
+            'wali_kelas_nidn' => $user->nidn,
             'tanggal_sekarang' => $tanggalSekarang,
         ]);
 
