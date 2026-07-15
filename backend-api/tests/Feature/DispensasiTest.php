@@ -42,4 +42,44 @@ class DispensasiTest extends TestCase
         $response2->assertStatus(400);
         $this->assertStringContainsString('Anda hanya dapat mengajukan 1 dispensasi setiap 12 jam', $response2->json('message'));
     }
+
+    public function test_export_pdf_returns_pdf()
+    {
+        $user = User::factory()->create(['peran' => 'wali_kelas']);
+        $kelas = Kelas::create(['nama_kelas' => '10A', 'tingkat' => '10', 'id_wali_kelas' => $user->id_pengguna]);
+        
+        $this->actingAs($user);
+        
+        $response = $this->get('/api/wali/laporan-izin/pdf?bulan=7&tahun=2026');
+        $response->assertStatus(200);
+        $response->assertHeader('Content-Type', 'application/pdf');
+    }
+
+    public function test_reject_ticket_successfully()
+    {
+        $waliKelas = User::factory()->create(['peran' => 'wali_kelas']);
+        $siswa = User::factory()->create(['peran' => 'siswa']);
+        $kelas = Kelas::create(['nama_kelas' => '10A', 'tingkat' => '10', 'id_wali_kelas' => $waliKelas->id_pengguna]);
+        $profile = SiswaProfile::create(['id_pengguna' => $siswa->id_pengguna, 'id_kelas' => $kelas->id_kelas, 'nis' => '12345']);
+
+        $ticket = DispensasiTicket::create([
+            'id_siswa' => $siswa->id_pengguna,
+            'id_kelas' => $kelas->id_kelas,
+            'id_wali_kelas' => $waliKelas->id_pengguna,
+            'jenis_izin' => 'izin',
+            'alasan' => 'Ada acara',
+            'waktu_mulai' => now()->toDateTimeString(),
+            'waktu_selesai' => now()->addHours(2)->toDateTimeString(),
+            'status' => 'pending'
+        ]);
+
+        $this->actingAs($waliKelas);
+
+        $response = $this->postJson("/api/dispensasi/{$ticket->id_tiket_dispensasi}/reject", [
+            'catatan_penolakan' => 'Alasan kurang jelas'
+        ]);
+
+        $response->assertStatus(200);
+        $this->assertEquals('rejected', $ticket->fresh()->status);
+    }
 }

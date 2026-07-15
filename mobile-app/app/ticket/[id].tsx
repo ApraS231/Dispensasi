@@ -509,7 +509,10 @@ const TicketHeader = memo(({ ticket, isExpired, user, actionLoading, onApprove, 
           </View>
         )}
 
-        {!isExpired && (user?.role === 'wali_kelas' || user?.role === 'guru_piket') && ticket.status === 'pending' && (
+        {!isExpired && (
+          (user?.role === 'wali_kelas' && ticket.status === 'pending') ||
+          (user?.role === 'guru_piket' && ticket.status === 'waiting_piket')
+        ) && (
           <View style={styles.actionRow}>
             <BouncyButton title="Tolak" variant="danger" onPress={onReject} style={styles.actionBtn} loading={actionLoading} />
             <BouncyButton title={user?.role === 'wali_kelas' ? "Setujui" : "Terbitkan QR"} onPress={onApprove} style={styles.actionBtn} loading={actionLoading} />

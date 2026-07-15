@@ -92,6 +92,7 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => 'prefer',
+            'timezone' => 'Asia/Makassar',
         ],
 
         'sqlsrv' => [

@@ -40,7 +40,7 @@ export default function TicketCard({ item, onPress, showName, flat = false }: Ti
             <Text style={[styles.studentName, { fontFamily: FONTS.headingSemi, color: colors.textPrimary }]}>{item.siswa.name}</Text>
           )}
           <Text style={[styles.typeText, { fontFamily: FONTS.heading, color: colors.primary }]}>
-            {item.jenis_izin === 'dispensasi' ? 'perizinan' : item.jenis_izin?.replace(/_/g, ' ')}
+            {item.jenis_izin?.replace(/_/g, ' ')}
           </Text>
           <View style={styles.reasonContainer}>
             <MaterialCommunityIcons name="format-quote-open" size={10} color={isDark ? '#7BBDE8' : colors.primaryMuted} style={{ marginRight: 4 }} />

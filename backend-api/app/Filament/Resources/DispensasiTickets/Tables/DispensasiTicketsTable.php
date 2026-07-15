@@ -39,7 +39,7 @@ class DispensasiTicketsTable
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'sakit' => 'Sakit',
                         'izin' => 'Izin',
-                        'dispensasi' => 'Perizinan',
+                        'dispensasi' => 'Dispensasi',
                         default => $state,
                     }),
                 TextColumn::make('status')
@@ -90,7 +90,7 @@ class DispensasiTicketsTable
                     ->options([
                         'sakit' => 'Sakit',
                         'izin' => 'Izin',
-                        'dispensasi' => 'Perizinan',
+                        'dispensasi' => 'Dispensasi',
                     ]),
             ])
             ->recordActions([

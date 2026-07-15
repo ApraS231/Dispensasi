@@ -181,7 +181,7 @@ export default function PengajuanScreen() {
               >
                 <Picker.Item label="Sakit" value="sakit" color={isDark ? '#FFFFFF' : '#001D39'} style={{ backgroundColor: colors.bgPrimary }} />
                 <Picker.Item label="Izin" value="izin" color={isDark ? '#FFFFFF' : '#001D39'} style={{ backgroundColor: colors.bgPrimary }} />
-                <Picker.Item label="Perizinan" value="dispensasi" color={isDark ? '#FFFFFF' : '#001D39'} style={{ backgroundColor: colors.bgPrimary }} />
+                <Picker.Item label="Dispensasi" value="dispensasi" color={isDark ? '#FFFFFF' : '#001D39'} style={{ backgroundColor: colors.bgPrimary }} />
               </Picker>
             </View>
 

@@ -66,7 +66,7 @@ export default function DailyLogCard({ item }: DailyLogCardProps) {
                     },
                   ]}
                 >
-                  {item.jenis_izin === 'dispensasi' ? 'perizinan' : item.jenis_izin?.replace(/_/g, ' ')}
+                  {item.jenis_izin?.replace(/_/g, ' ')}
                 </Text>
               </View>
               <Text

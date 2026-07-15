@@ -288,16 +288,21 @@ class WaliKelasController extends Controller
             ];
         });
 
-        // Convert logos to base64 for PDF rendering
-        $logoKaltimPath = public_path('images/logo-kaltim.jpg');
-        $logoSma3Path = public_path('images/logo-sma3.png');
+        // Convert logos to base64 for PDF rendering (only if GD extension is loaded to avoid DomPDF crash)
+        $logoKaltim = '';
+        $logoSma3 = '';
+        
+        if (extension_loaded('gd')) {
+            $logoKaltimPath = public_path('images/logo-kaltim.jpg');
+            $logoSma3Path = public_path('images/logo-sma3.png');
 
-        $logoKaltim = file_exists($logoKaltimPath) 
-            ? base64_encode(file_get_contents($logoKaltimPath)) 
-            : '';
-        $logoSma3 = file_exists($logoSma3Path) 
-            ? base64_encode(file_get_contents($logoSma3Path)) 
-            : '';
+            $logoKaltim = file_exists($logoKaltimPath) 
+                ? base64_encode(file_get_contents($logoKaltimPath)) 
+                : '';
+            $logoSma3 = file_exists($logoSma3Path) 
+                ? base64_encode(file_get_contents($logoSma3Path)) 
+                : '';
+        }
 
         $bulanNama = \Carbon\Carbon::create($tahun, $bulan)->translatedFormat('F');
         $tanggalSekarang = \Carbon\Carbon::now()->translatedFormat('d F Y');

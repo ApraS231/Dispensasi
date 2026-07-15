@@ -54,7 +54,7 @@ export default function RejectModal({ visible, onClose, onSubmit }: RejectModalP
     []
   );
 
-  if (!visible) return null;
+
 
   return (
     <BottomSheet
