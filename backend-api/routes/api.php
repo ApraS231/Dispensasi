@@ -149,3 +149,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::put('/notifications/{id}/read', [NotificationController::class, 'update']);
 });
+
+Route::get('/debug-logs', function () {
+    $path = storage_path('logs/laravel.log');
+    if (!file_exists($path)) {
+        return response()->json(['message' => 'Log file not found'], 404);
+    }
+    $lines = file($path);
+    $lastLines = array_slice($lines, -100);
+    return response(implode('', $lastLines), 200, ['Content-Type' => 'text/plain']);
+});
+
