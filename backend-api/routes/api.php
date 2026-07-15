@@ -151,12 +151,22 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 Route::get('/debug-logs', function () {
+    $timezoneInfo = [
+        'laravel_timezone' => config('app.timezone'),
+        'laravel_now' => now()->toDateTimeString(),
+        'database_now' => \Illuminate\Support\Facades\DB::select('SELECT NOW() as now')[0]->now ?? 'N/A',
+    ];
+    
     $path = storage_path('logs/laravel.log');
-    if (!file_exists($path)) {
-        return response()->json(['message' => 'Log file not found'], 404);
+    $logLines = [];
+    if (file_exists($path)) {
+        $lines = file($path);
+        $logLines = array_slice($lines, -50);
     }
-    $lines = file($path);
-    $lastLines = array_slice($lines, -100);
-    return response(implode('', $lastLines), 200, ['Content-Type' => 'text/plain']);
+    
+    return response()->json([
+        'timezone_info' => $timezoneInfo,
+        'last_50_log_lines' => $logLines
+    ]);
 });
 
