@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router as expoRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import api from '../../src/utils/api';
 import { FONTS, SIZES, SPACING, GLASS } from '../../src/utils/theme';
