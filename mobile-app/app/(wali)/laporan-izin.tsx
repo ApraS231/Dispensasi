@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router as expoRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as FileSystem from 'expo-file-system/legacy';
+import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import api from '../../src/utils/api';
 import { FONTS, SIZES, SPACING, GLASS } from '../../src/utils/theme';
@@ -78,7 +78,20 @@ export default function LaporanIzinScreen() {
           Alert.alert('Gagal', 'Fitur berbagi tidak tersedia di perangkat ini.');
         }
       } else {
-        Alert.alert('Gagal', 'Gagal mengunduh file PDF dari server.');
+        let errorDetails = '';
+        try {
+          const fileContent = await FileSystem.readAsStringAsync(downloadResult.uri);
+          if (fileContent.trim().startsWith('{')) {
+            const jsonErr = JSON.parse(fileContent);
+            errorDetails = jsonErr.message || JSON.stringify(jsonErr);
+          } else {
+            const match = /<title>(.*?)<\/title>/i.exec(fileContent);
+            errorDetails = match ? match[1] : fileContent.substring(0, 150);
+          }
+        } catch (readErr) {
+          errorDetails = 'Tidak dapat membaca rincian error dari server.';
+        }
+        Alert.alert('Gagal', `Gagal mengunduh file PDF dari server (Status: ${downloadResult.status}).\n\nDetail: ${errorDetails}`);
       }
     } catch (error: any) {
       console.error('PDF Export Error:', error);
